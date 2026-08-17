@@ -15,12 +15,76 @@ describe("applyLiteCompression", () => {
     expect(stats.hits).toContain("whitespace");
   });
 
-  it("caps long tool output at 2000 chars", () => {
+  it("does not cap long tool output", () => {
     const long = "x".repeat(3000);
     const body = { messages: [{ role: "tool", content: long }] };
+    const stats = applyLiteCompression(body);
+    expect(body.messages[0].content).toBe(long);
+    expect(stats).toBeNull();
+  });
+
+  it("minifies pretty JSON tool output", () => {
+    const pretty = '{\n  "id": 1,\n  "name": "ada"\n}';
+    const body = { messages: [{ role: "tool", content: pretty }] };
+    const stats = applyLiteCompression(body);
+    expect(body.messages[0].content).toBe('{"id":1,"name":"ada"}');
+    expect(stats.hits).toContain("json");
+    expect(JSON.parse(body.messages[0].content)).toEqual({ id: 1, name: "ada" });
+  });
+
+  it("strips ANSI and progress CR from tool output", () => {
+    const raw = "\u001b[32mDownloading...\u001b[0m\r\u001b[32mDone\u001b[0m\n";
+    const body = { messages: [{ role: "tool", content: raw }] };
+    const stats = applyLiteCompression(body);
+    expect(body.messages[0].content).toBe("Done\n");
+    expect(stats.hits).toContain("ansi");
+  });
+
+  it("minifies OpenAI tool call arguments", () => {
+    const pretty = '{\n  "path": "src/a.js"\n}';
+    const body = {
+      messages: [{
+        role: "assistant",
+        content: null,
+        tool_calls: [{ id: "c1", type: "function", function: { name: "Read", arguments: pretty } }],
+      }],
+    };
     applyLiteCompression(body);
-    expect(body.messages[0].content.length).toBeLessThan(2100);
-    expect(body.messages[0].content).toContain("...[truncated]");
+    expect(body.messages[0].tool_calls[0].function.arguments).toBe('{"path":"src/a.js"}');
+  });
+
+  it("applies lossless cleanup to Gemini contents", () => {
+    const pretty = '{\n  "ok": true\n}';
+    const body = {
+      contents: [{ role: "user", parts: [{ functionResponse: { name: "x", response: pretty } }] }],
+    };
+    applyLiteCompression(body);
+    expect(body.contents[0].parts[0].functionResponse.response).toBe('{"ok":true}');
+  });
+
+  it("applies lossless cleanup to Kiro tool results", () => {
+    const pretty = '{\n  "ok": true\n}';
+    const body = {
+      conversationState: {
+        history: [{
+          userInputMessage: {
+            content: "go",
+            userInputMessageContext: {
+              toolResults: [{ content: [{ text: pretty }] }],
+            },
+          },
+        }],
+      },
+    };
+    applyLiteCompression(body);
+    expect(body.conversationState.history[0].userInputMessage.userInputMessageContext.toolResults[0].content[0].text)
+      .toBe('{"ok":true}');
+  });
+
+  it("leaves CRLF newlines intact", () => {
+    const body = { messages: [{ role: "user", content: "a\r\nb" }] };
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.messages[0].content).toBe("a\r\nb");
   });
 
   it("drops consecutive duplicate messages", () => {

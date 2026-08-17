@@ -57,4 +57,27 @@ describe("crushMessages", () => {
     expect(stats).toBeNull();
     expect(body.messages[0].content).toBe(json);
   });
+
+  it("crushes Gemini functionResponse arrays", () => {
+    const json = JSON.stringify(makeRows(20));
+    const body = {
+      contents: [{ role: "user", parts: [{ functionResponse: { name: "list", response: json } }] }],
+    };
+    const stats = crushMessages(body);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.contents[0].parts[0].functionResponse.response).toContain("omni-tabular");
+  });
+
+  it("does not crush tool-call argument JSON", () => {
+    const json = JSON.stringify(makeRows(20));
+    const body = {
+      messages: [{
+        role: "assistant",
+        content: null,
+        tool_calls: [{ id: "c1", function: { name: "x", arguments: json } }],
+      }],
+    };
+    expect(crushMessages(body)).toBeNull();
+    expect(body.messages[0].tool_calls[0].function.arguments).toBe(json);
+  });
 });

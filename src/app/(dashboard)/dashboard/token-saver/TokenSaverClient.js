@@ -515,7 +515,7 @@ export default function TokenSaverClient() {
           <div className="min-w-0 flex-1">
             <p className="font-medium">Clean whitespace (Lite)</p>
             <p className="text-sm text-text-muted">
-              Collapse blank lines, cap long tool text at 2k, drop back-to-back duplicate messages. Safe, lossless. ~15%.
+              Collapse blank lines, minify pretty JSON, strip ANSI, drop back-to-back duplicate messages. Safe, lossless.
             </p>
           </div>
           <Toggle

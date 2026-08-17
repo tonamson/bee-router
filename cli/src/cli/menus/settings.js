@@ -42,7 +42,7 @@ async function showSettingsMenu(breadcrumb = []) {
       const cavemanOn = !!data?.settings?.cavemanEnabled;
       const cavemanLevel = data?.settings?.cavemanLevel || "full";
       lines.push(`  RTK:      ${rtkOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(Token Saver)${COLORS.reset}`);
-      lines.push(`  Lite:     ${liteOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(whitespace / tool cap)${COLORS.reset}`);
+      lines.push(`  Lite:     ${liteOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(whitespace / JSON / ANSI)${COLORS.reset}`);
       lines.push(`  Caveman:  ${cavemanOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(${cavemanLevel})${COLORS.reset}`);
       const headroomOn = data?.settings?.headroomEnabled === true;
       lines.push(`  Headroom: ${headroomOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(${data?.settings?.headroomUrl || "http://localhost:8787"})${COLORS.reset}`);

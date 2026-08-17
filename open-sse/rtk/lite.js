@@ -1,13 +1,19 @@
 // Lossless request cleanup. Fail-open. Does not touch grok-cli / session.
 
-import { hasCacheControl } from "./cacheGuard.js";
+import { forEachTextSlot, walkItems } from "./walk.js";
 
-const MAX_TOOL_LENGTH = 2000;
+const ANSI_RE =
+  /\u001b\[[\d;?]*[A-Za-z]|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)|\u001b[()][AB012]|\u001b[=>]/g;
 
-function walkItems(body) {
-  if (Array.isArray(body?.messages)) return body.messages;
-  if (Array.isArray(body?.input)) return body.input;
-  return null;
+function stripAnsi(text) {
+  ANSI_RE.lastIndex = 0;
+  return text.replace(ANSI_RE, "");
+}
+
+// Lone CR is a progress overwrite. CRLF stays a newline.
+function collapseProgress(text) {
+  if (!text.includes("\r")) return text;
+  return text.replace(/[^\n\r]*\r(?!\n)/g, "");
 }
 
 function collapseWhitespace(text) {
@@ -18,83 +24,90 @@ function collapseWhitespace(text) {
     .replace(/\n{3,}/g, "\n\n");
 }
 
-function capTool(text) {
-  if (text.length <= MAX_TOOL_LENGTH) return text;
-  let cut = MAX_TOOL_LENGTH;
-  const windowStart = Math.max(0, cut - 80);
-  for (let i = cut; i > windowStart; i--) {
-    if (/\s/.test(text[i - 1])) { cut = i - 1; break; }
+function tryMinifyJson(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return null;
+  try {
+    const compact = JSON.stringify(JSON.parse(trimmed));
+    return compact.length < raw.length ? compact : null;
+  } catch {
+    return null;
   }
-  return `${text.slice(0, cut)}\n...[truncated]`;
+}
+
+function minifyJsonText(text) {
+  const whole = tryMinifyJson(text);
+  if (whole) return whole;
+
+  const fenceRe = /```json\r?\n([\s\S]*?)```/gi;
+  let changed = false;
+  const next = text.replace(fenceRe, (full, inner) => {
+    const compact = tryMinifyJson(inner);
+    if (!compact) return full;
+    changed = true;
+    return "```json\n" + compact + "\n```";
+  });
+  return changed ? next : null;
+}
+
+export function applyLosslessText(text) {
+  if (typeof text !== "string" || text.length === 0) return { text, hits: [] };
+  const hits = [];
+  let next = stripAnsi(text);
+  if (next !== text) hits.push("ansi");
+  const noCr = collapseProgress(next);
+  if (noCr !== next) {
+    hits.push("ansi");
+    next = noCr;
+  }
+  const min = minifyJsonText(next);
+  if (min) {
+    hits.push("json");
+    next = min;
+  } else {
+    const ws = collapseWhitespace(next);
+    if (ws !== next) {
+      hits.push("whitespace");
+      next = ws;
+    }
+  }
+  if (next.length > text.length) return { text, hits: [] };
+  return { text: next, hits };
 }
 
 export function applyLiteCompression(body) {
   if (!body) return null;
-  const items = walkItems(body);
-  if (!items) return null;
 
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
-    for (let i = 0; i < items.length; i++) {
-      const msg = items[i];
-      if (!msg) continue;
+    forEachTextSlot(body, ({ text, set }) => {
+      const { text: next, hits } = applyLosslessText(text);
+      if (hits.length === 0 || next === text) return;
+      stats.bytesBefore += text.length;
+      stats.bytesAfter += next.length;
+      stats.hits.push(...hits);
+      set(next);
+    });
 
-      if (hasCacheControl(msg)) continue;
-
-      if (msg.role === "tool" && typeof msg.content === "string") {
-        stats.bytesBefore += msg.content.length;
-        const next = collapseWhitespace(capTool(msg.content));
-        if (next.length < msg.content.length) stats.hits.push("tool-cap");
-        msg.content = next;
-        stats.bytesAfter += next.length;
-        continue;
-      }
-
-      if (typeof msg.content === "string") {
-        stats.bytesBefore += msg.content.length;
-        const next = collapseWhitespace(msg.content);
-        if (next !== msg.content) stats.hits.push("whitespace");
-        msg.content = next;
-        stats.bytesAfter += next.length;
-      } else if (Array.isArray(msg.content)) {
-        for (const part of msg.content) {
-          if (!part || typeof part.text !== "string") continue;
-          if (hasCacheControl(part)) continue;
-          stats.bytesBefore += part.text.length;
-          const next = collapseWhitespace(part.text);
-          if (next !== part.text) stats.hits.push("whitespace");
-          part.text = next;
-          stats.bytesAfter += next.length;
+    const items = walkItems(body);
+    if (items) {
+      let write = 1;
+      for (let i = 1; i < items.length; i++) {
+        const prev = items[write - 1];
+        const cur = items[i];
+        if (
+          prev && cur &&
+          prev.role === cur.role &&
+          typeof prev.content === "string" &&
+          prev.content === cur.content
+        ) {
+          stats.hits.push("dedup");
+          continue;
         }
+        items[write++] = cur;
       }
-
-      if (msg.type === "function_call_output") {
-        if (typeof msg.output === "string") {
-          stats.bytesBefore += msg.output.length;
-          msg.output = collapseWhitespace(capTool(msg.output));
-          stats.bytesAfter += msg.output.length;
-          stats.hits.push("tool-cap");
-        }
-      }
+      if (write < items.length) items.length = write;
     }
-
-    // Drop consecutive duplicate string messages (same role + same content).
-    let write = 1;
-    for (let i = 1; i < items.length; i++) {
-      const prev = items[write - 1];
-      const cur = items[i];
-      if (
-        prev && cur &&
-        prev.role === cur.role &&
-        typeof prev.content === "string" &&
-        prev.content === cur.content
-      ) {
-        stats.hits.push("dedup");
-        continue;
-      }
-      items[write++] = cur;
-    }
-    if (write < items.length) items.length = write;
   } catch (e) {
     console.warn("[LITE] applyLiteCompression error:", e.message);
     return null;

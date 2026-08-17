@@ -246,12 +246,12 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const rtkLine = formatRtkLog(rtkStats);
   if (rtkLine) console.log(rtkLine);
 
-  // SmartCrush: lossless columnar JSON arrays. Before lite so the 2k cap sees compact form.
+  // SmartCrush: lossless columnar JSON arrays. Before lite so minify sees compact form.
   const crushStats = tokenSaverEnabled && liteEnabled !== false ? crushMessages(translatedBody) : null;
   const crushLine = formatCrushLog(crushStats);
   if (crushLine) console.log(crushLine);
 
-  // Lite: lossless whitespace / tool-cap / consecutive-dup. Fail-open.
+  // Lite: lossless whitespace / JSON minify / ANSI / consecutive-dup. Fail-open.
   const liteStats = tokenSaverEnabled && liteEnabled !== false ? applyLiteCompression(translatedBody) : null;
   const liteLine = formatLiteLog(liteStats);
   if (liteLine) console.log(liteLine);

@@ -1,15 +1,9 @@
 // In-process SmartCrusher: lossless columnar compaction of homogeneous JSON arrays.
 // Never touches system / cache_control. Fail-open.
 
-import { hasCacheControl } from "./cacheGuard.js";
+import { forEachTextSlot } from "./walk.js";
 
 export const MIN_ROWS = 8;
-
-function walkItems(body) {
-  if (Array.isArray(body?.messages)) return body.messages;
-  if (Array.isArray(body?.input)) return body.input;
-  return null;
-}
 
 function encodeCell(value) {
   if (value == null) return "";
@@ -69,75 +63,18 @@ function crushText(text) {
 
 export function crushMessages(body) {
   if (!body) return null;
-  const items = walkItems(body);
-  if (!items) return null;
 
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
-    for (const msg of items) {
-      if (!msg) continue;
-      if (msg.role === "system" || msg.role === "developer") continue;
-      if (hasCacheControl(msg)) continue;
-
-      if (typeof msg.content === "string") {
-        const next = crushText(msg.content);
-        if (next !== msg.content) {
-          stats.bytesBefore += msg.content.length;
-          stats.bytesAfter += next.length;
-          stats.hits.push("tabular");
-          msg.content = next;
-        }
-        continue;
-      }
-
-      if (Array.isArray(msg.content)) {
-        for (const part of msg.content) {
-          if (!part || hasCacheControl(part)) continue;
-          if (part.type === "text" && typeof part.text === "string") {
-            const next = crushText(part.text);
-            if (next !== part.text) {
-              stats.bytesBefore += part.text.length;
-              stats.bytesAfter += next.length;
-              stats.hits.push("tabular");
-              part.text = next;
-            }
-          } else if (part.type === "tool_result") {
-            if (hasCacheControl(part)) continue;
-            if (typeof part.content === "string") {
-              const next = crushText(part.content);
-              if (next !== part.content) {
-                stats.bytesBefore += part.content.length;
-                stats.bytesAfter += next.length;
-                stats.hits.push("tabular");
-                part.content = next;
-              }
-            } else if (Array.isArray(part.content)) {
-              for (const inner of part.content) {
-                if (!inner || inner.type !== "text" || typeof inner.text !== "string") continue;
-                if (hasCacheControl(inner)) continue;
-                const next = crushText(inner.text);
-                if (next !== inner.text) {
-                  stats.bytesBefore += inner.text.length;
-                  stats.bytesAfter += next.length;
-                  stats.hits.push("tabular");
-                  inner.text = next;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      if (msg.type === "function_call_output" && typeof msg.output === "string" && !hasCacheControl(msg)) {
-        const next = crushText(msg.output);
-        if (next !== msg.output) {
-          stats.bytesBefore += msg.output.length;
-          stats.bytesAfter += next.length;
-          stats.hits.push("tabular");
-          msg.output = next;
-        }
-      }
-    }
+    forEachTextSlot(body, ({ kind, text, set }) => {
+      if (kind !== "content") return;
+      const next = crushText(text);
+      if (next === text) return;
+      stats.bytesBefore += text.length;
+      stats.bytesAfter += next.length;
+      stats.hits.push("tabular");
+      set(next);
+    });
   } catch (err) {
     console.warn("[CRUSH] crushMessages error:", err?.message || err);
     return null;
