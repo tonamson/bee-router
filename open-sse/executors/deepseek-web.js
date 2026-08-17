@@ -28,11 +28,19 @@ const FAKE_HEADERS = {
 const DEEPSEEK_FINISHED_DRAIN_MS = 750;
 const DEFAULT_TOKEN_TTL_SEC = 5 * 60;
 const CACHE_MAX_SIZE = 100;
+const REPASTE_MSG =
+  "DeepSeek token expired — re-paste userToken from chat.deepseek.com Local Storage";
 
 /** userToken → { accessToken, expiresAt } */
 const tokenCache = new Map();
 
 export { extractDeepSeekUserToken as extractUserToken };
+
+function authError() {
+  const err = new Error(REPASTE_MSG);
+  err.status = 401;
+  return err;
+}
 
 export function parseOpenAIMessages(messages) {
   const extracted = [];
@@ -523,11 +531,8 @@ async function acquireAccessToken(userToken, signal, log) {
   });
 
   if (resp.status === 401 || resp.status === 403) {
-    const err = new Error(
-      "DeepSeek token expired — re-paste userToken from chat.deepseek.com Local Storage"
-    );
-    err.status = 401;
-    throw err;
+    tokenCache.delete(userToken);
+    throw authError();
   }
   if (!resp.ok) {
     throw new Error(`users/current HTTP ${resp.status}`);
@@ -570,6 +575,7 @@ async function createSession(accessToken, signal) {
     signal: signal ?? undefined,
   });
 
+  if (resp.status === 401 || resp.status === 403) throw authError();
   if (!resp.ok) throw new Error(`chat_session/create HTTP ${resp.status}`);
   const json = await resp.json();
   const bizData = json?.data?.biz_data || json?.biz_data;
@@ -589,6 +595,7 @@ async function getPowChallenge(accessToken, signal) {
     body: JSON.stringify({ target_path: "/api/v0/chat/completion" }),
     signal: signal ?? undefined,
   });
+  if (resp.status === 401 || resp.status === 403) throw authError();
   if (!resp.ok) throw new Error(`create_pow_challenge HTTP ${resp.status}`);
   const json = await resp.json();
   const bizData = json?.data?.biz_data || json?.biz_data;
@@ -646,6 +653,15 @@ export class DeepSeekWebExecutor extends BaseExecutor {
         const powChallenge = await getPowChallenge(accessToken, signal);
         powAnswer = await solvePow(powChallenge);
       } catch (powErr) {
+        if (powErr?.status === 401 || powErr?.status === 403) {
+          tokenCache.delete(userToken);
+          return {
+            response: errorResponse(401, REPASTE_MSG),
+            url: COMPLETION_URL,
+            headers: {},
+            transformedBody: body,
+          };
+        }
         const msg = powErr instanceof Error ? powErr.message : String(powErr);
         log?.error?.("DEEPSEEK-WEB", `PoW failed: ${msg}`);
         return {
@@ -705,7 +721,7 @@ export class DeepSeekWebExecutor extends BaseExecutor {
         let errMsg = `DeepSeek API error (${status})`;
         if (status === 401 || status === 403) {
           tokenCache.delete(userToken);
-          errMsg = "DeepSeek token expired — re-paste userToken from chat.deepseek.com Local Storage";
+          errMsg = REPASTE_MSG;
         } else if (status === 429) {
           errMsg = "DeepSeek rate limited. Wait and retry.";
         }
@@ -755,7 +771,6 @@ export class DeepSeekWebExecutor extends BaseExecutor {
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      const status = err?.status || 502;
       log?.error?.("DEEPSEEK-WEB", `Execute failed: ${msg}`);
 
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -767,8 +782,18 @@ export class DeepSeekWebExecutor extends BaseExecutor {
         };
       }
 
+      if (err?.status === 401 || err?.status === 403) {
+        tokenCache.delete(userToken);
+        return {
+          response: errorResponse(401, REPASTE_MSG),
+          url: COMPLETION_URL,
+          headers: {},
+          transformedBody: body,
+        };
+      }
+
       return {
-        response: errorResponse(status, msg),
+        response: errorResponse(err?.status || 502, msg),
         url: COMPLETION_URL,
         headers: {},
         transformedBody: body,

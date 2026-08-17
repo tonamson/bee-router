@@ -6,9 +6,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("../../open-sse/lib/deepseek-pow.js", () => ({
-  solveDeepSeekPowAsync: async () => 1,
+  solveDeepSeekPowAsync: vi.fn(async () => 1),
 }));
 
+import { solveDeepSeekPowAsync } from "../../open-sse/lib/deepseek-pow.js";
 import {
   parseOpenAIMessages,
   resolveModelOptions,
@@ -40,12 +41,15 @@ function mockDeepSeekFetchSequence({
   usersStatus = 200,
   accessToken = "access-tok",
   sessionId = "sess-1",
+  sessionStatus = 200,
+  powStatus = 200,
   completionEvents = [
     { v: { response: { thinking_enabled: true, fragments: [{ type: "THINK", content: "think-frag" }] } } },
     { p: "response/fragments", v: [{ type: "ANSWER", content: "answer-frag" }] },
     { p: "response/status", v: "FINISHED" },
   ],
   completionStatus = 200,
+  completionThrow = false,
 } = {}) {
   const calls = [];
   global.fetch = vi.fn(async (url, init) => {
@@ -59,12 +63,14 @@ function mockDeepSeekFetchSequence({
       });
     }
     if (u.includes("/chat_session/create")) {
+      if (sessionStatus !== 200) return jsonResponse({ code: 1, msg: "unauthorized" }, sessionStatus);
       return jsonResponse({
         code: 0,
         data: { biz_data: { chat_session: { id: sessionId } } },
       });
     }
     if (u.includes("/create_pow_challenge")) {
+      if (powStatus !== 200) return jsonResponse({ code: 1, msg: "unauthorized" }, powStatus);
       return jsonResponse({
         code: 0,
         data: {
@@ -84,6 +90,7 @@ function mockDeepSeekFetchSequence({
       });
     }
     if (u.includes("/chat/completion")) {
+      if (completionThrow) throw new Error("network down");
       if (completionStatus !== 200) {
         return jsonResponse({ code: 1, msg: "fail" }, completionStatus);
       }
@@ -169,6 +176,8 @@ describe("DeepSeekWebExecutor.execute", () => {
   let executor;
   beforeEach(() => {
     executor = new DeepSeekWebExecutor();
+    solveDeepSeekPowAsync.mockReset();
+    solveDeepSeekPowAsync.mockResolvedValue(1);
   });
   afterEach(() => {
     global.fetch = originalFetch;
@@ -266,5 +275,85 @@ describe("DeepSeekWebExecutor.execute", () => {
       credentials: { apiKey: "jwt" },
     });
     expect(response.status).toBe(400);
+  });
+
+  it("createSession 401 → 401 re-paste + clears token cache", async () => {
+    const calls = mockDeepSeekFetchSequence({ sessionStatus: 401 });
+    const creds = { apiKey: "cached-user-jwt" };
+    const body = { messages: [{ role: "user", content: "hi" }] };
+
+    const first = await executor.execute({
+      model: "deepseek-v4-flash",
+      body,
+      stream: true,
+      credentials: creds,
+    });
+    expect(first.response.status).toBe(401);
+    const firstBody = await first.response.json();
+    expect(firstBody.error?.message || "").toMatch(/userToken/i);
+
+    // Second execute must re-hit users/current (cache entry deleted after mid-pipeline 401)
+    const second = await executor.execute({
+      model: "deepseek-v4-flash",
+      body,
+      stream: true,
+      credentials: creds,
+    });
+    expect(second.response.status).toBe(401);
+    const usersHits = calls.filter((c) => c.url.includes("/users/current"));
+    expect(usersHits.length).toBe(2);
+  });
+
+  it("PoW solver fail → 502", async () => {
+    mockDeepSeekFetchSequence();
+    solveDeepSeekPowAsync.mockResolvedValue(-1);
+    const { response } = await executor.execute({
+      model: "deepseek-v4-flash",
+      body: { messages: [{ role: "user", content: "hi" }] },
+      stream: true,
+      credentials: { apiKey: "user-jwt" },
+    });
+    expect(response.status).toBe(502);
+    const body = await response.json();
+    expect(body.error?.message || "").toMatch(/PoW/i);
+  });
+
+  it("completion 401 → 401 re-paste", async () => {
+    mockDeepSeekFetchSequence({ completionStatus: 401 });
+    const { response } = await executor.execute({
+      model: "deepseek-v4-flash",
+      body: { messages: [{ role: "user", content: "hi" }] },
+      stream: true,
+      credentials: { apiKey: "user-jwt" },
+    });
+    expect(response.status).toBe(401);
+    const body = await response.json();
+    expect(body.error?.message || "").toMatch(/userToken/i);
+  });
+
+  it("completion 429 → 429", async () => {
+    mockDeepSeekFetchSequence({ completionStatus: 429 });
+    const { response } = await executor.execute({
+      model: "deepseek-v4-flash",
+      body: { messages: [{ role: "user", content: "hi" }] },
+      stream: true,
+      credentials: { apiKey: "user-jwt" },
+    });
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error?.message || "").toMatch(/rate limit/i);
+  });
+
+  it("completion fetch throw → 502", async () => {
+    mockDeepSeekFetchSequence({ completionThrow: true });
+    const { response } = await executor.execute({
+      model: "deepseek-v4-flash",
+      body: { messages: [{ role: "user", content: "hi" }] },
+      stream: true,
+      credentials: { apiKey: "user-jwt" },
+    });
+    expect(response.status).toBe(502);
+    const body = await response.json();
+    expect(body.error?.message || "").toMatch(/network down|connection failed/i);
   });
 });
