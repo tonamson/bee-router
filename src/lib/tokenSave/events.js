@@ -149,8 +149,10 @@ export async function getTokenSaveStats({ timelineDays = 30, recentLimit = 50 } 
   const windows = {
     all: emptyTotals(),
     today: emptyTotals(),
+    last24h: emptyTotals(),
     last7d: emptyTotals(),
     last30d: emptyTotals(),
+    last60d: emptyTotals(),
   };
   const timeline = new Map();
   for (let i = timelineDays - 1; i >= 0; i--) {
@@ -163,8 +165,10 @@ export async function getTokenSaveStats({ timelineDays = 30, recentLimit = 50 } 
     ev.costSavedEst = cost;
     accumulate(windows.all, ev, cost, priced);
     if (ev.ts >= startOfToday) accumulate(windows.today, ev, cost, priced);
+    if (ev.ts >= now - DAY_MS) accumulate(windows.last24h, ev, cost, priced);
     if (ev.ts >= now - 7 * DAY_MS) accumulate(windows.last7d, ev, cost, priced);
     if (ev.ts >= now - 30 * DAY_MS) accumulate(windows.last30d, ev, cost, priced);
+    if (ev.ts >= now - 60 * DAY_MS) accumulate(windows.last60d, ev, cost, priced);
     const day = localDateKey(ev.ts);
     const row = timeline.get(day);
     if (row) {
