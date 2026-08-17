@@ -33,6 +33,8 @@ export default function ProfilePage() {
   const [dbLoading, setDbLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState({ type: "", message: "" });
   const [dbAuth, setDbAuth] = useState({ open: false, mode: "", password: "" });
+  const [clearUsageOpen, setClearUsageOpen] = useState(false);
+  const [clearUsageLoading, setClearUsageLoading] = useState(false);
   const pendingImportRef = useRef(null);
   const [oidcForm, setOidcForm] = useState({
     authMode: "password",
@@ -746,6 +748,22 @@ export default function ProfilePage() {
     setShutdownOpen(false);
   };
 
+  const handleClearAllUsage = async () => {
+    setClearUsageLoading(true);
+    setDbStatus({ type: "", message: "" });
+    try {
+      const res = await fetch("/api/usage", { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to clear usage");
+      setClearUsageOpen(false);
+      setDbStatus({ type: "success", message: "All usage logs and token counters cleared" });
+    } catch (err) {
+      setDbStatus({ type: "error", message: err.message || "Failed to clear usage" });
+    } finally {
+      setClearUsageLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
@@ -826,6 +844,15 @@ export default function ProfilePage() {
                 className="hidden"
                 onChange={handleImportDatabase}
               />
+              <Button
+                variant="danger"
+                icon="delete_sweep"
+                onClick={() => setClearUsageOpen(true)}
+                loading={clearUsageLoading}
+                className="w-full sm:w-auto"
+              >
+                Clear all usage
+              </Button>
             </div>
             {dbStatus.message && (
               <p className={`text-sm ${dbStatus.type === "error" ? "text-red-500" : "text-green-600 dark:text-green-400"}`}>
@@ -1661,6 +1688,17 @@ export default function ProfilePage() {
         cancelText="Cancel"
         variant="danger"
         loading={isShuttingDown}
+      />
+      <ConfirmModal
+        isOpen={clearUsageOpen}
+        onClose={() => !clearUsageLoading && setClearUsageOpen(false)}
+        onConfirm={handleClearAllUsage}
+        title="Clear all usage"
+        message="Permanently delete all token usage logs, request logs, Est. Token Save, and counters. This cannot be undone."
+        confirmText="Clear all"
+        cancelText="Cancel"
+        variant="danger"
+        loading={clearUsageLoading}
       />
 
       <Modal

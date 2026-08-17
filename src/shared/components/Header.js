@@ -84,6 +84,27 @@ const getPageInfo = (pathname) => {
       icon: "layers",
       breadcrumbs: [],
     };
+  if (pathname.match(/\/analytics\/keys\/[^/]+/))
+    return {
+      title: "API Key usage",
+      description: "Requests, tokens, cost, and breakdown for one key",
+      icon: "bar_chart",
+      breadcrumbs: [
+        { label: "Analytics", href: "/dashboard/analytics" },
+        { label: "API Keys", href: "/dashboard/analytics/keys" },
+        { label: "Usage" },
+      ],
+    };
+  if (pathname.includes("/analytics/keys"))
+    return {
+      title: "API Key analytics",
+      description: "Compare usage across gateway API keys",
+      icon: "key",
+      breadcrumbs: [
+        { label: "Analytics", href: "/dashboard/analytics" },
+        { label: "API Keys" },
+      ],
+    };
   if (pathname.includes("/analytics/token-save"))
     return {
       title: "Token Save",

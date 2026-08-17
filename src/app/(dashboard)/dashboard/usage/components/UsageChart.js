@@ -22,30 +22,32 @@ const fmtTokens = (n) => {
 
 const fmtCost = (n) => `$${(n || 0).toFixed(4)}`;
 
-export default function UsageChart({ period = "7d" }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function UsageChart({ period = "7d", data: externalData }) {
+  const [fetched, setFetched] = useState([]);
+  const [loading, setLoading] = useState(!externalData);
   const [viewMode, setViewMode] = useState("tokens");
 
   const fetchData = useCallback(async () => {
+    if (externalData) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/usage/chart?period=${period}`);
       if (res.ok) {
         const json = await res.json();
-        setData(json);
+        setFetched(json);
       }
     } catch (e) {
       console.error("Failed to fetch chart data:", e);
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, externalData]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
+  const data = externalData || fetched;
   const hasData = data.some((d) => d.tokens > 0 || d.cost > 0);
 
   return (
@@ -138,4 +140,5 @@ export default function UsageChart({ period = "7d" }) {
 
 UsageChart.propTypes = {
   period: PropTypes.string,
+  data: PropTypes.array,
 };

@@ -3,6 +3,12 @@ import { Card } from "@/shared/components";
 
 const ITEMS = [
   {
+    href: "/dashboard/analytics/keys",
+    icon: "key",
+    title: "API Keys",
+    desc: "Per-key requests, tokens, cost, and model/provider breakdown",
+  },
+  {
     href: "/dashboard/analytics/token-save",
     icon: "savings",
     title: "Token Save",

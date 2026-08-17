@@ -178,6 +178,16 @@ describe("GrokCliExecutor", () => {
     expect(out.tools[0].function).toBeUndefined();
     expect(out.tools[1]).toEqual({ type: "web_search" });
     expect(out.tools[2]).toEqual({ type: "x_search" });
+    expect(out.prompt_cache_key).toBe(executor._currentSessionId);
+  });
+
+  it("keeps an explicit prompt_cache_key", () => {
+    const out = executor.transformRequest("grok-4.5", {
+      model: "grok-4.5",
+      input: [{ type: "message", role: "user", content: "hi" }],
+      prompt_cache_key: "keep-me",
+    }, true, { connectionId: "c-cache" });
+    expect(out.prompt_cache_key).toBe("keep-me");
   });
 
   it("transformRequest keeps role:system (HAR parity) and strips server ids", () => {

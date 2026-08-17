@@ -172,6 +172,10 @@ export function canonicalizeUsage(usage) {
   // absent, so callers that pass a buildUsage() object through don't silently
   // drop cache_creation.
   const cacheCreation = num(usage.cache_creation_input_tokens ?? usage.prompt_tokens_details?.cache_creation_tokens);
+  const reasoningFromDetails = num(
+    usage.completion_tokens_details?.reasoning_tokens
+      ?? usage.output_tokens_details?.reasoning_tokens
+  );
 
   let prompt = num(usage.prompt_tokens ?? usage.input_tokens);
   let cached;
@@ -181,16 +185,17 @@ export function canonicalizeUsage(usage) {
   // carries cache_creation_input_tokens (no cache_read_input_tokens yet), so
   // check both fields — otherwise a first-write request falls through to the
   // OpenAI passthrough branch below and cache_creation never gets folded in.
-  // Guard on the absence of `cached_tokens`: our own canonical output always
-  // sets that key (even to 0), so re-running canonicalizeUsage on an already-
-  // folded result takes the passthrough branch instead of folding again.
-  if (usage.cached_tokens === undefined &&
+  // Guard on the absence of `cached_tokens` AND nested inclusive cache: our
+  // own canonical output always sets cached_tokens (even to 0), so re-running
+  // takes the passthrough branch instead of folding again.
+  const inclusiveCached = pickCachedTokens(usage);
+  if (inclusiveCached === undefined &&
       (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined)) {
     cached = num(usage.cache_read_input_tokens);
     prompt = prompt + cached + cacheCreation;
   } else {
-    // OpenAI/Gemini path (or already-canonical input): prompt already includes cached_tokens.
-    cached = num(usage.cached_tokens);
+    // OpenAI/Gemini/xAI path (or already-canonical input): prompt includes cache.
+    cached = num(inclusiveCached);
   }
 
   const result = {
@@ -202,7 +207,8 @@ export function canonicalizeUsage(usage) {
     cached_tokens: cached,
     cache_creation_input_tokens: cacheCreation,
   };
-  if (reasoning > 0) result.reasoning_tokens = reasoning;
+  const reasoningTokens = reasoning || reasoningFromDetails;
+  if (reasoningTokens > 0) result.reasoning_tokens = reasoningTokens;
   return result;
 }
 
@@ -228,6 +234,44 @@ export function hasValidUsage(usage) {
   }
 
   return false;
+}
+
+/**
+ * Inclusive cache-read count from OpenAI / Responses / DeepSeek usage.
+ * Do not fold Claude `cache_read_input_tokens` here — that field is exclusive
+ * of prompt and must stay on its own key for canonicalizeUsage.
+ */
+export function pickCachedTokens(usage) {
+  if (!usage || typeof usage !== "object") return undefined;
+  const candidates = [
+    usage.cached_tokens,
+    usage.prompt_tokens_details?.cached_tokens,
+    usage.input_tokens_details?.cached_tokens,
+    usage.prompt_cache_hit_tokens,
+  ];
+  for (const v of candidates) {
+    if (v !== undefined && v !== null && Number.isFinite(Number(v))) return Number(v);
+  }
+  return undefined;
+}
+
+function fromOpenAiOrResponsesUsage(usage) {
+  if (!usage || typeof usage !== "object") return null;
+  const prompt = usage.prompt_tokens ?? usage.input_tokens;
+  if (prompt === undefined) return null;
+  const cachedTokens = pickCachedTokens(usage);
+  return normalizeUsage({
+    prompt_tokens: prompt || 0,
+    completion_tokens: usage.completion_tokens ?? usage.output_tokens ?? 0,
+    cached_tokens: cachedTokens,
+    cache_read_input_tokens: usage.cache_read_input_tokens,
+    cache_creation_input_tokens: usage.cache_creation_input_tokens,
+    reasoning_tokens: usage.completion_tokens_details?.reasoning_tokens
+      ?? usage.output_tokens_details?.reasoning_tokens,
+    prompt_tokens_details: usage.prompt_tokens_details
+      || (cachedTokens ? { cached_tokens: cachedTokens } : undefined),
+    completion_tokens_details: usage.completion_tokens_details,
+  });
 }
 
 /**
@@ -259,30 +303,16 @@ export function extractUsage(chunk) {
     });
   }
 
-  // OpenAI Responses API format (response.completed or response.done)
-  if ((chunk.type === "response.completed" || chunk.type === "response.done") && chunk.response?.usage && typeof chunk.response.usage === "object") {
-    const usage = chunk.response.usage;
-    const cachedTokens = usage.input_tokens_details?.cached_tokens;
-    return normalizeUsage({
-      prompt_tokens: usage.input_tokens || usage.prompt_tokens || 0,
-      completion_tokens: usage.output_tokens || usage.completion_tokens || 0,
-      cached_tokens: cachedTokens,
-      reasoning_tokens: usage.output_tokens_details?.reasoning_tokens,
-      prompt_tokens_details: cachedTokens ? { cached_tokens: cachedTokens } : undefined
-    });
+  // OpenAI Responses API — usage may sit on response or on the event itself
+  if (chunk.type === "response.completed" || chunk.type === "response.done") {
+    const extracted = fromOpenAiOrResponsesUsage(chunk.response?.usage || chunk.usage);
+    if (extracted) return extracted;
   }
 
-  // OpenAI format (also covers DeepSeek which uses prompt_cache_hit_tokens)
-  if (chunk.usage && typeof chunk.usage === "object" && chunk.usage.prompt_tokens !== undefined) {
-    return normalizeUsage({
-      prompt_tokens: chunk.usage.prompt_tokens,
-      completion_tokens: chunk.usage.completion_tokens || 0,
-      cached_tokens: chunk.usage.prompt_tokens_details?.cached_tokens || chunk.usage.prompt_cache_hit_tokens,
-      reasoning_tokens: chunk.usage.completion_tokens_details?.reasoning_tokens,
-      prompt_tokens_details: chunk.usage.prompt_tokens_details,
-      completion_tokens_details: chunk.usage.completion_tokens_details
-    });
-  }
+  // Chat Completions / Responses usage without an event type
+  // (Grok CLI sometimes omits type on the data payload; usage lives on response.)
+  const extracted = fromOpenAiOrResponsesUsage(chunk.usage || chunk.response?.usage);
+  if (extracted) return extracted;
 
   // Gemini format (Antigravity)
   // Antigravity wraps usageMetadata inside response: { response: { usageMetadata: {...} } }

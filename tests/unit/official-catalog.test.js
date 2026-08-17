@@ -44,6 +44,19 @@ describe("official catalog mapper", () => {
     expect(a).toBeTruthy();
   });
 
+  it("grok-4.6 / grok-cli is official xAI rate, not grok-* $0.50 wildcard", () => {
+    const p = getPricingForModel("grok-cli", "grok-4.6");
+    expect(p.input).toBe(2);
+    expect(p.output).toBe(6);
+    expect(p.cached).toBe(0.5);
+  });
+
+  it("grok-4.5 and grok-build-0.1 resolve by canonical id", () => {
+    expect(getPricingForModel("grok-cli", "grok-4.5").input).toBe(2);
+    expect(getPricingForModel("grok-cli", "grok-build-0.1").input).toBe(1);
+    expect(getPricingForModel("grok-cli", "grok-build-0.1").output).toBe(2);
+  });
+
   it("stores catalog under _canonical ids only", () => {
     const catalog = {
       sample_spec: {},
@@ -59,5 +72,28 @@ describe("official catalog mapper", () => {
     expect(out._canonical["gpt-4o"].input).toBe(2.5);
     expect(out._canonical["gpt-4o-mini"].input).toBe(0.15);
     expect(out.openai).toBeUndefined();
+  });
+
+  it("keeps LiteLLM rows for models not already in MODEL_PRICING (grok-4.6)", () => {
+    const catalog = {
+      sample_spec: {},
+      "xai/grok-4.6": {
+        input_cost_per_token: 2e-6,
+        output_cost_per_token: 6e-6,
+        cache_read_input_token_cost: 5e-7,
+      },
+    };
+    const known = { _canonical: { "grok-code-fast-1": { input: 0.5, output: 2 } } };
+    const { catalog: out } = applyCatalogToKnownModels(catalog, known);
+    expect(out._canonical["grok-4-6"]).toEqual({
+      input: 2,
+      output: 6,
+      cached: 0.5,
+    });
+    const builtin = getPricingForModel("grok-cli", "grok-4.6");
+    const merged = { ...builtin, ...out._canonical["grok-4-6"] };
+    expect(merged.input).toBe(2);
+    expect(merged.output).toBe(6);
+    expect(merged.cached).toBe(0.5);
   });
 });

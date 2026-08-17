@@ -32,7 +32,7 @@ export async function GET(request) {
         totalPromptTokens: usage.totalPromptTokens || 0,
         totalRequests: usage.totalRequests || 0,
         byProvider,
-        recent: (usage.recentRequests || []).slice(0, 20).map((r) => ({
+        recent: (usage.recentRequests || []).slice(0, recentLimit).map((r) => ({
           ts: r.timestamp,
           provider: r.provider || "",
           model: r.model,

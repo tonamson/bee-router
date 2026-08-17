@@ -287,3 +287,17 @@ describe("dashboard guard helpers", () => {
     expect(__test__.extractApiKey(apiRequest)).toBe("header-key");
   });
 });
+
+describe("sse extractApiKey", () => {
+  it("reads bearer, x-api-key, x-goog-api-key, and ?key=", async () => {
+    const { extractApiKey } = await import("../../src/sse/services/auth.js");
+    const hdr = (h) => ({ headers: new Headers(h), url: "http://localhost/v1/chat" });
+    expect(extractApiKey(hdr({ Authorization: "Bearer sk-aaa" }))).toBe("sk-aaa");
+    expect(extractApiKey(hdr({ "x-api-key": "sk-bbb" }))).toBe("sk-bbb");
+    expect(extractApiKey(hdr({ "x-goog-api-key": "sk-ccc" }))).toBe("sk-ccc");
+    expect(extractApiKey({
+      headers: new Headers(),
+      url: "http://localhost/v1/chat?key=sk-ddd",
+    })).toBe("sk-ddd");
+  });
+});

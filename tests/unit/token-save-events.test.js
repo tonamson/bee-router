@@ -73,4 +73,37 @@ describe("token-save events", () => {
     expect(stats.windows.all.costSavedEst).toBe(0);
     expect(stats.windows.all.unpricedTokens).toBe(100);
   });
+
+  it("clearTokenSaveEvents wipes events so Est. Token Save is 0", async () => {
+    const { recordTokenSaveLayers, getTokenSaveStats, clearTokenSaveEvents } = await import("../../src/lib/tokenSave/events.js");
+    recordTokenSaveLayers({
+      provider: "openai",
+      model: "gpt-4o",
+      rtk: { bytesBefore: 4000, bytesAfter: 1000, hits: [{ filter: "git-diff" }] },
+    });
+    expect((await getTokenSaveStats({ recentLimit: 5 })).windows.all.tokensSavedEst).toBe(750);
+    clearTokenSaveEvents();
+    const after = await getTokenSaveStats({ recentLimit: 5 });
+    expect(after.windows.all.tokensSavedEst).toBe(0);
+    expect(after.windows.all.requests).toBe(0);
+    expect(after.recent).toEqual([]);
+  });
+
+  it("clearTokenSaveEventsByApiKey removes only that key", async () => {
+    const { recordTokenSaveLayers, getTokenSaveStats, clearTokenSaveEventsByApiKey } = await import("../../src/lib/tokenSave/events.js");
+    recordTokenSaveLayers({
+      provider: "openai", model: "gpt-4o", apiKey: "sk-aaa",
+      rtk: { bytesBefore: 4000, bytesAfter: 1000, hits: [{ filter: "a" }] },
+    });
+    recordTokenSaveLayers({
+      provider: "openai", model: "gpt-4o", apiKey: "sk-bbb",
+      rtk: { bytesBefore: 800, bytesAfter: 0, hits: [{ filter: "b" }] },
+    });
+    const wiped = clearTokenSaveEventsByApiKey("sk-aaa");
+    expect(wiped.deleted).toBe(1);
+    const after = await getTokenSaveStats({ recentLimit: 5 });
+    expect(after.windows.all.tokensSavedEst).toBe(200);
+    expect(after.recent).toHaveLength(1);
+    expect(after.recent[0].apiKey).toBe("sk-bbb");
+  });
 });

@@ -47,6 +47,20 @@ describe("#3260 non-streaming usage extraction for enveloped Gemini responses", 
       .toMatchObject({ prompt_tokens: 10, completion_tokens: 2 });
   });
 
+  it("keeps Responses input_tokens_details.cached_tokens (not Claude-only)", () => {
+    expect(extractUsageFromResponse({
+      usage: {
+        input_tokens: 125,
+        output_tokens: 48,
+        input_tokens_details: { cached_tokens: 98 },
+      },
+    })).toMatchObject({
+      prompt_tokens: 125,
+      completion_tokens: 48,
+      cached_tokens: 98,
+    });
+  });
+
   it("returns null when there is no usage anywhere", () => {
     expect(extractUsageFromResponse({ response: { candidates: [] } })).toBeNull();
     expect(extractUsageFromResponse(null)).toBeNull();

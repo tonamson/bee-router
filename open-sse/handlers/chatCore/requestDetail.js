@@ -1,6 +1,6 @@
 import { saveRequestUsage, appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { COLORS } from "../../utils/stream.js";
-import { canonicalizeUsage } from "../../utils/usageTracking.js";
+import { canonicalizeUsage, pickCachedTokens } from "../../utils/usageTracking.js";
 
 const OPTIONAL_PARAMS = [
   "temperature", "top_p", "top_k",
@@ -24,23 +24,20 @@ export function extractRequestConfig(body, stream) {
 export function extractUsageFromResponse(responseBody) {
   if (!responseBody || typeof responseBody !== "object") return null;
 
-  // Claude format
-  if (responseBody.usage?.input_tokens !== undefined) {
+  // Claude + OpenAI + Responses share `usage`. Claude cache is exclusive
+  // (`cache_read_input_tokens`); Responses cache is inclusive
+  // (`input_tokens_details.cached_tokens`). Keep both so canonicalizeUsage
+  // can pick the right fold.
+  if (responseBody.usage && typeof responseBody.usage === "object") {
+    const u = responseBody.usage;
     return {
-      prompt_tokens: responseBody.usage.input_tokens || 0,
-      completion_tokens: responseBody.usage.output_tokens || 0,
-      cache_read_input_tokens: responseBody.usage.cache_read_input_tokens,
-      cache_creation_input_tokens: responseBody.usage.cache_creation_input_tokens
-    };
-  }
-
-  // OpenAI format
-  if (responseBody.usage?.prompt_tokens !== undefined) {
-    return {
-      prompt_tokens: responseBody.usage.prompt_tokens || 0,
-      completion_tokens: responseBody.usage.completion_tokens || 0,
-      cached_tokens: responseBody.usage.prompt_tokens_details?.cached_tokens,
-      reasoning_tokens: responseBody.usage.completion_tokens_details?.reasoning_tokens
+      prompt_tokens: u.prompt_tokens ?? u.input_tokens ?? 0,
+      completion_tokens: u.completion_tokens ?? u.output_tokens ?? 0,
+      cache_read_input_tokens: u.cache_read_input_tokens,
+      cache_creation_input_tokens: u.cache_creation_input_tokens,
+      cached_tokens: pickCachedTokens(u),
+      reasoning_tokens: u.completion_tokens_details?.reasoning_tokens
+        ?? u.output_tokens_details?.reasoning_tokens,
     };
   }
 
@@ -81,7 +78,7 @@ export function formatDoneLine({ usage, latency }) {
   const u = usage || {};
   const inTok = u.prompt_tokens ?? u.input_tokens ?? 0;
   const outTok = u.completion_tokens ?? u.output_tokens ?? 0;
-  const cacheRead = u.cache_read_input_tokens ?? u.cached_tokens ?? u.prompt_tokens_details?.cached_tokens ?? 0;
+  const cacheRead = u.cache_read_input_tokens ?? u.cached_tokens ?? u.prompt_tokens_details?.cached_tokens ?? u.input_tokens_details?.cached_tokens ?? 0;
   const cacheCreate = u.cache_creation_input_tokens ?? 0;
   let inStr = `IN ${inTok}`;
   if (cacheRead || cacheCreate) {

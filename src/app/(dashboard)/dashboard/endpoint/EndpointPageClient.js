@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import PropTypes from "prop-types";
 import { Card, Button, Input, Modal, CardSkeleton, Toggle, ConfirmModal } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
@@ -644,6 +645,25 @@ export default function APIPageClient({ machineId }) {
     }
   };
 
+  const handleClearKeyUsage = async (id, name) => {
+    setConfirmState({
+      title: "Clear usage",
+      message: `Permanently delete token usage logs and counters for "${name}"? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirmState(null);
+        try {
+          const res = await fetch(`/api/keys/${id}/usage`, { method: "DELETE" });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            console.log("Error clearing key usage:", data.error || res.status);
+          }
+        } catch (error) {
+          console.log("Error clearing key usage:", error);
+        }
+      },
+    });
+  };
+
   const handleDeleteKey = async (id) => {
     setConfirmState({
       title: "Delete API Key",
@@ -1063,6 +1083,20 @@ export default function APIPageClient({ machineId }) {
                     }}
                     title={key.isActive ? "Pause key" : "Resume key"}
                   />
+                  <Link
+                    href={`/dashboard/analytics/keys/${key.id}`}
+                    className="p-2 hover:bg-primary/10 rounded text-primary opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    title="Key analytics"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">bar_chart</span>
+                  </Link>
+                  <button
+                    onClick={() => handleClearKeyUsage(key.id, key.name)}
+                    className="p-2 hover:bg-orange-500/10 rounded text-orange-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    title="Clear usage for this key"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                  </button>
                   <button
                     onClick={() => handleDeleteKey(key.id)}
                     className="p-2 hover:bg-red-500/10 rounded text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"

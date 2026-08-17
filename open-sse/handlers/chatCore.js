@@ -303,6 +303,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     onTokenSaveEvent?.({
       provider,
       model,
+      apiKey,
       rtk: rtkStats,
       lite: liteStats,
       caveman: cavemanStats,

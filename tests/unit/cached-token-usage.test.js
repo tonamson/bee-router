@@ -75,6 +75,32 @@ describe("canonicalizeUsage", () => {
     expect(canonicalizeUsage(undefined)).toBeNull();
   });
 
+  it("reads xAI/Responses nested cache without folding it into prompt", () => {
+    // grok-cli / xAI: input_tokens already includes cached_tokens.
+    // saveUsageStats passes this blob straight into canonicalizeUsage.
+    const out = canonicalizeUsage({
+      input_tokens: 125,
+      output_tokens: 48,
+      input_tokens_details: { cached_tokens: 98 },
+      output_tokens_details: { reasoning_tokens: 12 },
+    });
+    expect(out.prompt_tokens).toBe(125);
+    expect(out.completion_tokens).toBe(48);
+    expect(out.cached_tokens).toBe(98);
+    expect(out.cache_creation_input_tokens).toBe(0);
+    expect(out.reasoning_tokens).toBe(12);
+  });
+
+  it("reads prompt_tokens_details.cached_tokens the same way", () => {
+    const out = canonicalizeUsage({
+      prompt_tokens: 125,
+      completion_tokens: 48,
+      prompt_tokens_details: { cached_tokens: 98 },
+    });
+    expect(out.prompt_tokens).toBe(125);
+    expect(out.cached_tokens).toBe(98);
+  });
+
   it("folds a Claude cache-miss first write (cache_creation only, no cache_read yet)", () => {
     // Cache-miss on first write: upstream emits cache_creation_input_tokens but
     // no cache_read_input_tokens at all (not even 0). Must still fold into prompt
@@ -117,6 +143,71 @@ describe("calculateCostFromTokens (canonical inclusive convention)", () => {
   it("matches plain input pricing when no cache present", () => {
     const cost = calculateCostFromTokens({ prompt_tokens: 100, completion_tokens: 50 }, pricing);
     expect(cost).toBeCloseTo((100 * 3 + 50 * 15) / 1_000_000, 12);
+  });
+});
+
+describe("extractUsage Responses / xAI cache fields", () => {
+  it("reads input_tokens_details.cached_tokens from response.completed", () => {
+    const u = extractUsage({
+      type: "response.completed",
+      response: {
+        usage: {
+          input_tokens: 125,
+          output_tokens: 48,
+          input_tokens_details: { cached_tokens: 98 },
+        },
+      },
+    });
+    expect(u.prompt_tokens).toBe(125);
+    expect(u.cached_tokens).toBe(98);
+  });
+
+  it("reads cache when usage sits on the event, not response", () => {
+    const u = extractUsage({
+      type: "response.completed",
+      usage: {
+        input_tokens: 125,
+        output_tokens: 48,
+        input_tokens_details: { cached_tokens: 98 },
+      },
+    });
+    expect(u.cached_tokens).toBe(98);
+  });
+
+  it("reads cache from prompt_tokens_details on a chat-completions usage blob", () => {
+    const u = extractUsage({
+      usage: {
+        prompt_tokens: 125,
+        completion_tokens: 48,
+        prompt_tokens_details: { text_tokens: 125, cached_tokens: 98 },
+      },
+    });
+    expect(u.cached_tokens).toBe(98);
+  });
+
+  it("reads cache from response.usage even when event type is missing", () => {
+    const u = extractUsage({
+      response: {
+        usage: {
+          input_tokens: 125,
+          output_tokens: 48,
+          input_tokens_details: { cached_tokens: 98 },
+        },
+      },
+    });
+    expect(u.prompt_tokens).toBe(125);
+    expect(u.cached_tokens).toBe(98);
+  });
+
+  it("reads cache from input_tokens_details even when prompt_tokens is also set", () => {
+    const u = extractUsage({
+      usage: {
+        prompt_tokens: 125,
+        completion_tokens: 48,
+        input_tokens_details: { cached_tokens: 98 },
+      },
+    });
+    expect(u.cached_tokens).toBe(98);
   });
 });
 

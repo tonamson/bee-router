@@ -421,6 +421,11 @@ export class GrokCliExecutor extends BaseExecutor {
     const requestKey = body;
     this._currentSessionId = resolveGrokCliSessionId(credentials, body);
     this._currentReqId = crypto.randomUUID();
+    // xAI Responses cache stickiness. Header x-grok-conv-id is not enough —
+    // public docs pin hits to prompt_cache_key. Same session id as conv-id.
+    if (!body.prompt_cache_key && this._currentSessionId) {
+      body.prompt_cache_key = this._currentSessionId;
+    }
     this._agentId =
       credentials?.providerSpecificData?.deviceId ||
       credentials?.providerSpecificData?.agentId ||

@@ -38,7 +38,7 @@ export function appendTokenSaveEvent(event) {
   } catch { /* ignore */ }
 }
 
-export function recordTokenSaveLayers({ provider, model, rtk, lite, caveman, headroom } = {}) {
+export function recordTokenSaveLayers({ provider, model, apiKey, rtk, lite, caveman, headroom } = {}) {
   const layers = {
     rtk: { saved: layerSaved(rtk), hit: layerHit(rtk) },
     lite: { saved: layerSaved(lite), hit: layerHit(lite) },
@@ -50,11 +50,32 @@ export function recordTokenSaveLayers({ provider, model, rtk, lite, caveman, hea
   appendTokenSaveEvent({
     provider: provider || null,
     model: model || null,
+    apiKey: apiKey || null,
     applied,
     layers,
     bytesSaved,
     tokensSavedEst: Math.round(bytesSaved / CHARS_PER_TOKEN),
   });
+}
+
+export function clearTokenSaveEvents() {
+  try { if (fs.existsSync(EVENTS_FILE)) fs.unlinkSync(EVENTS_FILE); } catch { /* ignore */ }
+  try { if (fs.existsSync(ROTATED_FILE)) fs.unlinkSync(ROTATED_FILE); } catch { /* ignore */ }
+}
+
+export function clearTokenSaveEventsByApiKey(apiKey) {
+  if (!apiKey) return { deleted: 0 };
+  const events = readTokenSaveEvents();
+  const keep = events.filter((ev) => ev.apiKey !== apiKey);
+  const deleted = events.length - keep.length;
+  clearTokenSaveEvents();
+  if (keep.length) {
+    ensureDir();
+    try {
+      fs.writeFileSync(EVENTS_FILE, keep.map((e) => JSON.stringify(e)).join("\n") + "\n");
+    } catch { /* ignore */ }
+  }
+  return { deleted };
 }
 
 export function readTokenSaveEvents({ sinceMs = null, limit = null } = {}) {

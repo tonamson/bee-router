@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Card, Button } from "@/shared/components";
+import Pagination from "@/shared/components/Pagination";
 
 const WINDOWS = [
   { id: "today", label: "Today" },
@@ -55,18 +56,28 @@ function cacheHint(cache) {
   return "Provider reported 0 cache-read. Token Save still cut the payload — that is a smaller send, not a cache miss penalty.";
 }
 
+const PAGE_SIZE = 15;
+
+function slicePage(rows, page, size) {
+  const start = (page - 1) * size;
+  return rows.slice(start, start + size);
+}
+
 export default function TokenSaveAnalyticsClient() {
   const [data, setData] = useState(null);
   const [windowId, setWindowId] = useState("last7d");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [savePage, setSavePage] = useState(1);
+  const [cachePage, setCachePage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const period = windowId === "today" ? "today" : windowId === "all" ? "all" : windowId === "last30d" ? "30d" : "7d";
-      const res = await fetch(`/api/token-save/stats?period=${period}&limit=50`, { cache: "no-store" });
+      const res = await fetch(`/api/token-save/stats?period=${period}&limit=200`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load stats");
       setData(await res.json());
     } catch (e) {
@@ -87,7 +98,16 @@ export default function TokenSaveAnalyticsClient() {
     (a, b) => (b[1].cachedTokens || 0) - (a[1].cachedTokens || 0)
   );
   const recentCache = cache.recent || [];
+  const recentSave = data?.compression?.recent || [];
+  const pagedSave = slicePage(recentSave, savePage, pageSize);
+  const pagedCache = slicePage(recentCache, cachePage, pageSize);
   const anyCacheHit = cached > 0 || recentCache.some((r) => (r.cachedTokens || 0) > 0);
+
+  function changePageSize(size) {
+    setPageSize(size);
+    setSavePage(1);
+    setCachePage(1);
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:px-0">
@@ -112,7 +132,11 @@ export default function TokenSaveAnalyticsClient() {
           <button
             key={tab.id}
             type="button"
-            onClick={() => setWindowId(tab.id)}
+            onClick={() => {
+              setWindowId(tab.id);
+              setSavePage(1);
+              setCachePage(1);
+            }}
             className={`px-3 py-1 rounded-md text-xs font-medium ${
               windowId === tab.id ? "bg-primary text-white" : "text-text-muted hover:bg-surface-2"
             }`}
@@ -276,10 +300,10 @@ export default function TokenSaveAnalyticsClient() {
               </tr>
             </thead>
             <tbody>
-              {(data?.compression?.recent || []).length === 0 && (
+              {recentSave.length === 0 && (
                 <tr><td colSpan={5} className="py-6 text-center text-text-muted">No events</td></tr>
               )}
-              {(data?.compression?.recent || []).map((ev, i) => {
+              {pagedSave.map((ev, i) => {
                 const hits = Object.entries(ev.layers || {})
                   .filter(([, l]) => l.hit)
                   .map(([k]) => LAYER_LABEL[k] || k)
@@ -297,6 +321,15 @@ export default function TokenSaveAnalyticsClient() {
             </tbody>
           </table>
         </div>
+        {recentSave.length > 0 && (
+          <Pagination
+            currentPage={savePage}
+            pageSize={pageSize}
+            totalItems={recentSave.length}
+            onPageChange={setSavePage}
+            onPageSizeChange={changePageSize}
+          />
+        )}
       </Card>
 
       <Card className="p-4">
@@ -316,7 +349,7 @@ export default function TokenSaveAnalyticsClient() {
               {recentCache.length === 0 && (
                 <tr><td colSpan={5} className="py-6 text-center text-text-muted">No usage rows</td></tr>
               )}
-              {recentCache.map((r, i) => (
+              {pagedCache.map((r, i) => (
                 <tr key={`${r.ts}-${i}`} className="border-b border-border/60">
                   <td className="py-2 pr-3 text-xs whitespace-nowrap">{r.ts ? new Date(r.ts).toLocaleString() : "—"}</td>
                   <td className="py-2 pr-3 text-xs">{r.provider || "—"}</td>
@@ -330,6 +363,15 @@ export default function TokenSaveAnalyticsClient() {
             </tbody>
           </table>
         </div>
+        {recentCache.length > 0 && (
+          <Pagination
+            currentPage={cachePage}
+            pageSize={pageSize}
+            totalItems={recentCache.length}
+            onPageChange={setCachePage}
+            onPageSizeChange={changePageSize}
+          />
+        )}
       </Card>
     </div>
   );

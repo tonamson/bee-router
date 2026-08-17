@@ -205,6 +205,19 @@ export default function Sidebar({ onClose }) {
           {analyticsOpen && (
             <div className="pl-4">
               <Link
+                href="/dashboard/analytics/keys"
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                  pathname.startsWith("/dashboard/analytics/keys")
+                    ? "bg-primary/10 text-primary"
+                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                )}
+              >
+                <span className="material-symbols-outlined text-[16px]">key</span>
+                <span className="text-sm">API Keys</span>
+              </Link>
+              <Link
                 href="/dashboard/analytics/token-save"
                 onClick={onClose}
                 className={cn(

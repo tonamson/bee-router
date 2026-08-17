@@ -38,7 +38,12 @@ async function showSettingsMenu(breadcrumb = []) {
 
       // RTK section
       const rtkOn = data?.settings?.rtkEnabled !== false;
+      const liteOn = data?.settings?.liteEnabled !== false;
+      const cavemanOn = !!data?.settings?.cavemanEnabled;
+      const cavemanLevel = data?.settings?.cavemanLevel || "full";
       lines.push(`  RTK:      ${rtkOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(Token Saver)${COLORS.reset}`);
+      lines.push(`  Lite:     ${liteOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(whitespace / tool cap)${COLORS.reset}`);
+      lines.push(`  Caveman:  ${cavemanOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(${cavemanLevel})${COLORS.reset}`);
       const headroomOn = data?.settings?.headroomEnabled === true;
       lines.push(`  Headroom: ${headroomOn ? `${COLORS.green}ON${COLORS.reset}` : `${COLORS.red}OFF${COLORS.reset}`} ${COLORS.dim}(${data?.settings?.headroomUrl || "http://localhost:8787"})${COLORS.reset}`);
 
@@ -74,6 +79,20 @@ async function showSettingsMenu(breadcrumb = []) {
           return `Token Saver (RTK): ${on ? "ON" : "OFF"} → toggle`;
         },
         action: async (d) => { await toggleRtk(d?.settings?.rtkEnabled !== false); return true; }
+      },
+      {
+        label: (d) => {
+          const on = d?.settings?.liteEnabled !== false;
+          return `Token Saver (Lite): ${on ? "ON" : "OFF"} → toggle`;
+        },
+        action: async (d) => { await toggleSetting("liteEnabled", d?.settings?.liteEnabled !== false, "Lite"); return true; }
+      },
+      {
+        label: (d) => {
+          const on = !!d?.settings?.cavemanEnabled;
+          return `Token Saver (Caveman): ${on ? "ON" : "OFF"} → toggle`;
+        },
+        action: async (d) => { await toggleSetting("cavemanEnabled", !!d?.settings?.cavemanEnabled, "Caveman"); return true; }
       },
       {
         label: (d) => {
@@ -163,6 +182,17 @@ async function toggleRtk(currentlyOn) {
   const result = await api.updateSettings({ rtkEnabled: next });
   if (result.success) {
     showStatus(`Token Saver ${next ? "enabled" : "disabled"}`, "success");
+  } else {
+    showStatus(`Failed: ${result.error}`, "error");
+  }
+  await pause();
+}
+
+async function toggleSetting(key, currentlyOn, label) {
+  const next = !currentlyOn;
+  const result = await api.updateSettings({ [key]: next });
+  if (result.success) {
+    showStatus(`${label} ${next ? "enabled" : "disabled"}`, "success");
   } else {
     showStatus(`Failed: ${result.error}`, "error");
   }

@@ -294,4 +294,30 @@ describe("handleChatCore Headroom diagnostics", () => {
       }),
     }));
   });
+
+  it("forwards client apiKey to onTokenSaveEvent", async () => {
+    const onTokenSaveEvent = vi.fn();
+    await handleChatCore({
+      body: { model: "gpt-4o", stream: false, messages: [{ role: "user", content: "hello" }] },
+      modelInfo: { provider: "openai", model: "gpt-4o" },
+      credentials: { apiKey: "test-key", providerSpecificData: {} },
+      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
+      connectionId: "test-conn",
+      apiKey: "sk-client-key",
+      onTokenSaveEvent,
+      rtkEnabled: false,
+      cavemanEnabled: false,
+      ponytailEnabled: false,
+      clientRawRequest: {
+        endpoint: "/v1/chat/completions",
+        body: {},
+        headers: { accept: "application/json" },
+      },
+    });
+    expect(onTokenSaveEvent).toHaveBeenCalledWith(expect.objectContaining({
+      provider: "openai",
+      model: "gpt-4o",
+      apiKey: "sk-client-key",
+    }));
+  });
 });
