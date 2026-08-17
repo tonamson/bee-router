@@ -13,25 +13,15 @@ let cachedConfigTs = 0;
 async function getObservabilityConfig() {
   if (cachedConfig && (Date.now() - cachedConfigTs) < CONFIG_CACHE_TTL_MS) return cachedConfig;
   try {
-    const { getSettings } = await import("./settingsRepo.js");
+    const { getSettings, getRawSettings } = await import("./settingsRepo.js");
     const settings = await getSettings();
-    const envRequestLogs = process.env.ENABLE_REQUEST_LOGS;
-    if (envRequestLogs !== undefined) {
-      const enabled = envRequestLogs.toLowerCase() === "true";
-      cachedConfig = {
-        enabled,
-        maxRecords: settings.observabilityMaxRecords || parseInt(process.env.OBSERVABILITY_MAX_RECORDS || String(DEFAULT_MAX_RECORDS), 10),
-        batchSize: settings.observabilityBatchSize || parseInt(process.env.OBSERVABILITY_BATCH_SIZE || String(DEFAULT_BATCH_SIZE), 10),
-        flushIntervalMs: settings.observabilityFlushIntervalMs || parseInt(process.env.OBSERVABILITY_FLUSH_INTERVAL_MS || String(DEFAULT_FLUSH_INTERVAL_MS), 10),
-        maxJsonSize: (settings.observabilityMaxJsonSize || parseInt(process.env.OBSERVABILITY_MAX_JSON_SIZE || "5", 10)) * 1024,
-      };
-      cachedConfigTs = Date.now();
-      return cachedConfig;
-    }
+    // ENABLE_REQUEST_LOGS is file debug logs under logs/ — not this table.
+    // Merged DEFAULT_SETTINGS.enableObservability must not count as a user choice.
+    const raw = await getRawSettings();
     const envFallback = process.env.OBSERVABILITY_ENABLED !== "false";
-    const uiFlag = typeof settings.enableObservability === "boolean";
+    const uiFlag = typeof raw.enableObservability === "boolean";
     const enabled = uiFlag
-      ? settings.enableObservability
+      ? raw.enableObservability
       : envFallback;
 
     cachedConfig = {
@@ -68,7 +58,13 @@ function sanitizeHeaders(headers) {
   return sanitized;
 }
 
-export const __test__ = { sanitizeHeaders };
+export const __test__ = {
+  sanitizeHeaders,
+  resetObservabilityConfig() {
+    cachedConfig = null;
+    cachedConfigTs = 0;
+  },
+};
 
 function generateDetailId(model) {
   const timestamp = new Date().toISOString();
@@ -159,8 +155,37 @@ export async function saveRequestDetail(detail) {
   }
 }
 
+function backfillFromUsageHistory(db) {
+  const missing = db.all(
+    `SELECT u.id, u.timestamp, u.provider, u.model, u.connectionId, u.status, u.tokens
+     FROM usageHistory u
+     WHERE NOT EXISTS (SELECT 1 FROM requestDetails d WHERE d.id = ('usage-' || u.id))`
+  );
+  if (!missing.length) return;
+  db.transaction(() => {
+    for (const r of missing) {
+      const record = {
+        id: `usage-${r.id}`,
+        timestamp: r.timestamp,
+        provider: r.provider || null,
+        model: r.model || null,
+        connectionId: r.connectionId || null,
+        status: r.status || "ok",
+        latency: { ttft: 0, total: 0 },
+        tokens: parseJson(r.tokens, {}),
+        source: "usageHistory",
+      };
+      db.run(
+        `INSERT OR IGNORE INTO requestDetails(id, timestamp, provider, model, connectionId, status, data) VALUES(?, ?, ?, ?, ?, ?, ?)`,
+        [record.id, record.timestamp, record.provider, record.model, record.connectionId, record.status, stringifyJson(record)]
+      );
+    }
+  });
+}
+
 export async function getRequestDetails(filter = {}) {
   const db = await getAdapter();
+  backfillFromUsageHistory(db);
   const conds = [];
   const params = [];
 
@@ -194,6 +219,7 @@ export async function getRequestDetails(filter = {}) {
 
 export async function getDistinctProviders() {
   const db = await getAdapter();
+  backfillFromUsageHistory(db);
   const rows = db.all(`SELECT DISTINCT provider FROM requestDetails WHERE provider IS NOT NULL ORDER BY provider ASC`);
   return rows.map((r) => r.provider);
 }

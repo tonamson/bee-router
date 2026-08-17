@@ -39,7 +39,7 @@ const DEFAULT_SETTINGS = {
   samlLoginLabel: "Sign in with SAML SSO",
   samlAttributeEmail: "email",
   samlAttributeName: "name",
-  enableObservability: false,
+  enableObservability: true,
   observabilityMaxRecords: 1000,
   observabilityBatchSize: 20,
   observabilityFlushIntervalMs: 5000,
@@ -68,6 +68,10 @@ async function readRaw() {
   const db = await getAdapter();
   const row = db.get(`SELECT data FROM settings WHERE id = 1`);
   return row ? parseJson(row.data, {}) : {};
+}
+
+export async function getRawSettings() {
+  return readRaw();
 }
 
 // Merge raw settings with defaults; backward-compat for missing keys
