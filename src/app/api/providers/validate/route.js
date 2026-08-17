@@ -6,6 +6,11 @@ import { resolveOllamaLocalHost, resolveXiaomiTokenplanBaseUrl, PROVIDERS } from
 import { openaiToCommandCodeRequest } from "open-sse/translator/request/openai-to-commandcode.js";
 import { resolveQoderCredentials, resolveQoderModels } from "open-sse/services/qoderModels.js";
 import { normalizeProviderId } from "@/lib/providerNormalization";
+import {
+  extractDeepSeekUserToken,
+  buildQwenCookieHeader,
+  extractQwenToken,
+} from "open-sse/lib/webCookieAuth.js";
 
 // Probe a webSearch/webFetch provider using its searchConfig/fetchConfig.
 // Returns true if API key is accepted (status !== 401 && !== 403).
@@ -579,6 +584,111 @@ export async function POST(request) {
           } else {
             isValid = true;
           }
+          break;
+        }
+
+        case "deepseek-web": {
+          const token = extractDeepSeekUserToken(apiKey);
+          if (!token) {
+            isValid = false;
+            error = "Missing userToken — paste from chat.deepseek.com Local Storage";
+            break;
+          }
+          const res = await fetch("https://chat.deepseek.com/api/v0/users/current", {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "*/*",
+              "Accept-Language": "en-US,en;q=0.9",
+              Origin: "https://chat.deepseek.com",
+              Referer: "https://chat.deepseek.com/",
+              "User-Agent":
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+              "X-Client-Bundle-Id": "com.deepseek.chat",
+              "X-Client-Locale": "en-US",
+              "X-Client-Platform": "web",
+              "X-Client-Version": "2.0.0",
+            },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (res.status === 401 || res.status === 403) {
+            isValid = false;
+            error = "Invalid userToken — re-paste from chat.deepseek.com Local Storage";
+            break;
+          }
+          if (!res.ok) {
+            isValid = false;
+            error = `DeepSeek users/current HTTP ${res.status}`;
+            break;
+          }
+          const json = await res.json();
+          if (json?.code && json.code !== 0) {
+            isValid = false;
+            error = json.msg || json?.data?.biz_msg || `DeepSeek error code ${json.code}`;
+            break;
+          }
+          const bizData = json?.data?.biz_data || json?.biz_data;
+          if (!bizData?.token) {
+            isValid = false;
+            error = "DeepSeek response missing access token";
+            break;
+          }
+          isValid = true;
+          break;
+        }
+
+        case "qwen-web": {
+          const cookieHeader = buildQwenCookieHeader(apiKey);
+          const token = extractQwenToken(apiKey);
+          if (!cookieHeader || !token) {
+            isValid = false;
+            error = "Paste full Cookie header from chat.qwen.ai (must include token=)";
+            break;
+          }
+          const res = await fetch("https://chat.qwen.ai/api/v2/chats/new", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "*/*",
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+              Origin: "https://chat.qwen.ai",
+              Referer: "https://chat.qwen.ai/",
+              source: "web",
+              version: "0.2.66",
+              "x-request-id": crypto.randomUUID(),
+              "bx-v": "2.5.36",
+              "bx-umidtoken": "T2gA0000000000000000000000000000000000000000",
+              Authorization: `Bearer ${token}`,
+              Cookie: cookieHeader,
+            },
+            body: JSON.stringify({
+              title: "New Chat",
+              models: ["qwen3.7-max"],
+              chat_mode: "normal",
+              chat_type: "t2t",
+              timestamp: Date.now(),
+            }),
+            signal: AbortSignal.timeout(8000),
+          });
+          const ct = res.headers.get("content-type") || "";
+          if (res.status === 401 || res.status === 403 || ct.includes("text/html") || res.status === 504) {
+            isValid = false;
+            error = "Qwen WAF/auth failed — re-paste full Cookie header from chat.qwen.ai";
+            break;
+          }
+          if (!res.ok) {
+            isValid = false;
+            error = `Qwen chats/new HTTP ${res.status}`;
+            break;
+          }
+          const data = await res.json().catch(() => null);
+          if (!data?.data?.id) {
+            isValid = false;
+            error = "Qwen create-chat returned no chat id";
+            break;
+          }
+          isValid = true;
           break;
         }
 
