@@ -71,7 +71,7 @@ export default function PricingSettingsPage() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-text-muted">
-          One id per model. Vendor prefix, 4.5 vs 4-5, and date suffix fold away.
+          Same model, one id across providers. Prefixes, 3.5 vs 3-5, and dated snapshots collapse.
         </p>
         <div className="flex items-center gap-2">
           <a href="/dashboard/analytics/token-save" className="text-xs text-primary underline">
