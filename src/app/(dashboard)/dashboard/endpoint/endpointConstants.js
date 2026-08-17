@@ -17,12 +17,12 @@ export const CLIENT_PING_SLOW_MS = 60000;
 export const CLIENT_PING_TIMEOUT_MS = 5000;
 
 export const CAVEMAN_LEVELS = [
-  { id: "lite", label: "Lite", desc: "Drop filler, keep grammar" },
-  { id: "full", label: "Full", desc: "Drop articles, fragments OK" },
-  { id: "ultra", label: "Ultra", desc: "Telegraphic, max compression" },
-  { id: "wenyan-lite", label: "文 Lite", desc: "Classical Chinese, light compression", wenyan: true },
-  { id: "wenyan", label: "文 Full", desc: "Maximum 文言文, 80-90% reduction", wenyan: true },
-  { id: "wenyan-ultra", label: "文 Ultra", desc: "Extreme classical compression", wenyan: true },
+  { id: "lite", label: "Lite", desc: "Cut filler in history + keep grammar on reply" },
+  { id: "full", label: "Full", desc: "Cut articles in history + fragments on reply" },
+  { id: "ultra", label: "Ultra", desc: "Max history cut + telegraphic reply" },
+  { id: "wenyan-lite", label: "文 Lite", desc: "Classical Chinese, light history + reply cut", wenyan: true },
+  { id: "wenyan", label: "文 Full", desc: "Maximum 文言文 on history + reply", wenyan: true },
+  { id: "wenyan-ultra", label: "文 Ultra", desc: "Extreme classical cut on history + reply", wenyan: true },
 ];
 
 export const PONYTAIL_LEVELS = [

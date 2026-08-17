@@ -12,6 +12,7 @@ import {
 
 export default function TokenSaverClient() {
   const [rtkEnabled, setRtkEnabledState] = useState(true);
+  const [liteEnabled, setLiteEnabled] = useState(true);
   const [headroomEnabled, setHeadroomEnabled] = useState(false);
   const [headroomUrl, setHeadroomUrl] = useState("http://localhost:8787");
   const [headroomStatus, setHeadroomStatus] = useState({
@@ -102,6 +103,11 @@ export default function TokenSaverClient() {
     } catch (error) {
       console.log("Error updating rtkEnabled:", error);
     }
+  };
+
+  const handleLiteEnabled = (value) => {
+    setLiteEnabled(value);
+    patchSetting({ liteEnabled: value });
   };
 
   const handleCavemanEnabled = (value) => {
@@ -413,6 +419,7 @@ export default function TokenSaverClient() {
         if (res.ok) {
           const data = await res.json();
           setRtkEnabledState(data.rtkEnabled !== false);
+          setLiteEnabled(data.liteEnabled !== false);
           setHeadroomEnabled(!!data.headroomEnabled);
           setHeadroomUrl(data.headroomUrl || "http://localhost:8787");
           setCodeAware(data.headroomCodeAware === true);
@@ -489,12 +496,24 @@ export default function TokenSaverClient() {
               </a>
             </p>
             <p className="text-sm text-text-muted">
-              git/grep/ls/tree/logs → 60-90% fewer input tokens
+              git/grep/ls/tree/logs → 20–40% typical, 60–90% on dirty tool dumps
             </p>
           </div>
           <Toggle
             checked={rtkEnabled}
             onChange={() => handleRtkEnabled(!rtkEnabled)}
+          />
+        </div>
+        <div className="flex items-center justify-between py-4 border-b border-border gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">Clean whitespace (Lite)</p>
+            <p className="text-sm text-text-muted">
+              Collapse blank lines, cap long tool text at 2k, drop back-to-back duplicate messages. Safe, lossless. ~15%.
+            </p>
+          </div>
+          <Toggle
+            checked={liteEnabled}
+            onChange={() => handleLiteEnabled(!liteEnabled)}
           />
         </div>
         <div className="flex items-center justify-between py-4 gap-4 flex-wrap">
@@ -634,7 +653,7 @@ export default function TokenSaverClient() {
         <div className="flex items-center justify-between pt-4 border-t border-border gap-4 flex-wrap">
           <div className="min-w-0 flex-1">
             <p className="font-medium">
-              Compress LLM output{" "}
+              Compress history + output{" "}
               <a
                 href="https://github.com/JuliusBrussee/caveman"
                 target="_blank"
@@ -645,7 +664,7 @@ export default function TokenSaverClient() {
               </a>
             </p>
             <p className="text-sm text-text-muted">
-              Terse-style system prompt → ~65% fewer output tokens (up to 87%)
+              Cut filler in past user/assistant text, then ask model to reply terse. Same RTK tool-cut as before.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">

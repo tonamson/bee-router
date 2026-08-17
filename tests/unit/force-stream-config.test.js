@@ -68,9 +68,21 @@ vi.mock("../../open-sse/rtk/index.js", () => ({
   formatRtkLog: vi.fn(() => ""),
 }));
 
+vi.mock("../../open-sse/rtk/lite.js", () => ({
+  applyLiteCompression: vi.fn(() => null),
+  formatLiteLog: vi.fn(() => ""),
+}));
+
+vi.mock("../../open-sse/rtk/cavemanCompress.js", () => ({
+  cavemanCompress: vi.fn(() => null),
+  formatCavemanLog: vi.fn(() => ""),
+}));
+
 vi.mock("../../open-sse/rtk/headroom.js", () => ({
   compressWithHeadroom: vi.fn(async () => null),
   formatHeadroomLog: vi.fn(() => ""),
+  formatHeadroomSizeLog: vi.fn(() => ""),
+  isHeadroomPhantomSavings: vi.fn(() => false),
 }));
 
 vi.mock("../../open-sse/providers/capabilities.js", () => ({

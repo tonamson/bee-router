@@ -13,7 +13,7 @@ Provider-agnostic SSE engine: one OpenAI-style request → any provider (LLM cha
 - `executors/` — per-provider upstream call. `base.js` (BaseExecutor), one file per special provider, `index.js` map.
 - `providers/` — registry build + `capabilities.js` + `pricing.js`. Entry: `index.js` (PROVIDERS).
 - `handlers/` — per-modality cores (chat/image/embedding/tts/stt/search) + sub-provider folders. `chatCore/` has the streaming/non-streaming/sse-to-json handlers.
-- `rtk/` — request token-killer. `index.js` compresses `tool_result` content in-place (OpenAI/Claude/Kiro shapes); `filters/` per-tool compressors + `autodetect.js`; `headroom.js` external compress proxy; `caveman.js` system-prompt injector.
+- `rtk/` — request token-killer. `index.js` compresses `tool_result` (OpenAI/Claude/Kiro); `filters/` + `autodetect.js`; `lite.js` lossless whitespace/tool-cap; `cavemanCompress.js` user/assistant prose rewrite; `caveman.js` / `ponytail.js` system-prompt injectors; `headroom.js` external proxy. Fail-open. Do not touch grok-cli identity from here.
 - `transformer/` — `responsesTransformer.js` (Chat Completions SSE → Codex Responses API SSE), `streamToJsonConverter.js`.
 - `shared/` — cross-provider auth/identity: `clineAuth.js`, `machineId.js`, `qoder/`.
 - `services/` — `model.js`, `provider.js`, `accountFallback.js`, `combo.js`, `compact.js`, `tokenRefresh/`+`tokenRefresh.js`, `oauthCredentialManager.js`, `usage/`, `projectId.js`, `kiroModels.js`/`qoderModels.js`.
