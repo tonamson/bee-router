@@ -23,6 +23,7 @@ import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { injectPonytail } from "../rtk/ponytail.js";
 import { compressMessages, formatRtkLog } from "../rtk/index.js";
+import { crushMessages, formatCrushLog } from "../rtk/smartCrush.js";
 import { applyLiteCompression, formatLiteLog } from "../rtk/lite.js";
 import { cavemanCompress, formatCavemanLog } from "../rtk/cavemanCompress.js";
 import { compressWithHeadroom, formatHeadroomLog, formatHeadroomSizeLog, isHeadroomPhantomSavings } from "../rtk/headroom.js";
@@ -245,6 +246,11 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const rtkLine = formatRtkLog(rtkStats);
   if (rtkLine) console.log(rtkLine);
 
+  // SmartCrush: lossless columnar JSON arrays. Before lite so the 2k cap sees compact form.
+  const crushStats = tokenSaverEnabled && liteEnabled !== false ? crushMessages(translatedBody) : null;
+  const crushLine = formatCrushLog(crushStats);
+  if (crushLine) console.log(crushLine);
+
   // Lite: lossless whitespace / tool-cap / consecutive-dup. Fail-open.
   const liteStats = tokenSaverEnabled && liteEnabled !== false ? applyLiteCompression(translatedBody) : null;
   const liteLine = formatLiteLog(liteStats);
@@ -269,6 +275,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   // Token-saver flags accumulator for the single "⚙" log line below.
   const xf = [];
+  if (crushStats) xf.push("CRUSH");
   if (liteStats) xf.push("LITE");
   if (cavemanStats) xf.push(`CAVEMAN-IN:${cavemanLevel}`);
 

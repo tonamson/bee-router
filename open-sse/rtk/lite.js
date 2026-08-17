@@ -1,5 +1,7 @@
 // Lossless request cleanup. Fail-open. Does not touch grok-cli / session.
 
+import { hasCacheControl } from "./cacheGuard.js";
+
 const MAX_TOOL_LENGTH = 2000;
 
 function walkItems(body) {
@@ -37,6 +39,8 @@ export function applyLiteCompression(body) {
       const msg = items[i];
       if (!msg) continue;
 
+      if (hasCacheControl(msg)) continue;
+
       if (msg.role === "tool" && typeof msg.content === "string") {
         stats.bytesBefore += msg.content.length;
         const next = collapseWhitespace(capTool(msg.content));
@@ -55,6 +59,7 @@ export function applyLiteCompression(body) {
       } else if (Array.isArray(msg.content)) {
         for (const part of msg.content) {
           if (!part || typeof part.text !== "string") continue;
+          if (hasCacheControl(part)) continue;
           stats.bytesBefore += part.text.length;
           const next = collapseWhitespace(part.text);
           if (next !== part.text) stats.hits.push("whitespace");

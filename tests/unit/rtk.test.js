@@ -501,7 +501,7 @@ describe("compressMessages (enabled)", () => {
       messages: [
         { role: "system", content: "you are" },
         { role: "user", content: "hi" },
-        { role: "assistant", content: null, tool_calls: [{ id: "c1", function: { name: "x", arguments: "{}" } }] },
+        { role: "assistant", content: null, tool_calls: [{ id: "c1", function: { name: "Bash", arguments: "{}" } }] },
         { role: "tool", tool_call_id: "c1", content: makeGrepOutput() },
         { role: "user", content: [{ type: "text", text: "next" }] }
       ]
@@ -509,6 +509,91 @@ describe("compressMessages (enabled)", () => {
     const stats = compressMessages(body, true);
     expect(stats).not.toBeNull();
     expect(stats.hits.length).toBeGreaterThan(0);
+  });
+
+  it("skips tool_result marked with cache_control", () => {
+    const big = makeLongDiff();
+    const body = {
+      messages: [{
+        role: "user",
+        content: [{
+          type: "tool_result",
+          tool_use_id: "toolu_1",
+          cache_control: { type: "ephemeral" },
+          content: big
+        }]
+      }]
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.messages[0].content[0].content).toBe(big);
+  });
+
+  it("skips OpenAI tool message when cache_control is set", () => {
+    const big = makeLongDiff();
+    const body = {
+      messages: [{
+        role: "tool",
+        tool_call_id: "call_1",
+        cache_control: { type: "ephemeral" },
+        content: big
+      }]
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.messages[0].content).toBe(big);
+  });
+
+  it("skips known non-shell tools (Read) even when output looks like git-diff", () => {
+    const big = makeLongDiff();
+    const body = {
+      messages: [
+        { role: "assistant", content: [{ type: "tool_use", id: "toolu_1", name: "Read", input: { path: "foo.js" } }] },
+        { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: big }] }
+      ]
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.messages[1].content[0].content).toBe(big);
+  });
+
+  it("still compresses shell tools (Bash)", () => {
+    const big = makeLongDiff();
+    const body = {
+      messages: [
+        { role: "assistant", tool_calls: [{ id: "c1", function: { name: "Bash", arguments: "{}" } }] },
+        { role: "tool", tool_call_id: "c1", content: big }
+      ]
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.messages[1].content.length).toBeLessThan(big.length);
+  });
+
+  it("compresses Grok run_terminal_command output", () => {
+    const big = makeLongDiff();
+    const body = {
+      messages: [
+        { role: "assistant", tool_calls: [{ id: "c1", function: { name: "run_terminal_command", arguments: "{}" } }] },
+        { role: "tool", tool_call_id: "c1", content: big }
+      ]
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.messages[1].content.length).toBeLessThan(big.length);
+  });
+
+  it("skips Grok read_file even when dump looks like git-diff", () => {
+    const big = makeLongDiff();
+    const body = {
+      messages: [
+        { role: "assistant", tool_calls: [{ id: "c1", function: { name: "read_file", arguments: "{}" } }] },
+        { role: "tool", tool_call_id: "c1", content: big }
+      ]
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.messages[1].content).toBe(big);
   });
 });
 

@@ -3,6 +3,7 @@
 import { RAW_CAP, MIN_COMPRESS_SIZE } from "./constants.js";
 import { autoDetectFilter } from "./autodetect.js";
 import { safeApply } from "./applyFilter.js";
+import { hasCacheControl, shouldApplyRtkFilter, buildToolNameLookup, toolIdOf } from "./cacheGuard.js";
 
 // Compress tool_result content in-place. Returns stats or null if disabled/failed.
 export function compressMessages(body, enabled) {
@@ -21,18 +22,24 @@ export function compressMessages(body, enabled) {
   if (!items) return null;
 
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
+  const toolNames = buildToolNameLookup(items);
   try {
     for (let i = 0; i < items.length; i++) {
       const msg = items[i];
       if (!msg) continue;
+      if (hasCacheControl(msg)) continue;
+
+      const applyFor = (id) => shouldApplyRtkFilter(id ? toolNames.get(id) : null);
 
       // Shape 4: OpenAI Responses — top-level { type:"function_call_output", output: string | [{type:"input_text", text}] }
       if (msg.type === "function_call_output") {
+        if (!applyFor(toolIdOf(msg))) continue;
         if (typeof msg.output === "string") {
           msg.output = compressText(msg.output, stats, "openai-responses-string");
         } else if (Array.isArray(msg.output)) {
           for (let k = 0; k < msg.output.length; k++) {
             const part = msg.output[k];
+            if (part && hasCacheControl(part)) continue;
             if (part && part.type === "input_text" && typeof part.text === "string") {
               part.text = compressText(part.text, stats, "openai-responses-array");
             }
@@ -43,7 +50,7 @@ export function compressMessages(body, enabled) {
 
       // Shape 1: OpenAI tool message — { role:"tool", content: "string" }
       if (msg.role === "tool" && typeof msg.content === "string") {
-        msg.content = compressText(msg.content, stats, "openai-tool");
+        if (applyFor(toolIdOf(msg))) msg.content = compressText(msg.content, stats, "openai-tool");
         continue;
       }
 
@@ -51,8 +58,10 @@ export function compressMessages(body, enabled) {
 
       // Shape 1b: OpenAI tool message — { role:"tool", content:[{type:"text", text:"..."}] }
       if (msg.role === "tool") {
+        if (!applyFor(toolIdOf(msg))) continue;
         for (let k = 0; k < msg.content.length; k++) {
           const part = msg.content[k];
+          if (part && hasCacheControl(part)) continue;
           if (part && part.type === "text" && typeof part.text === "string") {
             part.text = compressText(part.text, stats, "openai-tool-array");
           }
@@ -65,6 +74,8 @@ export function compressMessages(body, enabled) {
         const block = msg.content[j];
         if (!block || block.type !== "tool_result") continue;
         if (block.is_error === true) continue; // preserve error traces
+        if (hasCacheControl(block)) continue;
+        if (!applyFor(toolIdOf(msg, block))) continue;
 
         if (typeof block.content === "string") {
           // Shape 2: claude string form
@@ -73,6 +84,7 @@ export function compressMessages(body, enabled) {
           // Shape 3: claude array form — compress each text part
           for (let k = 0; k < block.content.length; k++) {
             const part = block.content[k];
+            if (part && hasCacheControl(part)) continue;
             if (part && part.type === "text" && typeof part.text === "string") {
               part.text = compressText(part.text, stats, "claude-array");
             }

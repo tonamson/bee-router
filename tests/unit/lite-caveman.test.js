@@ -39,6 +39,16 @@ describe("applyLiteCompression", () => {
     const body = { messages: [{ role: "user", content: "short" }] };
     expect(applyLiteCompression(body)).toBeNull();
   });
+
+  it("does not cap or rewrite a tool message with cache_control", () => {
+    const long = "x".repeat(3000);
+    const body = {
+      messages: [{ role: "tool", cache_control: { type: "ephemeral" }, content: long }],
+    };
+    const stats = applyLiteCompression(body);
+    expect(body.messages[0].content).toBe(long);
+    expect(stats).toBeNull();
+  });
 });
 
 describe("cavemanCompress", () => {
