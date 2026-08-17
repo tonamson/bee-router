@@ -1,6 +1,32 @@
-import { cpSync, existsSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+
+// Sibling binaries for open-sse/lib/deepseek-pow.js. Webpack rewrites import.meta.url
+// and does not trace dynamic fs.readFile / createRequire — copy into standalone root so
+// runtime can find them under process.cwd()/open-sse/lib (CLI sets cwd to app/).
+export const DEEPSEEK_POW_ASSETS = [
+  "sha3_wasm_bg.wasm",
+  "deepseek-pow-solver.cjs",
+  "deepseek-pow.js",
+];
+
+export function copyDeepSeekPowAssets({ projectRoot = process.cwd(), destinationRoot } = {}) {
+  if (!destinationRoot) return;
+  const srcDir = resolve(projectRoot, "open-sse", "lib");
+  const destDir = resolve(destinationRoot, "open-sse", "lib");
+  let copied = 0;
+  for (const name of DEEPSEEK_POW_ASSETS) {
+    const src = resolve(srcDir, name);
+    if (!existsSync(src)) continue;
+    mkdirSync(destDir, { recursive: true });
+    cpSync(src, resolve(destDir, name), { force: true });
+    copied += 1;
+  }
+  if (copied > 0) {
+    console.log(`[standalone-assets] Copied DeepSeek PoW assets (${copied}) to ${destDir}`);
+  }
+}
 
 export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = process.env.NEXT_DIST_DIR || ".next" } = {}) {
   if (process.env.NEXT_TRACING_ROOT_MODE === "workspace") {
@@ -37,6 +63,14 @@ export function copyStandaloneAssets({ projectRoot = process.cwd(), distDir = pr
     cpSync(serverWrapperSource, serverWrapperDestination, { force: true });
     console.log(`[standalone-assets] Copied custom-server.js to ${serverWrapperDestination}`);
   }
+
+  // Nested under project name when outputFileTracingRoot is a parent workspace.
+  const pkgName = projectRoot.split(/[/\\]/).filter(Boolean).pop();
+  const nestedStandalone = resolve(standaloneDir, pkgName);
+  const powDest = existsSync(resolve(nestedStandalone, "server.js")) && !existsSync(resolve(standaloneDir, "server.js"))
+    ? nestedStandalone
+    : standaloneDir;
+  copyDeepSeekPowAssets({ projectRoot, destinationRoot: powDest });
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(dirname(fileURLToPath(import.meta.url)), "copy-standalone-assets.mjs")) {

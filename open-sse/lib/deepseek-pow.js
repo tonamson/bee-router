@@ -91,13 +91,38 @@ class DeepSeekHashWasm {
 let _wasmSolver = null;
 let _wasmInitFailed = false;
 
+// Webpack rewrites import.meta.url to the build-machine path; standalone/CLI copy
+// wasm+cjs to <cwd>/open-sse/lib (see scripts/copy-standalone-assets.mjs).
+function getPowAssetDir() {
+  const candidates = [];
+  try {
+    candidates.push(path.dirname(fileURLToPath(import.meta.url)));
+  } catch {
+    /* non-file URL after bundling */
+  }
+  candidates.push(path.join(process.cwd(), "open-sse", "lib"));
+  if (typeof process.argv[1] === "string") {
+    candidates.push(path.join(path.dirname(path.resolve(process.argv[1])), "open-sse", "lib"));
+  }
+
+  let partial = null;
+  for (const dir of candidates) {
+    if (!dir) continue;
+    const hasWasm = fs.existsSync(path.join(dir, "sha3_wasm_bg.wasm"));
+    const hasCjs = fs.existsSync(path.join(dir, "deepseek-pow-solver.cjs"));
+    if (hasWasm && hasCjs) return dir;
+    if (!partial && (hasWasm || hasCjs)) partial = dir;
+  }
+  return partial || candidates[0] || path.join(process.cwd(), "open-sse", "lib");
+}
+
 async function getWasmSolver() {
   if (_wasmInitFailed) return null;
   if (_wasmSolver) return _wasmSolver;
 
   try {
     const solver = new DeepSeekHashWasm();
-    const wasmPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "sha3_wasm_bg.wasm");
+    const wasmPath = path.join(getPowAssetDir(), "sha3_wasm_bg.wasm");
     await solver.init(wasmPath);
     _wasmSolver = solver;
     return solver;
@@ -109,11 +134,12 @@ async function getWasmSolver() {
 
 // ── JS fallback solver (slow — ~5-6s at difficulty 144000) ───────────────
 
-const require = createRequire(import.meta.url);
 let _U;
 
 function loadU() {
   if (_U === undefined) {
+    const dir = getPowAssetDir();
+    const require = createRequire(path.join(dir, "deepseek-pow.js"));
     _U = require("./deepseek-pow-solver.cjs").U;
   }
   return _U;

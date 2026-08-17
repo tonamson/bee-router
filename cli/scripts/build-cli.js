@@ -250,6 +250,28 @@ function buildCliPackage() {
   // the bundle's node_modules or every importer throws MODULE_NOT_FOUND at runtime. Output
   // tracing normally copies it; this is the same belt-and-braces guard used for sql.js.
   ensureModuleInBundle("open");
+
+  // DeepSeek web PoW: wasm + JS sponge are siblings of deepseek-pow.js (import.meta.url /
+  // createRequire). Workspace-traced CLI builds skip copy-standalone-assets.mjs, and NFT
+  // does not follow dynamic fs.readFile — ship them under app/open-sse/lib (cwd at runtime).
+  console.log("3️⃣ c Copying DeepSeek PoW assets...");
+  const powSrcDir = path.join(appDir, "open-sse", "lib");
+  const powDestDir = path.join(cliAppDir, "open-sse", "lib");
+  const powFiles = ["sha3_wasm_bg.wasm", "deepseek-pow-solver.cjs", "deepseek-pow.js"];
+  let powCopied = 0;
+  for (const name of powFiles) {
+    const src = path.join(powSrcDir, name);
+    if (!fs.existsSync(src)) continue;
+    fs.mkdirSync(powDestDir, { recursive: true });
+    fs.copyFileSync(src, path.join(powDestDir, name));
+    powCopied += 1;
+  }
+  if (powCopied > 0) {
+    console.log(`✅ Copied DeepSeek PoW assets (${powCopied}) to open-sse/lib\n`);
+  } else {
+    console.warn("⚠️  DeepSeek PoW assets not found under open-sse/lib — ds-web PoW will 502\n");
+  }
+
   const betterDir = path.join(cliAppDir, "node_modules", "better-sqlite3");
   if (fs.existsSync(betterDir)) {
     fs.rmSync(betterDir, { recursive: true, force: true });
