@@ -9,6 +9,11 @@ import { getSettings } from "@/lib/localDb";
 import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { initTranslators } from "open-sse/translator/index.js";
+import { geminiToOpenAIRequest } from "open-sse/translator/request/gemini-to-openai.js";
+import { parseRouterEnv, resolveAgyRouteModel } from "@/lib/antigravityCliConfig";
+import fs from "fs/promises";
+import os from "os";
+import nodePath from "path";
 
 let initialized = false;
 const GEMINI_NATIVE_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
@@ -87,6 +92,11 @@ export async function POST(request, { params }) {
     if (isGeminiNativeTtsRequest(model, body)) {
       return await forwardGeminiNativeRequest(request, body, model, action);
     }
+
+    try {
+      const envText = await fs.readFile(nodePath.join(os.homedir(), ".gemini", "antigravity-cli", "9router.env"), "utf8");
+      model = resolveAgyRouteModel(model, parseRouterEnv(envText));
+    } catch { /* no agy override */ }
 
     // Streaming is determined by URL action suffix:
     //   :streamGenerateContent => stream: true  (SSE)
@@ -372,35 +382,11 @@ async function forwardGeminiNativeRequest(request, body, model, action) {
  * @param {boolean} stream     - whether to stream (from URL action)
  */
 function convertGeminiToInternal(geminiBody, model, stream) {
-  const messages = [];
-
-  // Convert system instruction
-  if (geminiBody.systemInstruction) {
-    const systemText = geminiBody.systemInstruction.parts
-      ?.map(p => p.text)
-      .join("\n") || "";
-    if (systemText) {
-      messages.push({ role: "system", content: systemText });
-    }
+  if (geminiBody?.request?.contents && !geminiBody.contents) {
+    const inner = { ...geminiBody.request, model: geminiBody.model || model };
+    return geminiToOpenAIRequest(model, inner, stream);
   }
-
-  // Convert contents to messages
-  if (geminiBody.contents) {
-    for (const content of geminiBody.contents) {
-      const role = content.role === "model" ? "assistant" : "user";
-      const text = content.parts?.map(p => p.text).join("\n") || "";
-      messages.push({ role, content: text });
-    }
-  }
-
-  return {
-    model,
-    messages,
-    stream,
-    max_tokens: geminiBody.generationConfig?.maxOutputTokens,
-    temperature: geminiBody.generationConfig?.temperature,
-    top_p: geminiBody.generationConfig?.topP,
-  };
+  return geminiToOpenAIRequest(model, geminiBody, stream);
 }
 
 /** Map OpenAI finish_reason => Gemini finishReason */

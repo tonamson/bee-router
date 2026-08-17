@@ -2,6 +2,32 @@ export const MODEL_PROVIDER = "gemini";
 export const SHELL_MARK_BEGIN = "# 9router-agy-begin";
 export const SHELL_MARK_END = "# 9router-agy-end";
 export const PREV_MODEL_KEY = "NINEROUTER_PREV_MODEL";
+export const ROUTE_MODEL_KEY = "NINEROUTER_MODEL";
+/** agy Gemini-API mode only accepts its catalog names, not 9router provider/model ids. */
+export const AGY_CATALOG_MODEL = "Gemini 3.1 Pro";
+
+export function is9RouterModelId(model) {
+  return typeof model === "string" && model.includes("/");
+}
+
+/** agy sends catalog names (gemini-3.1-pro / Gemini 3.1 Pro); rewrite to Apply target. */
+export function resolveAgyRouteModel(incomingModel, env) {
+  const dest = env?.[ROUTE_MODEL_KEY];
+  if (!dest) return incomingModel;
+  const raw = String(incomingModel || "").replace(/^models\//, "");
+  if (!raw || is9RouterModelId(raw)) return incomingModel;
+  if (/^gemini/i.test(raw) || /^Gemini\s/i.test(raw)) return dest;
+  return incomingModel;
+}
+
+/** CloudCode proto has no `stream` field — streaming is the :streamGenerateContent URL. */
+export function buildAgyInternalChatBody(body, env) {
+  const next = body && typeof body === "object" && !Array.isArray(body) ? { ...body } : {};
+  delete next.stream;
+  next.model = resolveAgyRouteModel(next.model, env);
+  if (!next.userAgent) next.userAgent = "antigravity";
+  return next;
+}
 
 export function normalizeGeminiBaseUrl(url) {
   let value = String(url || "").trim().replace(/\/+$/, "");
@@ -14,7 +40,7 @@ export function applyAntigravitySettings(currentSettings, { model }) {
     ? { ...currentSettings }
     : {};
   next.modelProvider = MODEL_PROVIDER;
-  if (model) next.model = model;
+  if (model) next.model = is9RouterModelId(model) ? AGY_CATALOG_MODEL : model;
   return next;
 }
 
@@ -34,17 +60,47 @@ export function has9RouterConfig(settings, env) {
 }
 
 function escapeEnvValue(value) {
-  return String(value ?? "").replace(/[\r\n]/g, "");
+  return `"${String(value ?? "").replace(/[\r\n]/g, "").replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-export function serializeRouterEnv({ apiKey, baseUrl, previousModel }) {
+function unescapeEnvValue(value) {
+  const raw = String(value ?? "");
+  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+    const inner = raw.slice(1, -1);
+    if (raw.startsWith('"')) return inner.replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+    return inner;
+  }
+  return raw;
+}
+
+export const WRAPPER_MARK = "9router-agy-wrapper";
+
+export function serializeRouterEnv({ apiKey, baseUrl, previousModel, routeModel }) {
   const lines = [
-    "# 9router AGY — sourced by shell profile. Do not edit modelProvider here.",
+    "# 9router AGY — sourced by the local agy wrapper. Do not edit modelProvider here.",
     `GEMINI_API_KEY=${escapeEnvValue(apiKey)}`,
     `GOOGLE_GEMINI_BASE_URL=${escapeEnvValue(baseUrl)}`,
   ];
+  if (routeModel) lines.push(`${ROUTE_MODEL_KEY}=${escapeEnvValue(routeModel)}`);
   if (previousModel) lines.push(`${PREV_MODEL_KEY}=${escapeEnvValue(previousModel)}`);
   return `${lines.join("\n")}\n`;
+}
+
+/** agy only reads GEMINI_API_KEY from process env — wrap the binary, never zshrc. */
+export function serializeAgyWrapper({ envPath, realBin }) {
+  const envQuoted = String(envPath || "").replace(/"/g, '\\"');
+  const realQuoted = String(realBin || "").replace(/"/g, '\\"');
+  return [
+    "#!/bin/sh",
+    `# ${WRAPPER_MARK}`,
+    `if [ -f "${envQuoted}" ]; then set -a; . "${envQuoted}"; set +a; fi`,
+    `exec "${realQuoted}" "$@"`,
+    "",
+  ].join("\n");
+}
+
+export function isAgyWrapper(text) {
+  return typeof text === "string" && text.includes(WRAPPER_MARK);
 }
 
 export function parseRouterEnv(text) {
@@ -55,7 +111,7 @@ export function parseRouterEnv(text) {
     if (!line || line.startsWith("#")) continue;
     const eq = line.indexOf("=");
     if (eq < 1) continue;
-    env[line.slice(0, eq)] = line.slice(eq + 1);
+    env[line.slice(0, eq)] = unescapeEnvValue(line.slice(eq + 1));
   }
   return env;
 }

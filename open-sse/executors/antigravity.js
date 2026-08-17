@@ -47,6 +47,7 @@ const ANTIGRAVITY_REQUEST_BLACKLIST = [
   "enable_thinking",
   "thinking_budget",
   "thinkingConfig",
+  "stream",
 ];
 
 // Strip blacklisted fields from an object (used for both body.request and top-level body)

@@ -70,6 +70,11 @@ http.createServer = (...args) => {
     req.headers["x-9r-real-ip"] = ip;
     req.headers["x-9r-peer-token"] = PEER_TOKEN;
     if (viaProxy) req.headers["x-9r-via-proxy"] = "1";
+    // agy CloudCode uses /v1internal:action (colon). Next cannot route that.
+    if (req.url && req.url.startsWith("/v1internal")) {
+      const q = req.url.includes("?") ? "&" : "?";
+      req.url = `/api/v1internal${q}raw=${encodeURIComponent(req.url)}`;
+    }
     return handler(req, res);
   };
   const server = origCreate(...rest, wrapped);

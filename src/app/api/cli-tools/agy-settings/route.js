@@ -10,11 +10,12 @@ import {
   applyAntigravitySettings,
   has9RouterConfig,
   normalizeGeminiBaseUrl,
+  isAgyWrapper,
   parseRouterEnv,
   removeShellBlock,
   resetAntigravitySettings,
+  serializeAgyWrapper,
   serializeRouterEnv,
-  upsertShellBlock,
 } from "@/lib/antigravityCliConfig";
 
 const execAsync = promisify(exec);
@@ -27,6 +28,51 @@ const getAgyBinPath = () => {
     return path.join(os.homedir(), "AppData", "Local", "agy", "bin", "agy.exe");
   }
   return path.join(os.homedir(), ".local", "bin", "agy");
+};
+
+const getRealBinPath = () => path.join(getAgyDir(), "agy.real");
+
+const installAgyWrapper = async () => {
+  if (os.platform() === "win32") return;
+  const bin = getAgyBinPath();
+  const real = getRealBinPath();
+  let existing;
+  try {
+    existing = await fs.readFile(bin);
+  } catch (error) {
+    if (error.code === "ENOENT") return;
+    throw error;
+  }
+  const asText = existing.toString("utf8");
+  if (isAgyWrapper(asText)) return;
+  await fs.copyFile(bin, real);
+  await fs.chmod(real, 0o755);
+  await fs.writeFile(bin, serializeAgyWrapper({ envPath: getEnvPath(), realBin: real }), { mode: 0o755 });
+};
+
+const uninstallAgyWrapper = async () => {
+  if (os.platform() === "win32") return;
+  const bin = getAgyBinPath();
+  const real = getRealBinPath();
+  let existing = "";
+  try {
+    existing = await fs.readFile(bin, "utf8");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  if (isAgyWrapper(existing)) {
+    try {
+      await fs.copyFile(real, bin);
+      await fs.chmod(bin, 0o755);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  try {
+    await fs.unlink(real);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
 };
 
 const checkAgyInstalled = async () => {
@@ -146,15 +192,17 @@ export async function POST(request) {
       apiKey: apiKey || "sk_9router",
       baseUrl: normalizedBaseUrl,
       previousModel,
+      routeModel: selectedModel,
     });
 
     await fs.writeFile(getSettingsPath(), `${JSON.stringify(settings, null, 2)}\n`);
     await fs.writeFile(getEnvPath(), envText);
-    await updateExistingProfiles((text) => upsertShellBlock(text, getEnvPath()));
+    await installAgyWrapper();
+    await updateExistingProfiles(removeShellBlock);
 
     return NextResponse.json({
       success: true,
-      message: "Antigravity CLI settings applied. Open a new terminal so GEMINI_API_KEY is picked up.",
+      message: "Antigravity CLI settings applied. Run agy — no shell profile change.",
       configPath: getSettingsPath(),
       envPath: getEnvPath(),
     });
@@ -186,6 +234,7 @@ export async function DELETE() {
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
+    await uninstallAgyWrapper();
     await updateExistingProfiles(removeShellBlock);
 
     return NextResponse.json({

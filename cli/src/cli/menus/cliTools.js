@@ -610,7 +610,7 @@ async function agyQuickSetup(port) {
 
   const baseUrl = endpoint.replace(/\/v1\/?$/, "");
   const result = await api.applyCliToolSettings("agy", { baseUrl, apiKey, model });
-  showStatus(result.success ? "Antigravity CLI setup completed! Open a new terminal, then run agy." : `Failed: ${result.error}`, result.success ? "success" : "error");
+  showStatus(result.success ? "Antigravity CLI setup completed. Run agy (shell profile unchanged)." : `Failed: ${result.error}`, result.success ? "success" : "error");
   await pause();
 }
 

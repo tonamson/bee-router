@@ -384,15 +384,15 @@ amp --model "{{model}}"
     notes: [
       {
         type: "info",
-        text: "agy uses Gemini API mode: settings.json modelProvider=gemini plus GEMINI_API_KEY and GOOGLE_GEMINI_BASE_URL. 9Router writes those and points the base URL at this gateway's /v1beta Gemini endpoint.",
+        text: "agy Gemini-API mode only accepts catalog names like Gemini 3.1 Pro. 9Router writes that to settings.json and remaps requests to the model you Apply.",
       },
       {
         type: "info",
-        text: "After Apply, open a new terminal (or source your shell profile) so the env vars load, then run agy. Header should show “Gemini API key”.",
+        text: "After Apply, run agy. Header should show “Gemini API key”. Re-Apply after an official agy upgrade overwrites the wrapper.",
       },
       {
         type: "warning",
-        text: "Config: ~/.gemini/antigravity-cli/settings.json and ~/.gemini/antigravity-cli/9router.env. This is the CLI — the MITM card is a separate Antigravity IDE intercept.",
+        text: "Config stays under ~/.gemini/antigravity-cli/. This is the CLI — the MITM card is a separate Antigravity IDE intercept.",
       },
     ],
   },

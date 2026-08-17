@@ -121,7 +121,7 @@ export default function AntigravityCliToolCard({
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: "success", text: "Settings applied. Open a new terminal, then run agy." });
+        setMessage({ type: "success", text: "Settings applied. Run agy (shell profile unchanged)." });
         checkStatus();
       } else {
         setMessage({ type: "error", text: data.error || "Failed to apply settings" });
@@ -175,8 +175,8 @@ export default function AntigravityCliToolCard({
         content: `GEMINI_API_KEY=${keyToUse}\nGOOGLE_GEMINI_BASE_URL=${baseUrl}\n`,
       },
       {
-        filename: "shell (source then run agy)",
-        content: `export GEMINI_API_KEY="${keyToUse}"\nexport GOOGLE_GEMINI_BASE_URL="${baseUrl}"\nagy\n`,
+        filename: "~/.gemini/antigravity-cli/agy.real + ~/.local/bin/agy wrapper",
+        content: `#!/bin/sh\n# 9router-agy-wrapper\nset -a; . ~/.gemini/antigravity-cli/9router.env; set +a\nexec ~/.gemini/antigravity-cli/agy.real "$@"\n`,
       },
     ];
   };

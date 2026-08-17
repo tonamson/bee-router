@@ -84,6 +84,22 @@ const nextConfig = {
         destination: "/api/v1beta"
       },
       {
+        source: "/v1internal:generateContent",
+        destination: "/api/v1internal"
+      },
+      {
+        source: "/v1internal:streamGenerateContent",
+        destination: "/api/v1internal"
+      },
+      {
+        source: "/v1internal:fetchAvailableModels",
+        destination: "/api/v1internal"
+      },
+      {
+        source: "/v1internal:loadCodeAssist",
+        destination: "/api/v1internal"
+      },
+      {
         source: "/v1/:path*",
         destination: "/api/v1/:path*"
       },
