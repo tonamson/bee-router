@@ -573,6 +573,66 @@ async function showHermesMenu(port, breadcrumb = []) {
   });
 }
 
+// ─── Antigravity CLI (agy) ────────────────────────────────────────────────────
+
+async function buildAgyHeader() {
+  const result = await api.getCliToolSettings("agy");
+  if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
+
+  const { installed, has9Router, settings, env } = result.data;
+  if (!installed) return `Status:   ${COLORS.red}✗ Antigravity CLI not installed${COLORS.reset}`;
+
+  if (!has9Router) {
+    return [
+      `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
+      `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
+    ].join("\n");
+  }
+
+  const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];
+  if (env?.GOOGLE_GEMINI_BASE_URL) lines.push(`Endpoint: ${COLORS.cyan}${env.GOOGLE_GEMINI_BASE_URL}${COLORS.reset}`);
+  if (settings?.model) lines.push(`Model:    ${COLORS.dim}${settings.model}${COLORS.reset}`);
+  return lines.join("\n");
+}
+
+async function agyQuickSetup(port) {
+  const { endpoint } = await getEndpoint(port);
+  const apiKey = await getFirstApiKey();
+
+  if (!apiKey) {
+    showStatus("No API keys found. Create one in API Keys menu first.", "error");
+    await pause();
+    return;
+  }
+
+  const model = await selectModelFromList("Select AGY Model", "", { excludeCombos: true });
+  if (!model) return;
+
+  const baseUrl = endpoint.replace(/\/v1\/?$/, "");
+  const result = await api.applyCliToolSettings("agy", { baseUrl, apiKey, model });
+  showStatus(result.success ? "Antigravity CLI setup completed! Open a new terminal, then run agy." : `Failed: ${result.error}`, result.success ? "success" : "error");
+  await pause();
+}
+
+async function agyReset() {
+  const result = await api.resetCliToolSettings("agy");
+  showStatus(result.success ? "Antigravity CLI settings reset!" : `Failed: ${result.error}`, result.success ? "success" : "error");
+  await pause();
+}
+
+async function showAgyMenu(port, breadcrumb = []) {
+  await showMenuWithBack({
+    title: "🌀 Antigravity CLI Settings",
+    breadcrumb,
+    headerContent: buildAgyHeader,
+    refresh: async () => ({}),
+    items: [
+      { label: "⚡ Quick Setup", action: async () => { await agyQuickSetup(port); return true; } },
+      { label: "Reset to Default", action: async () => { await agyReset(); return true; } }
+    ]
+  });
+}
+
 // ─── Main CLI Tools Menu ──────────────────────────────────────────────────────
 
 /**
@@ -610,6 +670,10 @@ async function showCliToolsMenu(port, breadcrumb = []) {
       {
         label: "Hermes",
         action: async () => { await showHermesMenu(port, [...breadcrumb, "Hermes"]); return true; }
+      },
+      {
+        label: "Antigravity CLI (agy)",
+        action: async () => { await showAgyMenu(port, [...breadcrumb, "Antigravity CLI"]); return true; }
       }
     ]
   });

@@ -371,6 +371,31 @@ amp --model "{{model}}"
       { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", alias: "gemini", defaultValue: "gemini/gemini-3.1-pro" },
     ],
   },
+  agy: {
+    id: "agy",
+    name: "Antigravity CLI",
+    image: "/providers/antigravity.png",
+    color: "#4285F4",
+    description: "Google Antigravity CLI (agy)",
+    configType: "custom",
+    docsUrl: "https://antigravity.google/docs/cli/install",
+    defaultCommand: "agy",
+    settingsFile: "~/.gemini/antigravity-cli/settings.json",
+    notes: [
+      {
+        type: "info",
+        text: "agy uses Gemini API mode: settings.json modelProvider=gemini plus GEMINI_API_KEY and GOOGLE_GEMINI_BASE_URL. 9Router writes those and points the base URL at this gateway's /v1beta Gemini endpoint.",
+      },
+      {
+        type: "info",
+        text: "After Apply, open a new terminal (or source your shell profile) so the env vars load, then run agy. Header should show “Gemini API key”.",
+      },
+      {
+        type: "warning",
+        text: "Config: ~/.gemini/antigravity-cli/settings.json and ~/.gemini/antigravity-cli/9router.env. This is the CLI — the MITM card is a separate Antigravity IDE intercept.",
+      },
+    ],
+  },
   "grok-build": {
     id: "grok-build",
     name: "Grok Build",
