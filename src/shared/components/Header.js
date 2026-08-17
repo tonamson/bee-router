@@ -84,6 +84,27 @@ const getPageInfo = (pathname) => {
       icon: "layers",
       breadcrumbs: [],
     };
+  if (pathname.includes("/analytics/token-save"))
+    return {
+      title: "Token Save",
+      description: "Payload cut vs provider cache-read — two separate meters",
+      icon: "savings",
+      breadcrumbs: [{ label: "Analytics", href: "/dashboard/analytics" }],
+    };
+  if (pathname.includes("/analytics/pricing"))
+    return {
+      title: "Pricing",
+      description: "Input / output rates for cost estimates",
+      icon: "attach_money",
+      breadcrumbs: [{ label: "Analytics", href: "/dashboard/analytics" }],
+    };
+  if (pathname.includes("/analytics"))
+    return {
+      title: "Analytics",
+      description: "Compression and cost analytics",
+      icon: "insights",
+      breadcrumbs: [],
+    };
   if (pathname.includes("/usage"))
     return {
       title: "Usage & Analytics",

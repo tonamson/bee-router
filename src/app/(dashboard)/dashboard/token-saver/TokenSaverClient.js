@@ -482,6 +482,13 @@ export default function TokenSaverClient() {
             Token Saver
           </h2>
         </div>
+        <p className="text-sm text-text-muted mb-3">
+          Cuts bytes before send. Does not create provider cache-read tokens —
+          those are a separate discount the provider reports.{" "}
+          <a href="/dashboard/analytics/token-save" className="text-primary underline">
+            See both meters
+          </a>
+        </p>
         <div className="flex items-center justify-between pt-2 pb-4 border-b border-border gap-4">
           <div className="min-w-0 flex-1">
             <p className="font-medium">

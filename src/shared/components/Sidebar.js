@@ -42,6 +42,7 @@ const systemItems = [
 export default function Sidebar({ onClose }) {
   const pathname = usePathname();
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(pathname.startsWith("/dashboard/analytics"));
   const [showRemoteModal, setShowRemoteModal] = useState(false);
   const [isDisconnected, setIsDisconnected] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
@@ -181,6 +182,56 @@ export default function Sidebar({ onClose }) {
               <span className="text-[13px] font-medium">{item.label}</span>
             </Link>
           ))}
+
+          <button
+            type="button"
+            onClick={() => setAnalyticsOpen((v) => !v)}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+              pathname.startsWith("/dashboard/analytics")
+                ? "bg-primary/10 text-primary"
+                : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+            )}
+          >
+            <span className="material-symbols-outlined text-[18px]">insights</span>
+            <span className="text-[13px] font-medium flex-1 text-left">Analytics</span>
+            <span
+              className="material-symbols-outlined text-[14px] transition-transform"
+              style={{ transform: analyticsOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+            >
+              expand_more
+            </span>
+          </button>
+          {analyticsOpen && (
+            <div className="pl-4">
+              <Link
+                href="/dashboard/analytics/token-save"
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                  pathname.startsWith("/dashboard/analytics/token-save")
+                    ? "bg-primary/10 text-primary"
+                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                )}
+              >
+                <span className="material-symbols-outlined text-[16px]">savings</span>
+                <span className="text-sm">Token Save</span>
+              </Link>
+              <Link
+                href="/dashboard/analytics/pricing"
+                onClick={onClose}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                  pathname.startsWith("/dashboard/analytics/pricing")
+                    ? "bg-primary/10 text-primary"
+                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                )}
+              >
+                <span className="material-symbols-outlined text-[16px]">attach_money</span>
+                <span className="text-sm">Pricing</span>
+              </Link>
+            </div>
+          )}
 
           {/* System section */}
           <div className="pt-3 mt-2 space-y-0.5">

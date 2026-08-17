@@ -3,6 +3,7 @@ import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
 import { makeKv } from "../helpers/kvStore.js";
 
 const pricingKv = makeKv("pricing");
+const catalogKv = makeKv("pricing-catalog");
 const CACHE_TTL_MS = 5000;
 
 let cache = { value: null, expiresAt: 0 };
@@ -15,45 +16,81 @@ async function getUserPricing() {
   return await pricingKv.getAll();
 }
 
+function stripMeta(all) {
+  const out = { ...all };
+  delete out._meta;
+  return out;
+}
+
+export async function getCatalogPricing() {
+  return stripMeta(await catalogKv.getAll());
+}
+
+export async function getCatalogMeta() {
+  return (await catalogKv.get("_meta")) || null;
+}
+
+function overlay(base, extra) {
+  if (!extra) return;
+  for (const [provider, models] of Object.entries(extra)) {
+    if (!base[provider]) base[provider] = { ...models };
+    else {
+      for (const [model, pricing] of Object.entries(models || {})) {
+        base[provider][model] = base[provider][model]
+          ? { ...base[provider][model], ...pricing }
+          : pricing;
+      }
+    }
+  }
+}
+
+function flattenCanonical(layer, rekeyByCanonical) {
+  const out = { ...(layer?._canonical || {}) };
+  for (const [p, models] of Object.entries(layer || {})) {
+    if (p === "_canonical" || p === "_meta") continue;
+    Object.assign(out, rekeyByCanonical(models));
+  }
+  return rekeyByCanonical(out);
+}
+
+function pickCanonical(layer, id, rekeyByCanonical) {
+  if (!layer || !id) return null;
+  return flattenCanonical(layer, rekeyByCanonical)[id] || null;
+}
+
 export async function getPricing() {
   const now = Date.now();
   if (cache.value && cache.expiresAt > now) return cache.value;
 
   const userPricing = await getUserPricing();
-  const { PROVIDER_PRICING } = await import("open-sse/providers/pricing.js");
-  const merged = {};
-
-  for (const [provider, models] of Object.entries(PROVIDER_PRICING)) {
-    merged[provider] = { ...models };
-    if (userPricing[provider]) {
-      for (const [model, pricing] of Object.entries(userPricing[provider])) {
-        merged[provider][model] = merged[provider][model]
-          ? { ...merged[provider][model], ...pricing }
-          : pricing;
-      }
-    }
-  }
-
-  for (const [provider, models] of Object.entries(userPricing)) {
-    if (!merged[provider]) {
-      merged[provider] = { ...models };
-    } else {
-      for (const [model, pricing] of Object.entries(models)) {
-        if (!merged[provider][model]) merged[provider][model] = pricing;
-      }
-    }
-  }
+  const catalogPricing = await getCatalogPricing();
+  const { MODEL_PRICING, rekeyByCanonical } = await import("open-sse/providers/pricing.js");
+  const merged = { _canonical: rekeyByCanonical(MODEL_PRICING) };
+  overlay(merged, { _canonical: flattenCanonical(catalogPricing, rekeyByCanonical) });
+  overlay(merged, { _canonical: flattenCanonical(userPricing, rekeyByCanonical) });
 
   cache = { value: merged, expiresAt: now + CACHE_TTL_MS };
   return merged;
 }
 
 export async function getPricingForModel(provider, model) {
-  if (!model) return null;
-  const userPricing = await getUserPricing();
-  if (provider && userPricing[provider]?.[model]) return userPricing[provider][model];
-  const { getPricingForModel: resolveConst } = await import("open-sse/providers/pricing.js");
-  return resolveConst(provider, model);
+  const { getPricingForModel: resolveConst, canonicalModelId, rekeyByCanonical } = await import("open-sse/providers/pricing.js");
+  const id = canonicalModelId(model);
+  if (!id) return null;
+  const fromUser = pickCanonical(await getUserPricing(), id, rekeyByCanonical);
+  const fromCatalog = pickCanonical(await getCatalogPricing(), id, rekeyByCanonical);
+  const builtin = resolveConst(provider, model);
+  if (!builtin && !fromCatalog && !fromUser) return null;
+  return { ...builtin, ...fromCatalog, ...fromUser };
+}
+
+export async function saveCatalogPricing(catalog, meta) {
+  await catalogKv.clear();
+  const payload = { ...catalog };
+  if (meta) payload._meta = meta;
+  await catalogKv.setMany(payload);
+  invalidate();
+  return meta;
 }
 
 // Atomic merge inside transaction (per-provider read-modify-write)

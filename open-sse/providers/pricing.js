@@ -353,6 +353,53 @@ export function matchPattern(pattern, model) {
 }
 
 /**
+ * True renames only. Prefix / punctuation / date suffix are folded by canonicalModelId.
+ * When a vendor ships a new string for the same model, add one row here.
+ */
+export const MODEL_ALIASES = {
+  // "old-canonical": "current-canonical",
+};
+
+/** One id for pricing / usage. `xai/grok-4.6` = `grok-4-6` = `grok-4.6-20260301`. */
+export function canonicalModelId(model) {
+  let s = String(model || "").trim().toLowerCase();
+  if (!s) return "";
+  if (s.includes("/")) s = s.slice(s.lastIndexOf("/") + 1);
+  s = s.replace(/_/g, "-");
+  s = s.replace(/[-@]\d{8}$/, "");
+  s = s.replace(/-\d{4}-\d{2}-\d{2}$/, "");
+  s = s.replace(/(\d)\.(\d)/g, "$1-$2");
+  return MODEL_ALIASES[s] || s;
+}
+
+export function rekeyByCanonical(models) {
+  const out = Object.create(null);
+  for (const [id, rates] of Object.entries(models || {})) {
+    const c = canonicalModelId(id);
+    if (c) out[c] = out[c] ? { ...out[c], ...rates } : rates;
+  }
+  return out;
+}
+
+let _canonModels = null;
+let _canonByProvider = null;
+
+function ensureCanonIndexes() {
+  if (_canonModels) return;
+  _canonModels = rekeyByCanonical(MODEL_PRICING);
+  _canonByProvider = Object.create(null);
+  for (const [provider, models] of Object.entries(PROVIDER_PRICING)) {
+    _canonByProvider[provider] = rekeyByCanonical(models);
+  }
+}
+
+/** @deprecated use canonicalModelId */
+export function modelLookupKeys(model) {
+  const id = canonicalModelId(model);
+  return id ? [id] : [];
+}
+
+/**
  * Resolve pricing for a model using the 3-step fallback chain:
  *   1. PROVIDER_PRICING[provider][model]
  *   2. MODEL_PRICING[model]
@@ -363,25 +410,16 @@ export function matchPattern(pattern, model) {
  * @returns {object|null}
  */
 export function getPricingForModel(provider, model) {
-  if (!model) return null;
+  const id = canonicalModelId(model);
+  if (!id) return null;
+  ensureCanonIndexes();
 
-  // 1. Provider-specific override
-  if (provider && PROVIDER_PRICING[provider]?.[model]) {
-    return PROVIDER_PRICING[provider][model];
-  }
+  if (provider && _canonByProvider[provider]?.[id]) return _canonByProvider[provider][id];
+  if (_canonModels[id]) return _canonModels[id];
 
-  // 2. Canonical model pricing (strip vendor prefix if needed: "deepseek/deepseek-chat" → "deepseek-chat")
-  const baseModel = model.includes("/") ? model.split("/").pop() : model;
-  if (MODEL_PRICING[baseModel]) return MODEL_PRICING[baseModel];
-  if (MODEL_PRICING[model]) return MODEL_PRICING[model];
-
-  // 3. Pattern match
   for (const { pattern, pricing } of PATTERN_PRICING) {
-    if (matchPattern(pattern, baseModel) || matchPattern(pattern, model)) {
-      return pricing;
-    }
+    if (matchPattern(pattern, id)) return pricing;
   }
-
   return null;
 }
 

@@ -48,6 +48,7 @@ export {
 // Pricing
 export {
   getPricing, getPricingForModel, updatePricing, resetPricing, resetAllPricing,
+  getCatalogMeta, saveCatalogPricing, getCatalogPricing,
 } from "./repos/pricingRepo.js";
 
 // Disabled models
