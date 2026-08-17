@@ -12,6 +12,7 @@ import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import * as log from "../utils/logger.js";
+import { runWithApiKeyLimits } from "@/lib/apiKeyLimits.js";
 
 // Video generation is xAI-only today; requests without a provider prefix
 // (bare model id, or multipart bodies we deliberately don't parse) land here.
@@ -35,6 +36,12 @@ async function requireValidApiKey(request) {
     if (!valid) return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
   }
   return null;
+}
+
+async function withVideoKeyLimits(request, fn) {
+  const authErr = await requireValidApiKey(request);
+  if (authErr) return authErr;
+  return runWithApiKeyLimits(extractApiKey(request), fn);
 }
 
 /**
@@ -92,9 +99,10 @@ function withConnectionHeader(response, connectionId) {
  * POST /v1/videos/{generations|edits|extensions} — async job creation proxy.
  */
 export async function handleVideoCreate(request, action) {
-  const authError = await requireValidApiKey(request);
-  if (authError) return authError;
+  return withVideoKeyLimits(request, () => handleVideoCreateAuthed(request, action));
+}
 
+async function handleVideoCreateAuthed(request, action) {
   const bodyInfo = await readForwardableBody(request);
   if (bodyInfo.error) return bodyInfo.error;
 
@@ -180,9 +188,10 @@ export async function handleVideoCreate(request, action) {
  * caller pins the creating account via `x-connection-id` (returned on create).
  */
 export async function handleVideoGet(request, requestId) {
-  const authError = await requireValidApiKey(request);
-  if (authError) return authError;
+  return withVideoKeyLimits(request, () => handleVideoGetAuthed(request, requestId));
+}
 
+async function handleVideoGetAuthed(request, requestId) {
   if (!requestId) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing video request id");
 
   const provider = DEFAULT_VIDEO_PROVIDER;

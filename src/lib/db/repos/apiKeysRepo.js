@@ -1,6 +1,11 @@
 import { v4 as uuidv4 } from "uuid";
 import { getAdapter } from "../driver.js";
 
+function intOrZero(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
 function rowToKey(row) {
   if (!row) return null;
   return {
@@ -10,6 +15,11 @@ function rowToKey(row) {
     machineId: row.machineId,
     isActive: row.isActive === 1 || row.isActive === true,
     createdAt: row.createdAt,
+    concurrency: intOrZero(row.concurrency),
+    dailyRequests: intOrZero(row.dailyRequests),
+    weeklyRequests: intOrZero(row.weeklyRequests),
+    dailyTokens: intOrZero(row.dailyTokens),
+    weeklyTokens: intOrZero(row.weeklyTokens),
   };
 }
 
@@ -53,8 +63,15 @@ export async function updateApiKey(id, data) {
     if (!row) return;
     const merged = { ...rowToKey(row), ...data };
     db.run(
-      `UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ? WHERE id = ?`,
-      [merged.key, merged.name, merged.machineId, merged.isActive ? 1 : 0, id]
+      `UPDATE apiKeys SET key = ?, name = ?, machineId = ?, isActive = ?,
+        concurrency = ?, dailyRequests = ?, weeklyRequests = ?, dailyTokens = ?, weeklyTokens = ?
+       WHERE id = ?`,
+      [
+        merged.key, merged.name, merged.machineId, merged.isActive ? 1 : 0,
+        intOrZero(merged.concurrency), intOrZero(merged.dailyRequests),
+        intOrZero(merged.weeklyRequests), intOrZero(merged.dailyTokens),
+        intOrZero(merged.weeklyTokens), id,
+      ]
     );
     result = merged;
   });
@@ -72,4 +89,11 @@ export async function validateApiKey(key) {
   const row = db.get(`SELECT isActive FROM apiKeys WHERE key = ?`, [key]);
   if (!row) return false;
   return row.isActive === 1 || row.isActive === true;
+}
+
+export async function getApiKeyBySecret(key) {
+  if (!key || typeof key !== "string") return null;
+  const db = await getAdapter();
+  const row = db.get(`SELECT * FROM apiKeys WHERE key = ?`, [key]);
+  return rowToKey(row);
 }

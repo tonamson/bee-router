@@ -1,14 +1,26 @@
 import { NextResponse } from "next/server";
 import { getApiKeys, createApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
+import { getWindowUsageByKeys, inflightCount } from "@/lib/apiKeyLimits.js";
 
 export const dynamic = "force-dynamic";
+
+const EMPTY_USAGE = { dayRequests: 0, dayTokens: 0, weekRequests: 0, weekTokens: 0 };
 
 // GET /api/keys - List API keys
 export async function GET() {
   try {
     const keys = await getApiKeys();
-    return NextResponse.json({ keys });
+    const usageMap = await getWindowUsageByKeys(keys.map((k) => k.key).filter(Boolean));
+    return NextResponse.json({
+      keys: keys.map((k) => ({
+        ...k,
+        usage: {
+          inflight: inflightCount(k.key),
+          ...(usageMap[k.key] || EMPTY_USAGE),
+        },
+      })),
+    });
   } catch (error) {
     console.log("Error fetching keys:", error);
     return NextResponse.json({ error: "Failed to fetch keys" }, { status: 500 });

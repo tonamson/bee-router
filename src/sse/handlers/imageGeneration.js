@@ -13,6 +13,7 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { handleComboChat } from "open-sse/services/combo.js";
 import * as log from "../utils/logger.js";
+import { runWithApiKeyLimits } from "@/lib/apiKeyLimits.js";
 
 // Providers that don't require credentials (noAuth)
 const NO_AUTH_PROVIDERS = new Set(["sdwebui", "comfyui"]);
@@ -43,6 +44,10 @@ export async function handleImageGeneration(request) {
     if (!valid) return errorResponse(HTTP_STATUS.UNAUTHORIZED, "Invalid API key");
   }
 
+  return runWithApiKeyLimits(apiKey, () => handleImageAuthed(request, body, modelStr, apiKey, url, settings, preferredConnectionId, wantsStream, binaryOutput));
+}
+
+async function handleImageAuthed(request, body, modelStr, apiKey, url, settings, preferredConnectionId, wantsStream, binaryOutput) {
   if (!modelStr) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
   if (!body.prompt) return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing required field: prompt");
 

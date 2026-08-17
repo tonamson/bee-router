@@ -23,6 +23,7 @@ import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { getProjectIdForConnection } from "open-sse/services/projectId.js";
+import { runWithApiKeyLimits } from "@/lib/apiKeyLimits.js";
 
 /**
  * Handle chat completion request
@@ -75,6 +76,12 @@ export async function handleChat(request, clientRawRequest = null) {
     }
   }
 
+  return runWithApiKeyLimits(apiKey, () =>
+    dispatchChat({ body, modelStr, clientRawRequest, request, apiKey, settings })
+  );
+}
+
+async function dispatchChat({ body, modelStr, clientRawRequest, request, apiKey, settings }) {
   if (!modelStr) {
     log.warn("CHAT", "Missing model");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");

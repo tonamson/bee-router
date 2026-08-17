@@ -18,6 +18,18 @@ import EndpointRow from "./components/EndpointRow";
 import StatusAlert from "./components/StatusAlert";
 import Tooltip from "./components/Tooltip";
 import SecurityWarning from "./components/SecurityWarning";
+import KeyLimitsModal from "./KeyLimitsModal";
+
+function limitChip(key) {
+  const bits = [];
+  if (key.concurrency) bits.push(`${key.concurrency} conc`);
+  if (key.dailyRequests) bits.push(`${key.usage?.dayRequests || 0}/${key.dailyRequests} req/d`);
+  if (key.weeklyRequests) bits.push(`${key.usage?.weekRequests || 0}/${key.weeklyRequests} req/w`);
+  if (key.dailyTokens) bits.push(`${key.usage?.dayTokens || 0}/${key.dailyTokens} tok/d`);
+  if (key.weeklyTokens) bits.push(`${key.usage?.weekTokens || 0}/${key.weeklyTokens} tok/w`);
+  return bits.length ? bits.join(" · ") : "Unlimited";
+}
+
 export default function APIPageClient({ machineId }) {
   const [keys, setKeys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +37,7 @@ export default function APIPageClient({ machineId }) {
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
+  const [limitsKey, setLimitsKey] = useState(null);
 
   const [requireApiKey, setRequireApiKey] = useState(false);
   const [requireLogin, setRequireLogin] = useState(true);
@@ -1058,6 +1071,8 @@ export default function APIPageClient({ machineId }) {
                   </div>
                   <p className="text-xs text-text-muted mt-1">
                     Created {new Date(key.createdAt).toLocaleDateString()}
+                    <span className="mx-1.5">·</span>
+                    {limitChip(key)}
                   </p>
                   {key.isActive === false && (
                     <p className="text-xs text-orange-500 mt-1">Paused</p>
@@ -1083,6 +1098,14 @@ export default function APIPageClient({ machineId }) {
                     }}
                     title={key.isActive ? "Pause key" : "Resume key"}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setLimitsKey(key)}
+                    className="p-2 hover:bg-primary/10 rounded text-primary opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    title="Usage limits"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">tune</span>
+                  </button>
                   <Link
                     href={`/dashboard/analytics/keys/${key.id}`}
                     className="p-2 hover:bg-primary/10 rounded text-primary opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
@@ -1326,6 +1349,13 @@ export default function APIPageClient({ machineId }) {
       </Modal>
 
       {/* Confirm Modal */}
+      <KeyLimitsModal
+        keyRow={limitsKey}
+        onClose={() => setLimitsKey(null)}
+        onSaved={(updated) => {
+          setKeys((prev) => prev.map((k) => (k.id === updated.id ? { ...k, ...updated, usage: k.usage } : k)));
+        }}
+      />
       <ConfirmModal
         isOpen={!!confirmState}
         onClose={() => setConfirmState(null)}

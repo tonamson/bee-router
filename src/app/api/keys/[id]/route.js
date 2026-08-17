@@ -21,7 +21,7 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { isActive } = body;
+    const { isActive, concurrency, dailyRequests, weeklyRequests, dailyTokens, weeklyTokens } = body;
 
     const existing = await getApiKeyById(id);
     if (!existing) {
@@ -30,6 +30,20 @@ export async function PUT(request, { params }) {
 
     const updateData = {};
     if (isActive !== undefined) updateData.isActive = isActive;
+
+    const limitFields = { concurrency, dailyRequests, weeklyRequests, dailyTokens, weeklyTokens };
+    for (const [name, raw] of Object.entries(limitFields)) {
+      if (raw === undefined) continue;
+      if (raw === null || raw === "") {
+        updateData[name] = 0;
+        continue;
+      }
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0) {
+        return NextResponse.json({ error: `Invalid ${name}` }, { status: 400 });
+      }
+      updateData[name] = Math.floor(n);
+    }
 
     const updated = await updateApiKey(id, updateData);
 

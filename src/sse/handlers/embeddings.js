@@ -13,6 +13,7 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { saveRequestUsage } from "@/lib/usageDb.js";
+import { runWithApiKeyLimits } from "@/lib/apiKeyLimits.js";
 
 function exactEmbeddingUsage(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw) || raw.estimated === true) return null;
@@ -65,6 +66,10 @@ export async function handleEmbeddings(request) {
     }
   }
 
+  return runWithApiKeyLimits(apiKey, () => handleEmbeddingsAuthed(request, body, modelStr, apiKey, url));
+}
+
+async function handleEmbeddingsAuthed(request, body, modelStr, apiKey, url) {
   if (!modelStr) {
     log.warn("EMBEDDINGS", "Missing model");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");
