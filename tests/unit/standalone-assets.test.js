@@ -63,4 +63,22 @@ describe("standalone build assets", () => {
     expect(() => readFileSync(join(projectRoot, ".next-cli-build", "standalone", ".next-cli-build", "static", "chunks", "app.js")))
       .toThrow();
   });
+
+  // DeepSeek web PoW loads wasm/cjs via import.meta.url siblings. Webpack rewrites that
+  // URL to the build-machine path and file tracing does not follow dynamic fs.readFile /
+  // createRequire, so standalone must copy the binaries next to a runtime-findable root.
+  it("copies DeepSeek PoW wasm and cjs into standalone open-sse/lib", () => {
+    const projectRoot = createBuildFixture(".next");
+    mkdirSync(join(projectRoot, "open-sse", "lib"), { recursive: true });
+    writeFileSync(join(projectRoot, "open-sse", "lib", "sha3_wasm_bg.wasm"), "wasm-bytes");
+    writeFileSync(join(projectRoot, "open-sse", "lib", "deepseek-pow-solver.cjs"), "module.exports={U:1}");
+    writeFileSync(join(projectRoot, "open-sse", "lib", "deepseek-pow.js"), "export {}");
+
+    copyStandaloneAssets({ projectRoot, distDir: ".next" });
+
+    const dest = join(projectRoot, ".next", "standalone", "open-sse", "lib");
+    expect(readFileSync(join(dest, "sha3_wasm_bg.wasm"), "utf8")).toBe("wasm-bytes");
+    expect(readFileSync(join(dest, "deepseek-pow-solver.cjs"), "utf8")).toBe("module.exports={U:1}");
+    expect(readFileSync(join(dest, "deepseek-pow.js"), "utf8")).toBe("export {}");
+  });
 });

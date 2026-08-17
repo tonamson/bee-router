@@ -17,7 +17,7 @@ const ALIAS_TOKENS = [
   "siliconflow","hyp","hyperbolic","dg","deepgram","aai","assemblyai","nb","nanobanana","ch",
   "chutes","ark","volcengine-ark","byteplus","bpm","cursor","vx","vertex","vxp","vertex-partner",
   "gw","grok-web","gcli","gb","grok-build","grok-cli","pw","perplexity-web","mimo","xiaomi-mimo",
-  "xmtp","xiaomi-tokenplan","cf",
+  "xmtp","xiaomi-tokenplan","cf","ds-web","deepseek-web","qwen-web",
   "cloudflare-ai","fal","fal-ai","stability","stability-ai","bfl","black-forest-labs","recraft",
   "topaz","runway","runwayml","jina","jina-ai","polly","aws-polly","bb","blackbox",
   "af","airforce","api-airforce","llm7","llm-7","samba","sambanova","bm","bluesminds",

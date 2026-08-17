@@ -28,6 +28,15 @@ const nextConfig = {
   outputFileTracingExcludes: {
     "*": ["./gitbook/**/*"]
   },
+  // DeepSeek web PoW: dynamic fs.readFile / createRequire siblings are not auto-traced.
+  // copy-standalone-assets.mjs also copies these; tracing is belt-and-braces for NFT.
+  outputFileTracingIncludes: {
+    "/*": [
+      "./open-sse/lib/sha3_wasm_bg.wasm",
+      "./open-sse/lib/deepseek-pow-solver.cjs",
+      "./open-sse/lib/deepseek-pow.js",
+    ],
+  },
   images: {
     unoptimized: true
   },
