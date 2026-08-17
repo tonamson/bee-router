@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getApiKeyById } from "@/lib/localDb";
-import { clearUsageByApiKey, getUsageStatsForApiKey, getUsageHistoryForApiKey, getChartData } from "@/lib/usageDb";
+import { clearUsageByApiKey, getUsageStatsForApiKey, getChartData } from "@/lib/usageDb";
+import { getUsageHistoryForApiKey } from "@/lib/db/repos/apiKeyUsageHistory.js";
 import { clearTokenSaveEventsByApiKey } from "@/lib/tokenSave/events.js";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export async function GET(request, { params }) {
     }
 
     const page = Number(searchParams.get("page")) || 1;
-    const pageSize = Number(searchParams.get("pageSize")) || 15;
+    const pageSize = Number(searchParams.get("pageSize")) || 20;
     const historyOnly = searchParams.get("view") === "history";
 
     if (historyOnly) {

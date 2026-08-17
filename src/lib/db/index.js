@@ -59,9 +59,11 @@ export {
 // Usage
 export {
   statsEmitter, trackPendingRequest, getActiveRequests,
-  saveRequestUsage, getUsageHistory, getUsageStats, getUsageStatsForApiKey, getUsageHistoryForApiKey, getChartData,
+  saveRequestUsage, getUsageHistory, getUsageStats, getUsageStatsForApiKey, getChartData,
   appendRequestLog, getRecentLogs, clearAllUsage, clearUsageByApiKey,
 } from "./repos/usageRepo.js";
+
+export { getUsageHistoryForApiKey } from "./repos/apiKeyUsageHistory.js";
 
 // Request details
 export {
