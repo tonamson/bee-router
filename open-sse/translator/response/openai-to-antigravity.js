@@ -13,7 +13,9 @@ function parseToolCallArgs(raw) {
 }
 
 const LIST_DIR_RE = /^(list_dir|listdir|list_directory)$/i;
+const BASH_RE = /^(bash|run_command|runcommand|shell)$/i;
 const DIR_KEYS = ["uri", "DirectoryPath", "directoryPath", "directory_path", "path", "Path", "AbsolutePath", "absolutePath"];
+const CMD_KEYS = ["command", "Command", "cmd", "Cmd", "script", "ShellCommand", "commandLine"];
 
 function toFileUri(raw) {
   if (typeof raw !== "string" || !raw.trim()) return null;
@@ -37,6 +39,14 @@ function pickDirPath(obj) {
   return null;
 }
 
+function pickString(obj, keys) {
+  if (!obj || typeof obj !== "object") return null;
+  for (const k of keys) {
+    if (typeof obj[k] === "string" && obj[k].trim()) return obj[k];
+  }
+  return null;
+}
+
 /** AGY CLI ListDir reads `uri` (file://). Models often send DirectoryPath/path. */
 function normalizeAgListDirArgs(name, args) {
   if (!LIST_DIR_RE.test(name || "") || !args || typeof args !== "object") return args;
@@ -47,6 +57,21 @@ function normalizeAgListDirArgs(name, args) {
   const next = { ...args, uri };
   if (inner) next.parameters = { ...inner, uri };
   return next;
+}
+
+/** AGY `run_command` / Claude `Bash` — keep `command` even if model sent Command/cmd. */
+function normalizeAgBashArgs(name, args) {
+  if (!BASH_RE.test(name || "") || !args || typeof args !== "object") return args;
+  const inner = args.parameters && typeof args.parameters === "object" ? args.parameters : null;
+  const cmd = pickString(args, CMD_KEYS) || pickString(inner, CMD_KEYS);
+  if (!cmd) return args;
+  const next = { ...args, command: cmd };
+  if (inner) next.parameters = { ...inner, command: cmd };
+  return next;
+}
+
+function normalizeAgToolArgs(name, args) {
+  return normalizeAgBashArgs(name, normalizeAgListDirArgs(name, args));
 }
 
 // Convert OpenAI SSE chunk to Antigravity SSE format
@@ -112,11 +137,12 @@ export function openaiToAntigravityResponse(chunk, state) {
     for (const idx of indices) {
       const accum = state._toolCallAccum[idx];
       const originalName = state.toolNameMap?.get(accum.name) || accum.name;
-      const args = normalizeAgListDirArgs(originalName, parseToolCallArgs(accum.arguments));
+      const args = normalizeAgToolArgs(originalName, parseToolCallArgs(accum.arguments));
       const functionCall = { name: originalName, args };
       if (accum.id) functionCall.id = accum.id;
       parts.push({ functionCall });
     }
+    state._toolCallAccum = {};
   }
 
   // Skip empty non-finish chunks

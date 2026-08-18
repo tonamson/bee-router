@@ -1,38 +1,29 @@
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 
-**IMPORTANT: This project has a knowledge graph. ALWAYS use the
-code-review-graph MCP tools BEFORE using Grep/Glob/Read to explore
-the codebase.** The graph is faster, cheaper (fewer tokens), and gives
-you structural context (callers, dependents, test coverage) that file
-scanning cannot.
+This repo may expose `code-review-graph` MCP tools. Use them **only if
+that exact tool name is in your available tool list**. If the call
+fails or the tool is missing, immediately use native file tools.
+Never invent MCP names. Never invent Claude Code / Cursor tool names.
 
-### When to use graph tools FIRST
+### Antigravity CLI (`agy`) — native tools only
 
-- **Exploring code**: `semantic_search_nodes` or `query_graph` instead of Grep
-- **Understanding impact**: `get_impact_radius` instead of manually tracing imports
-- **Code review**: `detect_changes` + `get_review_context` instead of reading entire files
-- **Finding relationships**: `query_graph` with callers_of/callees_of/imports_of/tests_for
-- **Architecture questions**: `get_architecture_overview` + `list_communities`
+agy does not have `ListDir`, `Bash`, `Grep`, `Read`, `Glob`, `Edit`,
+or `Write`. Calling those shows empty `ListDir()` / hung `Bash()`.
 
-Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
+| Job | Call this | Args |
+|-----|-----------|------|
+| list dir | `list_dir` | `uri` = `file:///absolute/path` |
+| read file | `view_file` | path / uri as the schema requires |
+| search | `grep_search` | query + path |
+| shell | `run_command` | `command` (string) |
+| edit | `replace_file_content` / `write_to_file` | per schema |
 
-### Key Tools
+### When graph tools exist
 
-| Tool | Use when |
-|------|----------|
-| `detect_changes` | Reviewing code changes — gives risk-scored analysis |
-| `get_review_context` | Need source snippets for review — token-efficient |
-| `get_impact_radius` | Understanding blast radius of a change |
-| `get_affected_flows` | Finding which execution paths are impacted |
-| `query_graph` | Tracing callers, callees, imports, tests, dependencies |
-| `semantic_search_nodes` | Finding functions/classes by name or keyword |
-| `get_architecture_overview` | Understanding high-level codebase structure |
-| `refactor_tool` | Planning renames, finding dead code |
+- Explore: `semantic_search_nodes` or `query_graph`
+- Impact: `get_impact_radius`
+- Review: `detect_changes` + `get_review_context`
+- Architecture: `get_architecture_overview` + `list_communities`
 
-### Workflow
-
-1. The graph auto-updates on file changes (via hooks).
-2. Use `detect_changes` for code review.
-3. Use `get_affected_flows` to understand impact.
-4. Use `query_graph` pattern="tests_for" to check coverage.
+Fall back to native tools the first time a graph tool is unavailable.

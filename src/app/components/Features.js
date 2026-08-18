@@ -1,45 +1,45 @@
 "use client";
 
 const FEATURES = [
-  { 
-    icon: "link", 
-    title: "Unified AI Gateway", 
-    desc: "Access OpenAI, Anthropic, Gemini, DeepSeek, and 50+ providers through a single high-performance API endpoint.", 
+  {
+    icon: "link",
+    title: "One /v1 surface",
+    desc: "OpenAI, Anthropic, Gemini, DeepSeek, and 40+ other providers sit behind a single OpenAI-compatible API.",
   },
-  { 
-    icon: "bolt", 
-    title: "Lightning-Fast Routing", 
-    desc: "Ultra-low latency proxy with instant model fallback, provider failover cascades, and load balancing.", 
+  {
+    icon: "bolt",
+    title: "Combo fallback",
+    desc: "If one account or model fails, the next in the combo runs. No client-side retry logic required.",
   },
-  { 
-    icon: "savings", 
-    title: "Token Saver & Warm Ping", 
-    desc: "Intelligent prompt caching and automated window keep-warm pings to maximize your subscription quotas.", 
+  {
+    icon: "savings",
+    title: "Token saver",
+    desc: "Optional in-place compression of tool results, plus keep-warm pings so subscription windows stay open.",
   },
-  { 
-    icon: "shield_lock", 
-    title: "OAuth & Key Vault", 
-    desc: "Seamlessly authenticate via OAuth or store API keys securely on your local device with zero cloud leaks.", 
+  {
+    icon: "shield_lock",
+    title: "OAuth and API keys",
+    desc: "Sign in with provider OAuth or paste keys. Tokens refresh locally; nothing is uploaded unless you enable sync.",
   },
-  { 
-    icon: "dashboard_customize", 
-    title: "Reactive Web Dashboard", 
-    desc: "Modern visual interface with real-time request metrics, token counters, error graphs, and topology maps.", 
+  {
+    icon: "dashboard_customize",
+    title: "Operations dashboard",
+    desc: "Live request logs, token usage, quota bars, and per-connection health on localhost:20128/dashboard.",
   },
-  { 
-    icon: "layers", 
-    title: "Provider Combos", 
-    desc: "Chain multiple AI models into intelligent fallback pipelines with custom rules, weights, and timeouts.", 
+  {
+    icon: "layers",
+    title: "Format translation",
+    desc: "Claude, Gemini, CloudCode, Codex, and Cursor payloads convert through a documented translator — not a black box.",
   },
-  { 
-    icon: "terminal", 
-    title: "CLI & IDE Native", 
-    desc: "Zero configuration drop-in for Claude Code, Cursor, Cline, OpenAI Codex, RooCode, and custom SDKs.", 
+  {
+    icon: "terminal",
+    title: "CLI and IDE setup",
+    desc: "One-click profiles for Claude Code, Codex, Cursor, Cline, and Antigravity (agy). Point the tool at this host.",
   },
-  { 
-    icon: "lock", 
-    title: "100% Local & Private", 
-    desc: "Runs entirely on your machine. All credentials, database records, and logs remain strictly on your local disk.", 
+  {
+    icon: "lock",
+    title: "Local SQLite store",
+    desc: "State lives under ~/.bee-router. The process is yours. No required cloud account to route traffic.",
   },
 ];
 
@@ -50,13 +50,13 @@ export default function Features() {
         <div className="mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFC700]/10 border border-[#FFC700]/30 text-xs font-semibold text-[#FFC700] mb-4">
             <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-            Built for Developers
+            What it actually does
           </div>
           <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight text-white">
-            Engineered for Maximum Speed &amp; Reliability
+            Routing, credentials, and observability in one process
           </h2>
           <p className="text-gray-400 max-w-2xl text-lg leading-relaxed">
-            Everything you need to orchestrate and streamline your AI development stack with zero friction.
+            Built for people who already have Claude Code, Cursor, or an SDK and need one place to attach providers.
           </p>
         </div>
         

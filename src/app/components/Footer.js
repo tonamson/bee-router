@@ -27,7 +27,7 @@ export default function Footer() {
               </h3>
             </Link>
             <p className="text-gray-400 text-sm max-w-xs mb-6 leading-relaxed">
-              The smartest unified AI gateway and routing proxy. Connect, orchestrate, and route AI requests across multiple providers with zero latency.
+              Local AI routing gateway. One OpenAI-compatible endpoint, many upstreams, credentials on disk.
             </p>
             <div className="flex items-center gap-3">
               <a
@@ -112,7 +112,7 @@ export default function Footer() {
         
         {/* Bottom */}
         <div className="border-t border-[#282B37] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
-          <p>© {currentYear} BeeRouter. Built for developers with passion.</p>
+          <p>© {currentYear} BeeRouter. MIT licensed. Runs on your machine.</p>
           <div className="flex gap-6">
             <a
               className="hover:text-white transition-colors"

@@ -43,9 +43,8 @@ export function geminiToOpenAIRequest(model, body, stream) {
   if (body.contents && Array.isArray(body.contents)) {
     for (const content of body.contents) {
       const converted = convertGeminiContent(content);
-      if (converted) {
-        result.messages.push(converted);
-      }
+      if (Array.isArray(converted)) result.messages.push(...converted);
+      else if (converted) result.messages.push(converted);
     }
   }
 
@@ -81,6 +80,7 @@ function convertGeminiContent(content) {
 
   const parts = [];
   const toolCalls = [];
+  const toolResults = [];
 
   for (const part of content.parts) {
     if (part.text !== undefined) {
@@ -110,12 +110,24 @@ function convertGeminiContent(content) {
     }
 
     if (part.functionResponse) {
-      return {
+      toolResults.push({
         role: ROLE.TOOL,
         tool_call_id: part.functionResponse.id || `call_${part.functionResponse.name}`,
         content: JSON.stringify(part.functionResponse.response?.result || part.functionResponse.response || {})
-      };
+      });
     }
+  }
+
+  if (toolResults.length > 0) {
+    if (toolCalls.length > 0 || parts.length > 0) {
+      const assistantMsg = { role: ROLE.ASSISTANT };
+      if (parts.length > 0) {
+        assistantMsg.content = parts.length === 1 ? parts[0].text : parts;
+      }
+      if (toolCalls.length > 0) assistantMsg.tool_calls = toolCalls;
+      return [...toolResults, assistantMsg];
+    }
+    return toolResults.length === 1 ? toolResults[0] : toolResults;
   }
 
   if (toolCalls.length > 0) {

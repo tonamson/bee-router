@@ -10,8 +10,8 @@ import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { initTranslators } from "open-sse/translator/index.js";
 import { geminiToOpenAIRequest } from "open-sse/translator/request/gemini-to-openai.js";
-import { openaiToAntigravityResponse } from "open-sse/translator/response/openai-to-antigravity.js";
 import { parseRouterEnv, resolveAgyRouteModel } from "@/lib/antigravityCliConfig";
+import { convertOpenAIResponseToGemini, transformOpenAISSEToGeminiSSE } from "@/lib/geminiSse";
 import fs from "fs/promises";
 import os from "os";
 import nodePath from "path";
@@ -390,125 +390,4 @@ function convertGeminiToInternal(geminiBody, model, stream) {
   return geminiToOpenAIRequest(model, geminiBody, stream);
 }
 
-/**
- * Transform an OpenAI SSE stream into a Gemini SSE stream.
- *
- * OpenAI SSE format (what handleChat returns):
- *   data: {"choices":[{"delta":{"content":"Hi"},"finish_reason":null}]}
- *   data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{...}}
- *   data: [DONE]
- *
- * Gemini SSE format (what @google/genai SDK expects):
- *   data: {"candidates":[{"content":{"role":"model","parts":[{"text":"Hi"}]},"index":0}]}
- *   data: {"candidates":[{"content":{"role":"model","parts":[{"text":""}]},"finishReason":"STOP","index":0}],"usageMetadata":{...}}
- *   (stream closes — no [DONE])
- */
-function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
-  if (!upstreamResponse.ok || !upstreamResponse.body) {
-    return upstreamResponse;
-  }
 
-  const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
-  const state = {};
-
-  const transformStream = new TransformStream({
-    transform(chunk, controller) {
-      const text = decoder.decode(chunk, { stream: true });
-      const lines = text.split("\n");
-
-      for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-
-        const data = line.slice(5).trim();
-
-        // Drop empty lines and the OpenAI [DONE] sentinel.
-        // Gemini SSE ends by stream close, no sentinel needed.
-        if (!data || data === "[DONE]") continue;
-
-        let parsed;
-        try {
-          parsed = JSON.parse(data);
-        } catch {
-          continue;
-        }
-
-        const gemini = openaiChunkToGemini(parsed, state, model);
-        if (!gemini) continue;
-
-        controller.enqueue(
-          encoder.encode("data: " + JSON.stringify(gemini) + "\r\n\r\n")
-        );
-      }
-    },
-  });
-
-  return new Response(upstreamResponse.body.pipeThrough(transformStream), {
-    status: 200,
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
-}
-
-/** OpenAI SSE/JSON → Gemini public GenerateContent shape (no CloudCode `response` envelope). */
-function openaiChunkToGemini(chunk, state, model) {
-  const wrapped = openaiToAntigravityResponse(chunk, state);
-  if (!wrapped?.response) return null;
-  if (!wrapped.response.modelVersion) {
-    wrapped.response.modelVersion = chunk.model || model;
-  }
-  return wrapped.response;
-}
-
-/**
- * Convert an OpenAI chat.completion JSON response into a Gemini
- * GenerateContentResponse so that Gemini CLI can parse it.
- */
-async function convertOpenAIResponseToGemini(response, model) {
-  if (!response.ok) return response;
-
-  let body;
-  try {
-    body = await response.json();
-  } catch {
-    return response;
-  }
-
-  if (body.candidates) return Response.json(body, {
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-  });
-
-  if (body.error) return Response.json(body, {
-    status: response.status,
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-  });
-
-  const choice = body.choices?.[0];
-  if (!choice) {
-    return Response.json(body, {
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-    });
-  }
-
-  const message = choice.message || {};
-  const geminiResponse = openaiChunkToGemini({
-    id: body.id,
-    model: body.model || model,
-    choices: [{
-      delta: {
-        content: message.content,
-        reasoning_content: message.reasoning_content,
-        tool_calls: message.tool_calls,
-      },
-      finish_reason: choice.finish_reason,
-    }],
-    usage: body.usage,
-  }, {}, model) || { candidates: [] };
-
-  return Response.json(geminiResponse, {
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
-  });
-}

@@ -134,6 +134,24 @@ describe("OpenAI → Antigravity tool calls", () => {
     expect(fc.args.uri).toBe("file:///Volumes/Code/Opensource/mrouter");
     expect(fc.args.parameters.uri).toBe("file:///Volumes/Code/Opensource/mrouter");
   });
+
+  it("maps Bash/run_command Command to command", () => {
+    const out = openaiToAntigravityResponse({
+      id: "c1",
+      model: "x",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            function: { name: "Bash", arguments: { Command: "git status" } },
+          }],
+        },
+        finish_reason: "tool_calls",
+      }],
+    }, {});
+    const fc = out.response.candidates[0].content.parts.find((p) => p.functionCall)?.functionCall;
+    expect(fc.args.command).toBe("git status");
+  });
 });
 
 describe("Antigravity executor", () => {

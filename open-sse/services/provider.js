@@ -38,8 +38,9 @@ export function detectFormat(body) {
     return "openai-responses";
   }
 
-  // Antigravity format: Gemini wrapped in body.request
-  if (body.request?.contents && body.userAgent === "antigravity") {
+  // Antigravity / CloudCode: Gemini wrapped in body.request.
+  // userAgent is optional — MITM and some agy builds omit it.
+  if (body.request?.contents) {
     return "antigravity";
   }
 

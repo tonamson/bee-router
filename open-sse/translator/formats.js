@@ -26,6 +26,10 @@ export function detectFormatByEndpoint(pathname, body) {
   // /v1/messages is always Claude
   if (pathname.includes("/v1/messages")) return FORMATS.CLAUDE;
 
+  // agy / Antigravity IDE CloudCode. Do not require userAgent — MITM and
+  // custom-server rewrite leave pathname as /api/v1internal.
+  if (pathname.includes("/v1internal")) return FORMATS.ANTIGRAVITY;
+
   // /v1/chat/completions + input[] → treat as openai (Cursor CLI sends Responses body via chat endpoint)
   if (pathname.includes("/v1/chat/completions") && Array.isArray(body?.input)) {
     return FORMATS.OPENAI;
