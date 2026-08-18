@@ -108,8 +108,14 @@ function processElementAttributes(element) {
   for (const attr of attrs) {
     if (element.hasAttribute(attr)) {
       const propKey = `_original_${attr}`;
+      const current = element.getAttribute(attr);
       if (!element[propKey]) {
-        element[propKey] = element.getAttribute(attr);
+        element[propKey] = current;
+      } else if (current !== element[propKey]) {
+        const prevTranslated = currentLocale === "en" ? element[propKey] : translate(element[propKey]);
+        if (current !== prevTranslated) {
+          element[propKey] = current;
+        }
       }
       const original = element[propKey];
       if (original && original.trim()) {
