@@ -20,12 +20,13 @@ export default function Navigation() {
         >
           <div className="relative flex items-center justify-center size-9 transition-transform duration-200 group-hover:scale-105">
             <Image
-              src="/logo.png"
+              src="/logo.png?v=2"
               alt="BeeRouter Logo"
               width={36}
               height={36}
               className="object-contain"
               priority
+              unoptimized
             />
           </div>
           <h2 className="text-white text-xl font-bold tracking-tight group-hover:text-[#FFC700] transition-colors">

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 
 const CLI_TOOLS = [
@@ -51,27 +52,15 @@ export default function FlowAnimation() {
       {/* BeeRouter Center Hub */}
       <div className="relative z-20 w-36 h-36 rounded-3xl bg-[#16181F] border-2 border-[#FFC700] shadow-[0_0_45px_rgba(255,199,0,0.35)] flex flex-col items-center justify-center gap-1.5 group cursor-pointer hover:scale-105 transition-transform duration-300">
         {/* Bee Logo Icon */}
-        <div className="relative flex items-center justify-center size-11 rounded-xl bg-gradient-to-br from-[#FFC700] via-[#F59E0B] to-[#D97706] shadow-[0_0_18px_rgba(255,199,0,0.5)] text-black">
-          <svg className="size-6" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M12 2L3.5 6.9v10.2L12 22l8.5-4.9V6.9L12 2zm0 2.4l6.5 3.75v7.5L12 19.4l-6.5-3.75v-7.5L12 4.4z"
-              opacity="0.9"
-            />
-            <ellipse cx="12" cy="12" rx="3" ry="4" />
-            <path
-              d="M7.8 9.5c.8-1.5 2.3-2.5 4.2-2.5s3.4 1 4.2 2.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-            />
-            <path
-              d="M10 11.5h4M9.5 13.5h5"
-              stroke="#16181F"
-              strokeWidth="1.2"
-              strokeLinecap="round"
-            />
-          </svg>
+        <div className="relative flex items-center justify-center size-12">
+          <Image
+            src="/logo.png?v=2"
+            alt="BeeRouter Logo"
+            width={48}
+            height={48}
+            className="object-contain drop-shadow-[0_0_12px_rgba(255,199,0,0.5)]"
+            unoptimized
+          />
         </div>
         <span className="text-xs font-extrabold text-white tracking-wider group-hover:text-[#FFC700] transition-colors">
           BeeRouter

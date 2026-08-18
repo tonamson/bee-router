@@ -14,11 +14,12 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-3 mb-4 group inline-flex">
               <div className="relative flex items-center justify-center size-8 transition-transform duration-200 group-hover:scale-105">
                 <Image
-                  src="/logo.png"
+                  src="/logo.png?v=2"
                   alt="BeeRouter Logo"
                   width={32}
                   height={32}
                   className="object-contain"
+                  unoptimized
                 />
               </div>
               <h3 className="text-white text-lg font-bold group-hover:text-[#FFC700] transition-colors">
