@@ -39,33 +39,30 @@ function formatResetTimeDisplay(resetTime) {
   }
 }
 
-/**
- * Get color classes based on remaining percentage
- */
 function getColorClasses(remainingPercentage) {
   if (remainingPercentage > 70) {
     return {
-      text: "text-green-600 dark:text-green-400",
-      bg: "bg-green-500",
-      bgLight: "bg-green-500/10",
-      emoji: "🟢",
+      text: "text-brand-400 font-semibold",
+      barGradient: "bg-gradient-to-r from-[#FFC700] via-[#FFD700] to-[#F59E0B]",
+      dotBg: "bg-brand-400 shadow-[0_0_8px_rgba(255,199,0,0.8)]",
+      trackBg: "bg-black/30 dark:bg-black/50 border border-brand-500/20",
     };
   }
 
   if (remainingPercentage >= 30) {
     return {
-      text: "text-yellow-600 dark:text-yellow-400",
-      bg: "bg-yellow-500",
-      bgLight: "bg-yellow-500/10",
-      emoji: "🟡",
+      text: "text-amber-400 font-semibold",
+      barGradient: "bg-gradient-to-r from-[#F59E0B] to-[#D97706]",
+      dotBg: "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
+      trackBg: "bg-black/30 dark:bg-black/50 border border-amber-500/20",
     };
   }
 
   return {
-    text: "text-red-600 dark:text-red-400",
-    bg: "bg-red-500",
-    bgLight: "bg-red-500/10",
-    emoji: "🔴",
+    text: "text-rose-400 font-semibold",
+    barGradient: "bg-gradient-to-r from-rose-500 to-red-600",
+    dotBg: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse",
+    trackBg: "bg-black/30 dark:bg-black/50 border border-rose-500/20",
   };
 }
 
@@ -162,11 +159,11 @@ export default function QuotaTable({
           return (
             <div
               key={`${quota.name}-${quota.index}`}
-              className={`flex items-center gap-2 border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${cellPad}`}
+              className={`flex items-center gap-2.5 border-b border-border/50 hover:bg-surface-2/40 transition-colors ${cellPad}`}
             >
               {/* Name */}
-              <div className="flex w-36 min-w-0 items-center gap-1.5">
-                <span className="text-[10px] shrink-0">{colors.emoji}</span>
+              <div className="flex w-36 min-w-0 items-center gap-2">
+                <span className={`size-1.5 rounded-full ${colors.dotBg} shrink-0`} />
                 <span className={`${nameText} font-medium text-text-primary truncate`}>
                   {quota.name}
                 </span>
@@ -174,23 +171,21 @@ export default function QuotaTable({
 
               {/* Progress + used/total */}
               <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
-                <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden border ${colors.bgLight} ${
-                  quota.remaining === 0 ? "border-black/10 dark:border-white/10" : "border-transparent"
-                }`}>
+                <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden p-0.5 ${colors.trackBg}`}>
                   <div
-                    className={`h-full transition-all duration-300 ${colors.bg}`}
+                    className={`h-full rounded-full transition-all duration-300 ${colors.barGradient}`}
                     style={{ width: `${Math.min(quota.remaining, 100)}%` }}
                   />
                 </div>
 
                 <div className={`flex items-center justify-between gap-1 min-w-0 ${compact ? "text-[10px]" : "text-xs"}`}>
                   <span
-                    className="text-text-muted truncate"
+                    className="text-text-muted font-mono truncate"
                     title={`${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`}
                   >
                     {quota.used.toLocaleString()} / {quota.total > 0 ? quota.total.toLocaleString() : "∞"}
                   </span>
-                  <span className={`font-medium ${colors.text} shrink-0`}>
+                  <span className={`font-mono text-[11px] font-semibold ${colors.text} shrink-0 tabular-nums`}>
                     {quota.remaining}%
                   </span>
                 </div>
@@ -201,7 +196,7 @@ export default function QuotaTable({
                 {countdown !== "-" || resetDisplay ? (
                   compact ? (
                     <div
-                      className={`${resetPrimary} text-text-primary font-medium truncate`}
+                      className={`${resetPrimary} font-mono text-[11px] font-semibold text-brand-400 truncate`}
                       title={resetDisplay || ""}
                     >
                       {countdown !== "-" ? countdownLabel : resetDisplay}
@@ -209,8 +204,9 @@ export default function QuotaTable({
                   ) : (
                     <div className="min-w-0 space-y-0.5">
                       {countdown !== "-" && (
-                        <div className={`${resetPrimary} text-text-primary font-medium truncate`}>
-                          {countdownLabel}
+                        <div className={`${resetPrimary} font-mono text-[11px] font-semibold text-brand-400 truncate flex items-center gap-1`}>
+                          <span className="material-symbols-outlined text-[12px] text-brand-400">timer</span>
+                          <span>{countdownLabel}</span>
                         </div>
                       )}
                       {resetDisplay && (

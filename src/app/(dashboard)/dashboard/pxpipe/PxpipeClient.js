@@ -140,10 +140,10 @@ export default function PxpipeClient() {
               <button
                 key={tab.id}
                 onClick={() => setWindowId(tab.id)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                   windowId === tab.id
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-text-muted hover:text-text hover:bg-bg-hover"
+                    ? "bg-brand-500 text-black shadow-[0_2px_8px_rgba(255,199,0,0.3)]"
+                    : "text-text-muted hover:text-text-main hover:bg-surface-2"
                 }`}
               >
                 {tab.label}
@@ -162,11 +162,11 @@ export default function PxpipeClient() {
           </div>
           <div>
             <p className="text-xs text-text-muted">Saved</p>
-            <p className="text-lg font-semibold text-success">{w ? fmtTokens(w.tokensSavedEst) : "—"}</p>
+            <p className="text-lg font-semibold text-brand-400">{w ? fmtTokens(w.tokensSavedEst) : "—"}</p>
           </div>
           <div>
             <p className="text-xs text-text-muted">Reduction</p>
-            <p className="text-lg font-semibold text-success">{w ? `${w.savedPct}%` : "—"}</p>
+            <p className="text-lg font-semibold text-brand-400">{w ? `${w.savedPct}%` : "—"}</p>
           </div>
         </div>
         <p className="text-xs text-text-muted mt-3">
@@ -181,18 +181,33 @@ export default function PxpipeClient() {
         <h3 className="font-medium mb-3">Tokens saved — last 30 days</h3>
         {stats?.timeline?.some((d) => d.tokensSavedEst > 0) ? (
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={stats.timeline} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <AreaChart data={stats.timeline} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradPxpipe" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#FFC700" stopOpacity={0.45} />
+                  <stop offset="60%" stopColor="#F59E0B" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => d.slice(5)} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtTokens} width={48} />
-              <Tooltip formatter={(v) => [fmtTokens(v), "Tokens saved"]} labelFormatter={(d) => d} />
-              <Area type="monotone" dataKey="tokensSavedEst" stroke="#10b981" fill="url(#gradPxpipe)" strokeWidth={2} />
+              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} stroke="#282B37" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={(d) => d.slice(5)} axisLine={{ stroke: "rgba(40,43,55,0.6)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickFormatter={fmtTokens} width={48} axisLine={{ stroke: "rgba(40,43,55,0.6)" }} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgba(22, 24, 31, 0.95)",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid rgba(255, 199, 0, 0.3)",
+                  borderRadius: "10px",
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5), 0 0 12px rgba(255, 199, 0, 0.15)",
+                  padding: "8px 12px",
+                  fontSize: "12px",
+                }}
+                labelStyle={{ color: "#9ca3af", marginBottom: "4px", fontWeight: 500 }}
+                itemStyle={{ color: "#FFC700", fontWeight: 600 }}
+                formatter={(v) => [fmtTokens(v), "Tokens saved"]}
+                labelFormatter={(d) => d}
+              />
+              <Area type="monotone" dataKey="tokensSavedEst" stroke="#FFC700" fill="url(#gradPxpipe)" strokeWidth={2.5} activeDot={{ r: 5, fill: "#FFC700", stroke: "#0D0E12", strokeWidth: 2 }} />
             </AreaChart>
           </ResponsiveContainer>
         ) : (

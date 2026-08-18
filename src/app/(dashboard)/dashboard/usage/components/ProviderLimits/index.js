@@ -936,7 +936,7 @@ export default function ProviderLimits() {
             type="button"
             onClick={() => setExpiringFirst((prev) => !prev)}
             aria-pressed={expiringFirst}
-            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2 text-xs transition-colors ${expiringFirst ? "border-amber-500/40 bg-amber-500/10 text-amber-500" : "border-black/10 text-text-primary hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"}`}
+            className={`flex h-8 shrink-0 items-center gap-1 rounded-lg border px-2 text-xs transition-colors ${expiringFirst ? "border-brand-500/40 bg-brand-500/10 text-brand-400 font-semibold" : "border-border/60 text-text-primary hover:bg-surface-2"}`}
             title="Sort accounts by earliest quota reset time"
           >
             <span className="material-symbols-outlined text-[14px]">
@@ -974,12 +974,12 @@ export default function ProviderLimits() {
           {/* Auto-refresh toggle */}
           <button
             onClick={() => setAutoRefresh((prev) => !prev)}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-black/10 px-2 text-xs transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+            className={`flex h-8 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-xs transition-colors ${autoRefresh ? "border-brand-500/30 bg-brand-500/5 hover:bg-brand-500/10" : "border-border/60 hover:bg-surface-2"}`}
             title={autoRefresh ? "Disable auto-refresh" : "Enable auto-refresh"}
           >
             <span
-              className={`material-symbols-outlined text-[14px] ${
-                autoRefresh ? "text-primary" : "text-text-muted"
+              className={`material-symbols-outlined text-[15px] ${
+                autoRefresh ? "text-brand-500" : "text-text-muted"
               }`}
             >
               {autoRefresh ? "toggle_on" : "toggle_off"}
@@ -988,23 +988,22 @@ export default function ProviderLimits() {
               Auto-refresh
             </span>
             {autoRefresh && (
-              <span className="text-[10px] text-text-muted tabular-nums">
+              <span className="font-mono text-[11px] font-semibold text-brand-400 tabular-nums">
                 ({countdown}s)
               </span>
             )}
           </button>
-
 
           {/* Refresh all button */}
           <button
             type="button"
             onClick={() => refreshAll(true)}
             disabled={refreshingAll}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-black/10 px-2 text-xs text-text-primary transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5 disabled:opacity-50"
+            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-border/60 px-2 text-xs text-text-primary transition-colors hover:bg-brand-500/10 hover:border-brand-500/30 hover:text-brand-400 disabled:opacity-50"
             title="Refresh all"
           >
             <span
-              className={`material-symbols-outlined text-[14px] ${refreshingAll ? "animate-spin" : ""}`}
+              className={`material-symbols-outlined text-[14px] ${refreshingAll ? "animate-spin text-brand-400" : ""}`}
             >
               refresh
             </span>
@@ -1014,7 +1013,7 @@ export default function ProviderLimits() {
 
       {/* Provider cards: 2 columns, compact */}
       {expiringFirst && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+        <div className="rounded-xl border border-brand-500/30 bg-brand-500/10 px-3 py-2 text-xs text-brand-300">
           Expiring-first currently reorders accounts inside the current page.
           Cross-page ordering still follows backend pagination.
         </div>

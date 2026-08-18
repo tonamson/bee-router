@@ -20,14 +20,124 @@ import Tooltip from "./components/Tooltip";
 import SecurityWarning from "./components/SecurityWarning";
 import KeyLimitsModal from "./KeyLimitsModal";
 
-function limitChip(key) {
+function RateLimitPills({ keyItem }) {
   const bits = [];
-  if (key.concurrency) bits.push(`${key.concurrency} conc`);
-  if (key.dailyRequests) bits.push(`${key.usage?.dayRequests || 0}/${key.dailyRequests} req/d`);
-  if (key.weeklyRequests) bits.push(`${key.usage?.weekRequests || 0}/${key.weeklyRequests} req/w`);
-  if (key.dailyTokens) bits.push(`${key.usage?.dayTokens || 0}/${key.dailyTokens} tok/d`);
-  if (key.weeklyTokens) bits.push(`${key.usage?.weekTokens || 0}/${key.weeklyTokens} tok/w`);
-  return bits.length ? bits.join(" · ") : "Unlimited";
+  if (keyItem.concurrency) bits.push({ label: `${keyItem.concurrency} conc`, title: "Concurrency limit" });
+  if (keyItem.dailyRequests) bits.push({ label: `${keyItem.usage?.dayRequests || 0}/${keyItem.dailyRequests} req/d`, title: "Daily requests" });
+  if (keyItem.weeklyRequests) bits.push({ label: `${keyItem.usage?.weekRequests || 0}/${keyItem.weeklyRequests} req/w`, title: "Weekly requests" });
+  if (keyItem.dailyTokens) bits.push({ label: `${keyItem.usage?.dayTokens || 0}/${keyItem.dailyTokens} tok/d`, title: "Daily tokens" });
+  if (keyItem.weeklyTokens) bits.push({ label: `${keyItem.usage?.weekTokens || 0}/${keyItem.weeklyTokens} tok/w`, title: "Weekly tokens" });
+
+  if (!bits.length) {
+    return (
+      <span className="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded-md bg-surface-2 text-text-muted border border-border/60">
+        Unlimited
+      </span>
+    );
+  }
+
+  return (
+    <div className="inline-flex flex-wrap items-center gap-1.5">
+      {bits.map((b, i) => (
+        <span
+          key={i}
+          title={b.title}
+          className="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded-md bg-black/40 dark:bg-black/60 text-brand-400 dark:text-brand-300 border border-brand-500/30 shadow-[0_0_8px_rgba(255,199,0,0.08)]"
+        >
+          {b.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CodeSnippetsSection({ endpointUrl, apiKey }) {
+  const [tab, setTab] = useState("curl");
+  const { copied, copy } = useCopyToClipboard();
+  const keyStr = apiKey || "b-prod-xxxxxx";
+  const url = endpointUrl.endsWith("/v1") ? endpointUrl : `${endpointUrl}/v1`;
+
+  const snippets = {
+    curl: `curl ${url}/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${keyStr}" \\
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello BeeRouter!"}]
+  }'`,
+    python: `from openai import OpenAI
+
+client = OpenAI(
+    base_url="${url}",
+    api_key="${keyStr}"
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello BeeRouter!"}]
+)
+
+print(response.choices[0].message.content)`,
+    node: `import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "${url}",
+  apiKey: "${keyStr}",
+});
+
+const response = await client.chat.completions.create({
+  model: "gpt-4o",
+  messages: [{ role: "user", content: "Hello BeeRouter!" }],
+});
+
+console.log(response.choices[0].message.content);`,
+  };
+
+  const activeSnippet = snippets[tab] || snippets.curl;
+
+  return (
+    <Card className="overflow-hidden border-border/80">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/80 px-4 py-3 bg-surface-2/40">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-brand-500 text-[20px]">code</span>
+          <h3 className="font-semibold text-sm text-text-main">Code Snippets & Quickstart</h3>
+        </div>
+        <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-lg border border-border/60">
+          {[
+            { id: "curl", label: "cURL" },
+            { id: "python", label: "Python SDK" },
+            { id: "node", label: "Node.js SDK" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                tab === t.id
+                  ? "bg-brand-500 text-black shadow-[0_2px_8px_rgba(255,199,0,0.25)]"
+                  : "text-text-muted hover:text-text-main hover:bg-surface-3"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="relative p-4 bg-[#0D0E12]">
+        <button
+          onClick={() => copy(activeSnippet, "code_snippet")}
+          className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2/90 hover:bg-brand-500/20 text-text-muted hover:text-brand-400 border border-border/60 transition-all z-10"
+        >
+          <span className="material-symbols-outlined text-[14px]">
+            {copied === "code_snippet" ? "check" : "content_copy"}
+          </span>
+          <span>{copied === "code_snippet" ? "Copied" : "Copy"}</span>
+        </button>
+        <pre className="font-mono text-xs text-text-main overflow-x-auto p-2 leading-relaxed selection:bg-brand-500/30 selection:text-brand-200">
+          <code>{activeSnippet}</code>
+        </pre>
+      </div>
+    </Card>
+  );
 }
 
 export default function APIPageClient({ machineId }) {
@@ -770,21 +880,35 @@ export default function APIPageClient({ machineId }) {
           />
           {/* Cloudflare Tunnel */}
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 min-w-[88px] text-center ${
-              tunnelEnabled ? "bg-primary/10 text-primary" : "bg-surface-2 text-text-muted"
-            }`}>Tunnel</span>
+            {tunnelEnabled && !tunnelLoading && tunnelReachable ? (
+              <span className="inline-flex items-center justify-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md shrink-0 min-w-[96px] bg-black/40 dark:bg-black/60 border border-emerald-500/30 text-emerald-400 font-semibold shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+                Tunnel
+              </span>
+            ) : tunnelEnabled && !tunnelLoading && !tunnelReachable ? (
+              <span className="inline-flex items-center justify-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md shrink-0 min-w-[96px] bg-black/40 dark:bg-black/60 border border-amber-500/30 text-amber-400 font-semibold shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+                <span className="size-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+                Tunnel
+              </span>
+            ) : (
+              <span className="inline-flex items-center justify-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md shrink-0 min-w-[96px] bg-surface-2 text-text-muted border border-border/60">
+                <span className="size-1.5 rounded-full bg-text-subtle/50" />
+                Tunnel
+              </span>
+            )}
             {tunnelEnabled && !tunnelLoading && tunnelReachable ? (
               <>
-                <Input value={`${tunnelPublicUrl || tunnelUrl}/v1`} readOnly className="flex-1 font-mono text-sm" />
+                <Input value={`${tunnelPublicUrl || tunnelUrl}/v1`} readOnly className="flex-1 font-mono text-sm bg-surface-2/60 border-border/80" />
                 <button
                   onClick={() => copy(`${tunnelPublicUrl || tunnelUrl}/v1`, "tunnel_url")}
-                  className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors shrink-0"
+                  className="p-2 hover:bg-brand-500/10 rounded-lg text-text-muted hover:text-brand-400 transition-colors shrink-0"
+                  title="Copy tunnel URL"
                 >
                   <span className="material-symbols-outlined text-[18px]">{copied === "tunnel_url" ? "check" : "content_copy"}</span>
                 </button>
                 <button
                   onClick={() => setShowDisableTunnelModal(true)}
-                  className="p-2 hover:bg-red-500/10 rounded text-red-500 transition-colors shrink-0"
+                  className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors shrink-0"
                   title="Disable Tunnel"
                 >
                   <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
@@ -792,13 +916,13 @@ export default function APIPageClient({ machineId }) {
               </>
             ) : tunnelEnabled && !tunnelLoading && !tunnelReachable ? (
               <>
-                <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded border border-amber-300 dark:border-amber-800 bg-amber-500/5 text-sm text-amber-600 dark:text-amber-400">
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded border border-amber-500/30 bg-amber-500/10 text-sm text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.1)]">
+                  <span className="material-symbols-outlined animate-spin text-sm text-amber-400">progress_activity</span>
                   {tunnelEverReachable ? "Tunnel reconnecting..." : "Tunnel checking..."}
                 </div>
                 <button
                   onClick={() => setShowDisableTunnelModal(true)}
-                  className="p-2 hover:bg-red-500/10 rounded text-red-500 transition-colors shrink-0"
+                  className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors shrink-0"
                   title="Disable Tunnel"
                 >
                   <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
@@ -812,7 +936,7 @@ export default function APIPageClient({ machineId }) {
                 </div>
                 <button
                   onClick={() => { setTunnelLoading(false); setTunnelProgress(""); }}
-                  className="p-2 hover:bg-red-500/10 rounded text-red-500 transition-colors shrink-0"
+                  className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors shrink-0"
                   title="Stop"
                 >
                   <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
@@ -834,7 +958,7 @@ export default function APIPageClient({ machineId }) {
                 </div>
                 <button
                   onClick={() => setTunnelChecking(false)}
-                  className="p-2 hover:bg-red-500/10 rounded text-red-500 transition-colors shrink-0"
+                  className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors shrink-0"
                   title="Stop"
                 >
                   <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
@@ -862,21 +986,35 @@ export default function APIPageClient({ machineId }) {
           </div>
           {/* Tailscale */}
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-mono px-1.5 py-0.5 rounded shrink-0 min-w-[88px] text-center ${
-              tsEnabled ? "bg-primary/10 text-primary" : "bg-surface-2 text-text-muted"
-            }`}>Tailscale</span>
+            {tsEnabled && !tsLoading && tsReachable ? (
+              <span className="inline-flex items-center justify-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md shrink-0 min-w-[96px] bg-black/40 dark:bg-black/60 border border-emerald-500/30 text-emerald-400 font-semibold shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                <span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+                Tailscale
+              </span>
+            ) : tsEnabled && !tsLoading && !tsReachable ? (
+              <span className="inline-flex items-center justify-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md shrink-0 min-w-[96px] bg-black/40 dark:bg-black/60 border border-amber-500/30 text-amber-400 font-semibold shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+                <span className="size-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+                Tailscale
+              </span>
+            ) : (
+              <span className="inline-flex items-center justify-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md shrink-0 min-w-[96px] bg-surface-2 text-text-muted border border-border/60">
+                <span className="size-1.5 rounded-full bg-text-subtle/50" />
+                Tailscale
+              </span>
+            )}
             {tsEnabled && !tsLoading && tsReachable ? (
               <>
-                <Input value={`${tsUrl}/v1`} readOnly className="flex-1 font-mono text-sm" />
+                <Input value={`${tsUrl}/v1`} readOnly className="flex-1 font-mono text-sm bg-surface-2/60 border-border/80" />
                 <button
                   onClick={() => copy(`${tsUrl}/v1`, "ts_url")}
-                  className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors shrink-0"
+                  className="p-2 hover:bg-brand-500/10 rounded-lg text-text-muted hover:text-brand-400 transition-colors shrink-0"
+                  title="Copy Tailscale URL"
                 >
                   <span className="material-symbols-outlined text-[18px]">{copied === "ts_url" ? "check" : "content_copy"}</span>
                 </button>
                 <button
                   onClick={() => setShowDisableTsModal(true)}
-                  className="p-2 hover:bg-red-500/10 rounded text-red-500 transition-colors shrink-0"
+                  className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors shrink-0"
                   title="Disable Tailscale"
                 >
                   <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
@@ -884,13 +1022,13 @@ export default function APIPageClient({ machineId }) {
               </>
             ) : tsEnabled && !tsLoading && !tsReachable ? (
               <>
-                <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded border border-amber-300 dark:border-amber-800 bg-amber-500/5 text-sm text-amber-600 dark:text-amber-400">
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                <div className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded border border-amber-500/30 bg-amber-500/10 text-sm text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.1)]">
+                  <span className="material-symbols-outlined animate-spin text-sm text-amber-400">progress_activity</span>
                   {tsEverReachable ? "Tailscale reconnecting..." : "Tailscale checking..."}
                 </div>
                 <button
                   onClick={() => setShowDisableTsModal(true)}
-                  className="p-2 hover:bg-red-500/10 rounded text-red-500 transition-colors shrink-0"
+                  className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors shrink-0"
                   title="Disable Tailscale"
                 >
                   <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
@@ -1043,42 +1181,47 @@ export default function APIPageClient({ machineId }) {
             {keys.map((key) => (
               <div
                 key={key.id}
-                className={`group flex items-center justify-between py-3 border-b border-black/[0.03] dark:border-white/[0.03] last:border-b-0 ${key.isActive === false ? "opacity-60" : ""}`}
+                className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 border-b border-border/60 last:border-b-0 ${key.isActive === false ? "opacity-60" : ""}`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{key.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className="text-xs text-text-muted font-mono">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-text-main">{key.name}</p>
+                    {key.isActive === false && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">Paused</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <code className="text-xs text-text-muted font-mono bg-surface-2 px-2 py-0.5 rounded border border-border/50">
                       {visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
                     </code>
                     <button
                       onClick={() => toggleKeyVisibility(key.id)}
-                      className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-all"
+                      className="p-1 hover:bg-brand-500/10 rounded text-text-muted hover:text-brand-400 transition-all"
                       title={visibleKeys.has(key.id) ? "Hide key" : "Show key"}
                     >
-                      <span className="material-symbols-outlined text-[14px]">
+                      <span className="material-symbols-outlined text-[15px]">
                         {visibleKeys.has(key.id) ? "visibility_off" : "visibility"}
                       </span>
                     </button>
                     <button
                       onClick={() => copy(key.key, key.id)}
-                      className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-all"
+                      className="p-1 hover:bg-brand-500/10 rounded text-text-muted hover:text-brand-400 transition-all"
+                      title="Copy API key"
                     >
-                      <span className="material-symbols-outlined text-[14px]">
+                      <span className="material-symbols-outlined text-[15px]">
                         {copied === key.id ? "check" : "content_copy"}
                       </span>
                     </button>
                   </div>
-                  <p className="text-xs text-text-muted mt-1">
-                    Created {new Date(key.createdAt).toLocaleDateString()}
-                    <span className="mx-1.5">·</span>
-                    {limitChip(key)}
-                  </p>
-                  {key.isActive === false && (
-                    <p className="text-xs text-orange-500 mt-1">Paused</p>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="text-[11px] text-text-muted">
+                      Created {new Date(key.createdAt).toLocaleDateString()}
+                    </span>
+                    <span className="text-text-subtle/40">·</span>
+                    <RateLimitPills keyItem={key} />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-center">
                   <Toggle
                     size="sm"
                     checked={key.isActive ?? true}
@@ -1101,28 +1244,29 @@ export default function APIPageClient({ machineId }) {
                   <button
                     type="button"
                     onClick={() => setLimitsKey(key)}
-                    className="p-2 hover:bg-primary/10 rounded text-primary opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                     title="Usage limits"
                   >
                     <span className="material-symbols-outlined text-[18px]">tune</span>
                   </button>
                   <Link
                     href={`/dashboard/analytics/keys/${key.id}`}
-                    className="p-2 hover:bg-primary/10 rounded text-primary opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                     title="Key analytics"
                   >
                     <span className="material-symbols-outlined text-[18px]">bar_chart</span>
                   </Link>
                   <button
                     onClick={() => handleClearKeyUsage(key.id, key.name)}
-                    className="p-2 hover:bg-orange-500/10 rounded text-orange-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-amber-500/15 rounded-lg text-text-muted hover:text-amber-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                     title="Clear usage for this key"
                   >
                     <span className="material-symbols-outlined text-[18px]">restart_alt</span>
                   </button>
                   <button
                     onClick={() => handleDeleteKey(key.id)}
-                    className="p-2 hover:bg-red-500/10 rounded text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-red-500/15 rounded-lg text-text-muted hover:text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    title="Delete key"
                   >
                     <span className="material-symbols-outlined text-[18px]">delete</span>
                   </button>
@@ -1132,6 +1276,12 @@ export default function APIPageClient({ machineId }) {
           </div>
         )}
       </Card>
+
+      {/* Code Snippets / Quickstart */}
+      <CodeSnippetsSection
+        endpointUrl={tunnelEnabled && (tunnelPublicUrl || tunnelUrl) ? `${tunnelPublicUrl || tunnelUrl}/v1` : currentEndpoint}
+        apiKey={keys[0]?.key}
+      />
 
       {/* Add Key Modal */}
       <Modal

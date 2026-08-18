@@ -301,27 +301,34 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
   const isFusion = current === "fusion";
 
   return (
-    <Card padding="sm" className="group">
+    <Card padding="sm" className="group border-border/80 hover:border-brand-500/40 hover:shadow-[0_0_15px_rgba(255,199,0,0.06)] transition-all">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
+          <div className="size-8 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-brand-400 text-[18px]">layers</span>
           </div>
           <div className="min-w-0 flex-1">
-            <code className="block truncate font-mono text-sm font-medium">{combo.name}</code>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
+            <code className="block truncate font-mono text-sm font-semibold text-text-main">{combo.name}</code>
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
               {combo.models.length === 0 ? (
                 <span className="text-xs text-text-muted italic">No models</span>
               ) : (
                 combo.models.slice(0, 3).map((model, index) => (
-                  <code key={index} className="inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 font-mono text-xs text-text-muted dark:bg-white/5">
-                    <span>{model}</span>
-                    <CapacityBadges caps={getCaps?.(model)} />
-                  </code>
+                  <div key={index} className="inline-flex items-center gap-1">
+                    {index > 0 && (
+                      <span className="material-symbols-outlined text-[13px] text-brand-500/50 shrink-0">
+                        chevron_right
+                      </span>
+                    )}
+                    <code className="inline-flex items-center gap-1 rounded bg-black/40 dark:bg-black/60 border border-brand-500/20 px-1.5 py-0.5 font-mono text-xs text-text-main shadow-[0_0_6px_rgba(255,199,0,0.04)]">
+                      <span>{model}</span>
+                      <CapacityBadges caps={getCaps?.(model)} />
+                    </code>
+                  </div>
                 ))
               )}
               {combo.models.length > 3 && (
-                <span className="text-[10px] text-text-muted">+{combo.models.length - 3} more</span>
+                <span className="text-[10px] font-mono font-semibold text-brand-400 px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20">+{combo.models.length - 3} more</span>
               )}
             </div>
             {/* Fusion: judge picker (Auto = first model) */}
@@ -330,7 +337,7 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
                 <span className="text-[11px] font-medium text-text-muted">Judge</span>
                 <button
                   onClick={() => setShowJudgeSelect(true)}
-                  className="inline-flex max-w-full items-center gap-1 rounded border border-dashed border-primary/40 px-1.5 py-0.5 font-mono text-[11px] text-primary hover:border-primary hover:bg-primary/5 transition-colors"
+                  className="inline-flex max-w-full items-center gap-1 rounded border border-dashed border-brand-500/40 px-1.5 py-0.5 font-mono text-[11px] text-brand-400 hover:border-brand-500 hover:bg-brand-500/10 transition-colors"
                   title="Pick the model that fuses panel answers"
                 >
                   <span className="material-symbols-outlined text-[13px]">gavel</span>
@@ -365,7 +372,7 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
           <div className="grid grid-cols-3 gap-1 sm:flex">
             <button
               onClick={(e) => { e.stopPropagation(); onCopy(combo.name, `combo-${combo.id}`); }}
-              className="flex flex-col items-center rounded px-2 py-1 text-text-muted transition-colors hover:bg-black/5 hover:text-primary dark:hover:bg-white/5"
+              className="flex flex-col items-center rounded-lg px-2 py-1 text-text-muted transition-colors hover:bg-brand-500/10 hover:text-brand-400"
               title="Copy combo name"
             >
               <span className="material-symbols-outlined text-[18px]">
@@ -375,7 +382,7 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
             </button>
             <button
               onClick={onEdit}
-              className="flex flex-col items-center rounded px-2 py-1 text-text-muted transition-colors hover:bg-black/5 hover:text-primary dark:hover:bg-white/5"
+              className="flex flex-col items-center rounded-lg px-2 py-1 text-text-muted transition-colors hover:bg-brand-500/10 hover:text-brand-400"
               title="Edit"
             >
               <span className="material-symbols-outlined text-[18px]">edit</span>
@@ -383,7 +390,7 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
             </button>
             <button
               onClick={onDelete}
-              className="flex flex-col items-center rounded px-2 py-1 text-red-500 transition-colors hover:bg-red-500/10"
+              className="flex flex-col items-center rounded-lg px-2 py-1 text-red-500 transition-colors hover:bg-red-500/10"
               title="Delete"
             >
               <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -414,17 +421,16 @@ function CapacityAdapterSection({ capacityAdapter, onChange, activeProviders, ge
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-medium">Vision Adapter</p>
+          <p className="text-sm font-semibold text-text-main flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-brand-500 text-[18px]">visibility</span>
+            Vision & Multimodal Adapter
+          </p>
           <p className="text-xs text-text-muted mt-0.5">
             Your model can&apos;t read image/audio? Auto-switches to a model in the pool below.
           </p>
-          <ul className="mt-1.5 text-[11px] text-text-muted flex flex-col gap-0.5">
-            <li><span className="font-medium text-text-main">Vision</span> — images (png, jpg, webp, …)</li>
-            <li><span className="font-medium text-text-main">Audio</span> — audio input</li>
-          </ul>
         </div>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {CAPACITY_ADAPTER_CAPS.map((cap) => (
           <CapacityAdapterCap
             key={cap.key}
@@ -465,38 +471,38 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
   };
 
   return (
-    <Card padding="sm" className={`group ${!enabled ? "opacity-50" : ""}`}>
+    <Card padding="sm" className={`group border-border/80 ${enabled ? "hover:border-brand-500/40 hover:shadow-[0_0_15px_rgba(255,199,0,0.06)]" : "opacity-50"} transition-all`}>
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Master toggle + icon + label + chips */}
-        <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
+        <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
           <Toggle
             checked={enabled}
             onChange={(v) => patch({ enabled: v })}
             aria-label={`Enable ${cap.label} adapter`}
           />
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-primary text-[18px]">{cap.icon}</span>
+          <div className="size-8 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-brand-400 text-[18px]">{cap.icon}</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <code className="font-mono text-sm font-medium">{cap.label}</code>
-              <span className="text-[10px] text-text-muted">— {cap.desc}</span>
+              <code className="font-mono text-sm font-semibold text-text-main">{cap.label}</code>
+              <span className="text-[11px] text-text-muted">— {cap.desc}</span>
             </div>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
               {models.length === 0 ? (
                 <span className="text-xs text-text-muted italic">No models</span>
               ) : (
                 models.slice(0, 3).map((model, index) => (
                   <code
                     key={`${model}-${index}`}
-                    className="group/chip inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 font-mono text-xs text-text-muted dark:bg-white/5"
+                    className="group/chip inline-flex items-center gap-1.5 rounded-md bg-black/40 dark:bg-black/60 border border-brand-500/20 px-2 py-0.5 font-mono text-xs text-text-main shadow-[0_0_6px_rgba(255,199,0,0.04)]"
                   >
                     <span>{model}</span>
                     <CapacityBadges caps={getCaps?.(model)} />
-                    <button onClick={() => handleMove(index, -1)} disabled={index === 0} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === 0 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
+                    <button onClick={() => handleMove(index, -1)} disabled={index === 0} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === 0 ? "text-text-muted/20" : "text-text-muted hover:text-brand-400"}`}>
                       <span className="material-symbols-outlined text-[12px]">arrow_upward</span>
                     </button>
-                    <button onClick={() => handleMove(index, 1)} disabled={index === models.length - 1} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === models.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
+                    <button onClick={() => handleMove(index, 1)} disabled={index === models.length - 1} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === models.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-brand-400"}`}>
                       <span className="material-symbols-outlined text-[12px]">arrow_downward</span>
                     </button>
                     <button onClick={() => handleRemove(index)} className="leading-none opacity-0 group-hover/chip:opacity-100 text-text-muted hover:text-red-500">
@@ -506,7 +512,7 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
                 ))
               )}
               {models.length > 3 && (
-                <span className="text-[10px] text-text-muted">+{models.length - 3} more</span>
+                <span className="text-[10px] font-mono font-semibold text-brand-400 px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20">+{models.length - 3} more</span>
               )}
             </div>
           </div>
@@ -557,7 +563,7 @@ function ModelItem({ id, index, model, isFirst, isLast, onEdit, onMoveUp, onMove
   const style = {
     transform: CSS.Transform.toString(transform),
     // no transition — prevents the CSS settle animation fighting React's re-render on drop
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 999 : undefined,
   };
   const [editing, setEditing] = useState(false);
@@ -578,14 +584,16 @@ function ModelItem({ id, index, model, isFirst, isLast, onEdit, onMoveUp, onMove
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 bg-black/[0.02] hover:bg-black/[0.04] dark:bg-white/[0.02] dark:hover:bg-white/[0.04] transition-colors ${isDragging ? "shadow-md ring-1 ring-primary/30" : ""}`}
+      className={`group flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-1.5 bg-surface-2/60 hover:bg-surface-2 border border-border/60 hover:border-brand-500/30 transition-all ${
+        isDragging ? "shadow-lg ring-2 ring-brand-500/50 bg-surface-2 border-brand-500/50" : ""
+      }`}
     >
       {/* Drag handle */}
       <button
         {...attributes}
         {...listeners}
         type="button"
-        className="cursor-grab touch-none p-0.5 rounded text-text-muted hover:text-primary active:cursor-grabbing shrink-0"
+        className="cursor-grab touch-none p-1 rounded-md text-text-muted hover:text-brand-400 hover:bg-brand-500/10 active:cursor-grabbing shrink-0 transition-colors"
         title="Drag to reorder"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -595,8 +603,10 @@ function ModelItem({ id, index, model, isFirst, isLast, onEdit, onMoveUp, onMove
         </svg>
       </button>
 
-      {/* Index badge */}
-      <span className="text-[10px] font-medium text-text-muted w-3 text-center shrink-0">{index + 1}</span>
+      {/* Amber badge connector */}
+      <span className="size-5 rounded-full bg-brand-500/15 border border-brand-500/40 text-brand-400 font-mono text-[10px] font-bold flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(255,199,0,0.15)]">
+        {index + 1}
+      </span>
 
       {/* Inline editable model value */}
       {editing ? (
@@ -606,11 +616,11 @@ function ModelItem({ id, index, model, isFirst, isLast, onEdit, onMoveUp, onMove
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={handleKeyDown}
-          className="min-w-0 flex-1 rounded border border-primary/40 bg-white px-1.5 py-0.5 font-mono text-xs text-text-main outline-none dark:bg-black/20"
+          className="min-w-0 flex-1 rounded border border-brand-500/40 bg-surface px-2 py-0.5 font-mono text-xs text-text-main outline-none focus:ring-1 focus:ring-brand-500/50"
         />
       ) : (
         <div
-          className="min-w-0 flex-1 cursor-text truncate rounded px-1.5 py-0.5 font-mono text-xs text-text-main hover:bg-black/5 dark:hover:bg-white/5"
+          className="min-w-0 flex-1 cursor-text truncate rounded px-2 py-0.5 font-mono text-xs text-text-main hover:bg-surface-3 transition-colors"
           onClick={() => setEditing(true)}
           title="Click to edit"
         >
@@ -623,28 +633,28 @@ function ModelItem({ id, index, model, isFirst, isLast, onEdit, onMoveUp, onMove
         <button
           onClick={onMoveUp}
           disabled={isFirst}
-          className={`p-0.5 rounded ${isFirst ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"}`}
+          className={`p-1 rounded-md ${isFirst ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-brand-400 hover:bg-brand-500/10"} transition-colors`}
           title="Move up"
         >
-          <span className="material-symbols-outlined text-[12px]">arrow_upward</span>
+          <span className="material-symbols-outlined text-[13px]">arrow_upward</span>
         </button>
         <button
           onClick={onMoveDown}
           disabled={isLast}
-          className={`p-0.5 rounded ${isLast ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"}`}
+          className={`p-1 rounded-md ${isLast ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-brand-400 hover:bg-brand-500/10"} transition-colors`}
           title="Move down"
         >
-          <span className="material-symbols-outlined text-[12px]">arrow_downward</span>
+          <span className="material-symbols-outlined text-[13px]">arrow_downward</span>
         </button>
       </div>
 
       {/* Remove */}
       <button
         onClick={onRemove}
-        className="p-0.5 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500 transition-all"
+        className="p-1 hover:bg-red-500/10 rounded-md text-text-muted hover:text-red-500 transition-colors"
         title="Remove"
       >
-        <span className="material-symbols-outlined text-[12px]">close</span>
+        <span className="material-symbols-outlined text-[13px]">close</span>
       </button>
     </div>
   );
