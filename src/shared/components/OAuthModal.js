@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
+import { cn } from "@/shared/utils/cn";
 
 // Providers using the dynamic-port local callback proxy.
 // Browser OAuth: popup → auto callback → auto exchange → poll-status.
@@ -689,25 +690,37 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
               <button
                 type="button"
                 onClick={() => { setAuthMode("browser"); setError(null); setStep("waiting"); startOAuthFlow(); }}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${authMode === "browser" ? "border-primary bg-primary/10 text-primary" : "border-border text-text-muted hover:text-primary"}`}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 rounded-[10px] border px-3 py-2.5 text-sm font-medium transition-all cursor-pointer",
+                  authMode === "browser"
+                    ? "border-brand-500 bg-brand-500/10 text-brand-500 dark:text-brand-400 shadow-[0_0_12px_rgba(255,199,0,0.15)]"
+                    : "border-border bg-surface-2 text-text-muted hover:border-brand-500/40 hover:text-text-main"
+                )}
               >
-                🌐 Sign in with browser
+                <span className="material-symbols-outlined text-[18px]">language</span>
+                <span>Sign in with browser</span>
               </button>
               <button
                 type="button"
                 onClick={() => { setAuthMode("paste-token"); setError(null); setStep("input"); }}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${authMode === "paste-token" ? "border-primary bg-primary/10 text-primary" : "border-border text-text-muted hover:text-primary"}`}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 rounded-[10px] border px-3 py-2.5 text-sm font-medium transition-all cursor-pointer",
+                  authMode === "paste-token"
+                    ? "border-brand-500 bg-brand-500/10 text-brand-500 dark:text-brand-400 shadow-[0_0_12px_rgba(255,199,0,0.15)]"
+                    : "border-border bg-surface-2 text-text-muted hover:border-brand-500/40 hover:text-text-main"
+                )}
               >
-                🔑 Paste token
+                <span className="material-symbols-outlined text-[18px]">key</span>
+                <span>Paste token</span>
               </button>
             </div>
 
             {authMode === "browser" && (
               <>
                 {step === "waiting" && (
-                  <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg bg-sidebar/50">
-                    <span className="material-symbols-outlined text-base text-primary animate-spin">progress_activity</span>
-                    <span className="text-sm">Waiting for browser authorization…</span>
+                  <div className="flex items-center gap-2.5 px-3.5 py-3 border border-border rounded-[10px] bg-surface-2">
+                    <span className="material-symbols-outlined text-base text-brand-500 animate-spin">progress_activity</span>
+                    <span className="text-sm text-text-main">Waiting for browser authorization…</span>
                   </div>
                 )}
                 {step === "input" && (
@@ -733,7 +746,11 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
             {authMode === "paste-token" && (
               <div className="space-y-3">
                 {ideStatus && !ideStatus.installed && (
-                  <div className={`px-3 py-2 rounded-lg text-sm ${PASTE_TOKEN_PROVIDERS[provider].ideOptional ? "bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300"}`}>
+                  <div className={`px-3.5 py-2.5 rounded-[10px] border text-xs leading-relaxed ${
+                    PASTE_TOKEN_PROVIDERS[provider].ideOptional
+                      ? "bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300"
+                      : "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300"
+                  }`}>
                     {PASTE_TOKEN_PROVIDERS[provider].ideName} IDE not detected.
                     {PASTE_TOKEN_PROVIDERS[provider].ideOptional
                       ? " You can still grab the token from DevTools."
@@ -760,11 +777,11 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         {(step === "waiting" || step === "input") && !isDeviceCode && !PROXY_OAUTH_PROVIDERS.has(provider) && (
           <>
             {/* Option A: Auto via popup */}
-            <div className="flex items-center gap-2 px-3 py-2 border border-border rounded-lg bg-sidebar/50">
-              <span className="material-symbols-outlined text-base text-primary animate-spin">
+            <div className="flex items-center gap-2.5 px-3.5 py-3 border border-border rounded-[10px] bg-surface-2">
+              <span className="material-symbols-outlined text-base text-brand-500 animate-spin">
                 progress_activity
               </span>
-              <span className="text-sm">
+              <span className="text-sm text-text-main">
                 {isXaiProvider ? "Waiting for Grok Build OAuth…" : "Waiting for popup authorization…"}
               </span>
             </div>
@@ -772,14 +789,14 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
             {/* Divider */}
             <div className="flex items-center gap-3 my-1">
               <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-text-muted uppercase tracking-wider">Or paste callback URL manually</span>
+              <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Or paste callback URL manually</span>
               <div className="flex-1 h-px bg-border" />
             </div>
 
             {/* Option B: Manual paste */}
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium mb-2">
+                <p className="text-sm font-medium text-text-main mb-2">
                   Step 1: Open this {isXaiProvider ? "Grok Build OAuth URL" : "URL"} in your browser
                 </p>
                 <div className="flex gap-2">
@@ -791,7 +808,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
               </div>
 
               <div>
-                <p className="text-sm font-medium mb-2">
+                <p className="text-sm font-medium text-text-main mb-2">
                   Step 2: Paste the {provider === "xai" ? "callback URL or copied code" : isKimchiProvider ? "callback URL or copied token" : "callback URL"} here
                 </p>
                 <p className="text-xs text-text-muted mb-2">
@@ -824,24 +841,24 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         {/* Device Code Flow - Waiting */}
         {step === "waiting" && isDeviceCode && deviceData && (
           <>
-            <div className="text-center py-4">
+            <div className="text-center py-2">
               <p className="text-sm text-text-muted mb-4">
                 Visit the login URL below and authorize:
               </p>
-              <div className="bg-sidebar p-4 rounded-lg mb-4">
-                <p className="text-xs text-text-muted mb-1">Login URL</p>
+              <div className="bg-surface-2 p-4 rounded-[12px] border border-border mb-4 text-left">
+                <p className="text-xs font-medium text-text-muted mb-1.5">Login URL</p>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 text-sm break-all">{deviceLoginUrl}</code>
+                  <code className="flex-1 text-xs font-mono break-all text-text-main bg-surface px-2.5 py-2 rounded-[8px] border border-border">{deviceLoginUrl}</code>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="secondary"
                     icon={copied === "login_url" ? "check" : "content_copy"}
                     onClick={() => copy(deviceLoginUrl, "login_url")}
                     disabled={!deviceLoginUrl}
                   />
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="secondary"
                     icon="open_in_new"
                     onClick={() => window.open(deviceLoginUrl, "_blank", "noopener,noreferrer")}
                     disabled={!deviceLoginUrl}
@@ -850,13 +867,13 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
                   </Button>
                 </div>
               </div>
-              <div className="bg-primary/10 p-4 rounded-lg">
-                <p className="text-xs text-text-muted mb-1">Your Code</p>
-                <div className="flex items-center justify-center gap-2">
-                  <p className="text-2xl font-mono font-bold text-primary">{deviceData.user_code}</p>
+              <div className="bg-brand-500/10 border border-brand-500/25 p-4 rounded-[12px]">
+                <p className="text-xs font-semibold text-brand-600 dark:text-brand-400 mb-1">Your Code</p>
+                <div className="flex items-center justify-center gap-3">
+                  <p className="text-2xl font-mono font-black tracking-widest text-brand-500">{deviceData.user_code}</p>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="secondary"
                     icon={copied === "user_code" ? "check" : "content_copy"}
                     onClick={() => copy(deviceData.user_code, "user_code")}
                   />
@@ -865,7 +882,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
             </div>
             {polling && (
               <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
-                <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                <span className="material-symbols-outlined animate-spin text-brand-500">progress_activity</span>
                 Waiting for authorization...
               </div>
             )}
@@ -875,12 +892,12 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         {/* Success Step */}
         {step === "success" && (
           <div className="text-center py-6">
-            <div className="size-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <span className="material-symbols-outlined text-3xl text-green-600">check_circle</span>
+            <div className="size-16 mx-auto mb-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+              <span className="material-symbols-outlined text-3xl">check_circle</span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Connected Successfully!</h3>
-            <p className="text-sm text-text-muted mb-4">
-              Your {providerInfo.name} account has been connected.
+            <h3 className="text-lg font-bold text-text-main mb-2">Connected Successfully!</h3>
+            <p className="text-sm text-text-muted mb-6">
+              Your {providerInfo.name} account has been connected to BeeRouter.
             </p>
             <Button onClick={handleClose} fullWidth>
               Done
@@ -891,11 +908,11 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         {/* Error Step */}
         {step === "error" && (
           <div className="text-center py-6">
-            <div className="size-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <span className="material-symbols-outlined text-3xl text-red-600">error</span>
+            <div className="size-16 mx-auto mb-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+              <span className="material-symbols-outlined text-3xl">error</span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
-            <p className="text-sm text-red-600 mb-4">{error}</p>
+            <h3 className="text-lg font-bold text-text-main mb-2">Connection Failed</h3>
+            <p className="text-sm text-red-500 mb-6 max-w-sm mx-auto">{error}</p>
             <div className="flex gap-2">
               <Button onClick={startOAuthFlow} variant="secondary" fullWidth>
                 Try Again
