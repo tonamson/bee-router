@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -11,28 +12,14 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-4 group inline-flex">
-              {/* Glowing amber hexagon bee icon */}
-              <div className="relative flex items-center justify-center size-8 rounded-xl bg-gradient-to-br from-[#FFC700] via-[#F59E0B] to-[#D97706] shadow-[0_0_14px_rgba(255,199,0,0.35)] text-black transition-transform duration-200 group-hover:scale-105">
-                <svg className="size-4.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path
-                    d="M12 2L3.5 6.9v10.2L12 22l8.5-4.9V6.9L12 2zm0 2.4l6.5 3.75v7.5L12 19.4l-6.5-3.75v-7.5L12 4.4z"
-                    opacity="0.9"
-                  />
-                  <ellipse cx="12" cy="12" rx="3" ry="4" />
-                  <path
-                    d="M7.8 9.5c.8-1.5 2.3-2.5 4.2-2.5s3.4 1 4.2 2.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M10 11.5h4M9.5 13.5h5"
-                    stroke="#0D0E12"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
+              <div className="relative flex items-center justify-center size-8 transition-transform duration-200 group-hover:scale-105">
+                <Image
+                  src="/logo.png"
+                  alt="BeeRouter Logo"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
               </div>
               <h3 className="text-white text-lg font-bold group-hover:text-[#FFC700] transition-colors">
                 BeeRouter

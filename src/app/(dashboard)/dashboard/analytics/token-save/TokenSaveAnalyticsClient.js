@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Card, Button } from "@/shared/components";
 import Pagination from "@/shared/components/Pagination";
 
@@ -22,6 +31,13 @@ function fmt(n) {
   const v = Number(n) || 0;
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
   if (v >= 1000) return `${(v / 1000).toFixed(1)}K`;
+  return String(Math.round(v));
+}
+
+function fmtTick(n) {
+  const v = Number(n) || 0;
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`;
+  if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, "")}K`;
   return String(Math.round(v));
 }
 
@@ -61,6 +77,115 @@ const PAGE_SIZE = 15;
 function slicePage(rows, page, size) {
   const start = (page - 1) * size;
   return rows.slice(start, start + size);
+}
+
+function SaveTip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0].payload || {};
+  const isTok = payload[0].dataKey === "tokensSavedEst";
+  return (
+    <div className="rounded-[10px] border border-brand-500/30 bg-[#16181ff2] px-3 py-2 text-xs shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+      <p className="mb-1 font-medium text-text-muted">{label}</p>
+      <p className="font-semibold text-brand-500">
+        {isTok ? `${fmt(row.tokensSavedEst)} tokens not sent` : `${fmtUsd(row.costSavedEst)} est. saved`}
+      </p>
+      <p className="mt-0.5 text-text-muted">
+        {fmt(row.compressed || 0)} compressed / {fmt(row.requests || 0)} req
+      </p>
+    </div>
+  );
+}
+
+function SaveTimeline({ timeline }) {
+  const [mode, setMode] = useState("tokens");
+  const rows = timeline || [];
+  const hasData = rows.some((d) => (d.tokensSavedEst || 0) > 0 || (d.costSavedEst || 0) > 0);
+  const isTok = mode === "tokens";
+  const dataKey = isTok ? "tokensSavedEst" : "costSavedEst";
+  const format = isTok ? fmt : fmtUsd;
+  const total = rows.reduce((n, d) => n + (Number(d[dataKey]) || 0), 0);
+
+  return (
+    <Card className="p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-medium">Last 30 days</h3>
+          <p className="mt-0.5 text-xs text-text-muted">
+            {hasData
+              ? `${format(total)} ${isTok ? "tokens not sent" : "est. not billed"}`
+              : "Daily estimate of payload cut before send"}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1">
+          <button
+            type="button"
+            onClick={() => setMode("tokens")}
+            className={`rounded-md px-3 py-1 text-sm font-semibold transition-all ${
+              isTok
+                ? "bg-brand-500 text-black shadow-[0_2px_8px_rgba(255,199,0,0.3)]"
+                : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+            }`}
+          >
+            Tokens
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("cost")}
+            className={`rounded-md px-3 py-1 text-sm font-semibold transition-all ${
+              !isTok
+                ? "bg-brand-500 text-black shadow-[0_2px_8px_rgba(255,199,0,0.3)]"
+                : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+            }`}
+          >
+            Cost
+          </button>
+        </div>
+      </div>
+      {hasData ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="gradTokenSave" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#FFC700" stopOpacity={0.45} />
+                <stop offset="60%" stopColor="#F59E0B" stopOpacity={0.15} />
+                <stop offset="100%" stopColor="#F59E0B" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} stroke="#282B37" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              tickFormatter={(d) => String(d).slice(5)}
+              interval="preserveStartEnd"
+              tickLine={false}
+              axisLine={{ stroke: "rgba(40,43,55,0.6)" }}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: "#9ca3af" }}
+              tickFormatter={isTok ? fmtTick : fmtUsd}
+              width={52}
+              tickLine={false}
+              axisLine={{ stroke: "rgba(40,43,55,0.6)" }}
+            />
+            <Tooltip content={<SaveTip />} />
+            <Area
+              type="monotone"
+              dataKey={dataKey}
+              stroke="#FFC700"
+              fill="url(#gradTokenSave)"
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 5, fill: "#FFC700", stroke: "#0D0E12", strokeWidth: 2 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex h-48 items-center justify-center text-center text-sm text-text-muted">
+          No compression recorded yet. Route a request with RTK or Caveman on.
+        </div>
+      )}
+    </Card>
+  );
 }
 
 export default function TokenSaveAnalyticsClient() {
@@ -265,26 +390,7 @@ export default function TokenSaveAnalyticsClient() {
         </p>
       </Card>
 
-      <Card className="p-4">
-        <h3 className="font-medium mb-3">Last 30 days — Token Save</h3>
-        {data?.compression?.timeline?.some((d) => d.tokensSavedEst > 0) ? (
-          <div className="flex items-end gap-1 h-28">
-            {data.compression.timeline.map((d) => {
-              const max = Math.max(...data.compression.timeline.map((x) => x.tokensSavedEst || 0), 1);
-              const h = Math.max(2, Math.round(((d.tokensSavedEst || 0) / max) * 100));
-              return (
-                <div key={d.date} className="flex-1 flex flex-col justify-end h-full min-w-0" title={`${d.date}: ${fmt(d.tokensSavedEst)} tok · ${fmtUsd(d.costSavedEst)}`}>
-                  <div className="w-full bg-primary/20 rounded-t" style={{ height: `${h}%` }} />
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-text-muted py-8 text-center">
-            No compression recorded yet. Route a request with RTK or Caveman on.
-          </p>
-        )}
-      </Card>
+      <SaveTimeline timeline={data?.compression?.timeline} />
 
       <Card className="p-4">
         <h3 className="font-medium mb-3">Recent Token Save</h3>

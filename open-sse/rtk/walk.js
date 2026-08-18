@@ -121,9 +121,10 @@ function visitGeminiContent(c, fn) {
   const role = c.role === "model" ? "assistant" : (c.role === "system" ? "system" : "user");
   const kind = role === "system" ? "system" : "content";
   for (const part of c.parts) {
-    // Mutating thought text invalidates Gemini thoughtSignature → 400, tools fail.
+    // Mutating thought / signed text invalidates Gemini thoughtSignature → 400, tools fail.
     if (!part || part.thought === true) continue;
-    if (typeof part.text === "string") {
+    const signed = part.thoughtSignature || part.thought_signature;
+    if (typeof part.text === "string" && !signed) {
       visit({ kind, role, text: part.text, set: (t) => { part.text = t; } }, fn);
     }
     if (part.functionResponse) {

@@ -5,6 +5,8 @@ import { translateRequest, translateResponse, initState } from "../../open-sse/t
 import { FORMATS } from "../../open-sse/translator/formats.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
 import { openaiToAntigravityRequest } from "../../open-sse/translator/request/openai-to-gemini.js";
+import { openaiToAntigravityResponse } from "../../open-sse/translator/response/openai-to-antigravity.js";
+import { cleanJSONSchemaForAntigravity } from "../../open-sse/translator/formats/gemini.js";
 import { ANTIGRAVITY_DEFAULT_SYSTEM } from "../../open-sse/config/appConstants.js";
 
 const AG2O = (req) =>
@@ -81,6 +83,59 @@ describe("Antigravity → Claude", () => {
   });
 });
 
+describe("OpenAI → Antigravity tool calls", () => {
+  it("keeps ListDir DirectoryPath when arguments arrive as an object", () => {
+    const state = {};
+    const out = openaiToAntigravityResponse({
+      id: "c1",
+      model: "x",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            id: "call_1",
+            function: {
+              name: "ListDir",
+              arguments: { DirectoryPath: "/Volumes/Code/Opensource/mrouter" },
+            },
+          }],
+        },
+        finish_reason: "tool_calls",
+      }],
+    }, state);
+    const fc = out.response.candidates[0].content.parts.find((p) => p.functionCall)?.functionCall;
+    expect(fc.id).toBe("call_1");
+    expect(fc.name).toBe("ListDir");
+    expect(fc.args.DirectoryPath).toBe("/Volumes/Code/Opensource/mrouter");
+    expect(fc.args.uri).toBe("file:///Volumes/Code/Opensource/mrouter");
+  });
+
+  it("maps nested parameters.DirectoryPath to file uri", () => {
+    const out = openaiToAntigravityResponse({
+      id: "c1",
+      model: "x",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            function: {
+              name: "list_dir",
+              arguments: {
+                parameters: { DirectoryPath: "/Volumes/Code/Opensource/mrouter" },
+                reason: "look around",
+              },
+            },
+          }],
+        },
+        finish_reason: "tool_calls",
+      }],
+    }, {});
+    const fc = out.response.candidates[0].content.parts.find((p) => p.functionCall)?.functionCall;
+    expect(fc.args.uri).toBe("file:///Volumes/Code/Opensource/mrouter");
+    expect(fc.args.parameters.uri).toBe("file:///Volumes/Code/Opensource/mrouter");
+  });
+});
+
 describe("Antigravity executor", () => {
   it("strips optional from nested tool schemas", () => {
     const out = new AntigravityExecutor().transformRequest("gemini-2.5-pro", {
@@ -107,6 +162,23 @@ describe("Antigravity executor", () => {
 
     const query = out.request.tools[0].functionDeclarations[0].parameters.properties.query;
     expect(query).toEqual({ type: "string", description: "Search query" });
+  });
+
+  it("resolves ListDir DirectoryPath $ref instead of replacing it with reason", () => {
+    const cleaned = cleanJSONSchemaForAntigravity({
+      type: "object",
+      properties: {
+        DirectoryPath: { $ref: "#/$defs/DirectoryPath" },
+      },
+      $defs: {
+        DirectoryPath: { type: "string", description: "Directory to list" },
+      },
+    });
+    expect(cleaned.properties.DirectoryPath).toEqual({
+      type: "string",
+      description: "Directory to list",
+    });
+    expect(cleaned.properties.DirectoryPath.properties?.reason).toBeUndefined();
   });
 
   it("does not inject the legacy Antigravity default system prompt for Gemini-backed models", () => {

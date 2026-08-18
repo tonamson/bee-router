@@ -76,6 +76,24 @@ describe("applyLiteCompression", () => {
     expect(body.contents[0].parts[0].text).toBe(thought);
   });
 
+  it("does not rewrite Gemini thoughtSignature text", () => {
+    const signed = "after thinking   \n\n\n\nkeep me";
+    const body = {
+      request: {
+        contents: [{
+          role: "model",
+          parts: [
+            { thought: true, text: "scratch   " },
+            { thoughtSignature: "sig", text: signed },
+            { functionCall: { name: "Read", args: { path: "a.js" } } },
+          ],
+        }],
+      },
+    };
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.request.contents[0].parts[1].text).toBe(signed);
+  });
+
   it("applies lossless cleanup to Gemini contents", () => {
     const pretty = '{\n  "ok": true\n}';
     const body = {

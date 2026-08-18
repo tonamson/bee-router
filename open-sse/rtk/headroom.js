@@ -129,7 +129,9 @@ function collectGeminiHeadroomMessages(body) {
     const role = c.role === "model" ? "assistant" : (c.role === "system" ? "system" : "user");
     for (const part of c.parts) {
       if (!part || part.thought === true) continue;
-      if (typeof part.text === "string") add(role, part.text, (t) => { part.text = t; });
+      if (typeof part.text === "string" && !part.thoughtSignature && !part.thought_signature) {
+        add(role, part.text, (t) => { part.text = t; });
+      }
       if (part.functionResponse) {
         forEachGeminiResponseText(part.functionResponse, ({ text, set }) => add("tool", text, set));
       }

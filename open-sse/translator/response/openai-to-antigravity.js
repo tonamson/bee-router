@@ -2,6 +2,53 @@ import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
 import { GEMINI_ROLE, OPENAI_FINISH, GEMINI_FINISH } from "../schema/index.js";
 
+function parseToolCallArgs(raw) {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
+  if (typeof raw !== "string" || !raw.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+  } catch { /* incomplete JSON */ }
+  return {};
+}
+
+const LIST_DIR_RE = /^(list_dir|listdir|list_directory)$/i;
+const DIR_KEYS = ["uri", "DirectoryPath", "directoryPath", "directory_path", "path", "Path", "AbsolutePath", "absolutePath"];
+
+function toFileUri(raw) {
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const s = raw.trim();
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) return s;
+  if (s.startsWith("~")) {
+    const home = process.env.HOME || process.env.USERPROFILE || "";
+    return `file://${home}${s.slice(1)}`;
+  }
+  if (s.startsWith("/")) return `file://${s}`;
+  if (/^[A-Za-z]:[\\/]/.test(s)) return `file:///${s.replace(/\\/g, "/")}`;
+
+  return null;
+}
+
+function pickDirPath(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  for (const k of DIR_KEYS) {
+    if (typeof obj[k] === "string" && obj[k].trim()) return obj[k];
+  }
+  return null;
+}
+
+/** AGY CLI ListDir reads `uri` (file://). Models often send DirectoryPath/path. */
+function normalizeAgListDirArgs(name, args) {
+  if (!LIST_DIR_RE.test(name || "") || !args || typeof args !== "object") return args;
+  const inner = args.parameters && typeof args.parameters === "object" ? args.parameters : null;
+  const raw = pickDirPath(args) || pickDirPath(inner);
+  const uri = toFileUri(raw);
+  if (!uri) return args;
+  const next = { ...args, uri };
+  if (inner) next.parameters = { ...inner, uri };
+  return next;
+}
+
 // Convert OpenAI SSE chunk to Antigravity SSE format
 // Real Antigravity format:
 //   data: {"response":{"candidates":[{"content":{"role":"model","parts":[...]}, "finishReason":"STOP"}], "usageMetadata":{...}, "modelVersion":"...", "responseId":"..."}}
@@ -47,7 +94,13 @@ export function openaiToAntigravityResponse(chunk, state) {
       const accum = state._toolCallAccum[idx];
       if (tc.id) accum.id = tc.id;
       if (tc.function?.name) accum.name += tc.function.name;
-      if (tc.function?.arguments) accum.arguments += tc.function.arguments;
+      const piece = tc.function?.arguments;
+      if (piece && typeof piece === "object") accum.arguments = piece;
+      else if (typeof piece === "string" && piece) {
+        accum.arguments = typeof accum.arguments === "string"
+          ? accum.arguments + piece
+          : piece;
+      }
     }
     // Skip emit — wait for finish_reason
     if (parts.length === 0 && !finishReason) return null;
@@ -58,16 +111,11 @@ export function openaiToAntigravityResponse(chunk, state) {
     const indices = Object.keys(state._toolCallAccum);
     for (const idx of indices) {
       const accum = state._toolCallAccum[idx];
-      let args = {};
-      try { args = JSON.parse(accum.arguments); } catch { /* empty */ }
-      // Restore original tool name if it was prefixed during cloaking
       const originalName = state.toolNameMap?.get(accum.name) || accum.name;
-      parts.push({
-        functionCall: {
-          name: originalName,
-          args
-        }
-      });
+      const args = normalizeAgListDirArgs(originalName, parseToolCallArgs(accum.arguments));
+      const functionCall = { name: originalName, args };
+      if (accum.id) functionCall.id = accum.id;
+      parts.push({ functionCall });
     }
   }
 
