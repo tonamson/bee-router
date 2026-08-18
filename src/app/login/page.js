@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Card, Button, Input } from "@/shared/components";
 
 export default function LoginPage() {
@@ -162,29 +163,16 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-md">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="relative flex items-center justify-center size-14 rounded-2xl bg-gradient-to-br from-brand-400 via-brand-500 to-brand-600 shadow-[0_0_24px_rgba(255,199,0,0.38)] text-black mb-4">
-            <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
-              {/* Outer hexagon */}
-              <path
-                d="M12 2L3.5 6.9v10.2L12 22l8.5-4.9V6.9L12 2zm0 2.4l6.5 3.75v7.5L12 19.4l-6.5-3.75v-7.5L12 4.4z"
-                opacity="0.9"
-              />
-              {/* Bee wings & body */}
-              <ellipse cx="12" cy="12" rx="3" ry="4" />
-              <path
-                d="M7.8 9.5c.8-1.5 2.3-2.5 4.2-2.5s3.4 1 4.2 2.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M10 11.5h4M9.5 13.5h5"
-                stroke="#0D0E12"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
+          <div className="relative flex items-center justify-center size-16 mb-4 drop-shadow-[0_0_20px_rgba(255,199,0,0.45)]">
+            <Image
+              src="/logo.png?v=2"
+              alt="BeeRouter Logo"
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
+              unoptimized
+            />
           </div>
           <h1 className="text-3xl font-black tracking-tight text-text-main mb-2">
             Bee<span className="text-brand-500">Router</span>
