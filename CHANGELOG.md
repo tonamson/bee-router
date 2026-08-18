@@ -1,3 +1,13 @@
+# v0.1.0 (2026-08-18)
+
+First BeeRouter release. Versioning starts here — not related to 9router.
+
+- Rebrand fork to **BeeRouter** (`npm i -g bee-router`)
+- Data dir `~/.bee-router`, env `BEE_ROUTER_*`, bin `bee-router`
+- GitHub: [tonamson/bee-router](https://github.com/tonamson/bee-router)
+
+---
+
 # v0.5.55 (2026-08-14)
 
 ## Features

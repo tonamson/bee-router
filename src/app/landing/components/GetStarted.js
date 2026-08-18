@@ -94,7 +94,7 @@ export default function GetStarted() {
                 </div>
                 
                 <div className="text-gray-300 mb-6 space-y-1 text-xs">
-                  <p><span className="text-[#FFC700] font-bold">&gt;</span> Starting BeeRouter v{APP_CONFIG?.version || "0.5.55"}...</p>
+                  <p><span className="text-[#FFC700] font-bold">&gt;</span> Starting BeeRouter v{APP_CONFIG?.version || "0.1.0"}...</p>
                   <p><span className="text-[#FFC700] font-bold">&gt;</span> Server running on <span className="text-sky-400 underline">http://localhost:20128</span></p>
                   <p><span className="text-[#FFC700] font-bold">&gt;</span> Web Dashboard: <span className="text-sky-400 underline">http://localhost:20128/dashboard</span></p>
                   <p className="text-emerald-400 font-bold"><span className="text-emerald-400">&gt;</span> Hive status: Ready to route requests! ✓</p>

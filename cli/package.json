@@ -1,6 +1,6 @@
 {
   "name": "bee-router",
-  "version": "0.5.55",
+  "version": "0.1.0",
   "description": "BeeRouter CLI - Start and manage BeeRouter server",
   "bin": {
     "bee-router": "./cli.js"

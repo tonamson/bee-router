@@ -1,6 +1,6 @@
 {
   "name": "bee-router-app",
-  "version": "0.5.55",
+  "version": "0.1.0",
   "description": "BeeRouter web dashboard",
   "private": true,
   "repository": {
