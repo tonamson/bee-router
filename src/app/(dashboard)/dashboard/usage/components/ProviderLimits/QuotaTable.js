@@ -40,29 +40,30 @@ function formatResetTimeDisplay(resetTime) {
 }
 
 function getColorClasses(remainingPercentage) {
-  if (remainingPercentage > 70) {
+  const pct = Number(remainingPercentage) || 0;
+  if (pct > 70) {
     return {
-      text: "text-brand-400 font-semibold",
+      text: "text-brand-500 dark:text-brand-400 font-semibold",
       barGradient: "bg-gradient-to-r from-[#FFC700] via-[#FFD700] to-[#F59E0B]",
       dotBg: "bg-brand-400 shadow-[0_0_8px_rgba(255,199,0,0.8)]",
-      trackBg: "bg-black/30 dark:bg-black/50 border border-brand-500/20",
+      trackBg: "bg-surface-2 dark:bg-black/60 border border-brand-500/20",
     };
   }
 
-  if (remainingPercentage >= 30) {
+  if (pct >= 30) {
     return {
-      text: "text-amber-400 font-semibold",
+      text: "text-amber-500 dark:text-amber-400 font-semibold",
       barGradient: "bg-gradient-to-r from-[#F59E0B] to-[#D97706]",
       dotBg: "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
-      trackBg: "bg-black/30 dark:bg-black/50 border border-amber-500/20",
+      trackBg: "bg-surface-2 dark:bg-black/60 border border-amber-500/20",
     };
   }
 
   return {
-    text: "text-rose-400 font-semibold",
+    text: "text-rose-500 dark:text-rose-400 font-semibold",
     barGradient: "bg-gradient-to-r from-rose-500 to-red-600",
     dotBg: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse",
-    trackBg: "bg-black/30 dark:bg-black/50 border border-rose-500/20",
+    trackBg: "bg-surface-2 dark:bg-black/60 border border-rose-500/20",
   };
 }
 
@@ -171,10 +172,10 @@ export default function QuotaTable({
 
               {/* Progress + used/total */}
               <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
-                <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden p-0.5 ${colors.trackBg}`}>
+                <div className={`w-full ${compact ? "h-2" : "h-2.5"} rounded-full overflow-hidden ${colors.trackBg}`}>
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${colors.barGradient}`}
-                    style={{ width: `${Math.min(quota.remaining, 100)}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${colors.barGradient}`}
+                    style={{ width: `${Math.max(0, Math.min(quota.remaining ?? 0, 100))}%` }}
                   />
                 </div>
 

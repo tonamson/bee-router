@@ -5,29 +5,30 @@ import { formatResetTime } from "./utils";
 
 // Calculate color and gradient classes based on remaining percentage
 const getColorClasses = (remainingPercentage) => {
-  if (remainingPercentage > 70) {
+  const pct = Number(remainingPercentage) || 0;
+  if (pct > 70) {
     return {
-      text: "text-brand-400 font-bold",
+      text: "text-brand-500 dark:text-brand-400 font-bold",
       barGradient: "bg-gradient-to-r from-[#FFC700] via-[#FFD700] to-[#F59E0B]",
-      trackBg: "bg-black/30 dark:bg-black/50 border border-brand-500/20",
+      trackBg: "bg-surface-2 dark:bg-black/60 border border-brand-500/20",
       dotBg: "bg-brand-400 shadow-[0_0_8px_rgba(255,199,0,0.8)]",
     };
   }
   
-  if (remainingPercentage >= 30) {
+  if (pct >= 30) {
     return {
-      text: "text-amber-400 font-bold",
+      text: "text-amber-500 dark:text-amber-400 font-bold",
       barGradient: "bg-gradient-to-r from-[#F59E0B] to-[#D97706]",
-      trackBg: "bg-black/30 dark:bg-black/50 border border-amber-500/20",
+      trackBg: "bg-surface-2 dark:bg-black/60 border border-amber-500/20",
       dotBg: "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
     };
   }
   
   // 0-29% including 0% (out of quota) - show critical red/rose
   return {
-    text: "text-rose-400 font-bold",
+    text: "text-rose-500 dark:text-rose-400 font-bold",
     barGradient: "bg-gradient-to-r from-rose-500 to-red-600",
-    trackBg: "bg-black/30 dark:bg-black/50 border border-rose-500/20",
+    trackBg: "bg-surface-2 dark:bg-black/60 border border-rose-500/20",
     dotBg: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse",
   };
 };
@@ -100,10 +101,10 @@ export default function QuotaProgressBar({
 
       {/* Progress bar */}
       {!unlimited && (
-        <div className={cn("h-2.5 rounded-full overflow-hidden p-0.5", colors.trackBg)}>
+        <div className={cn("h-2.5 w-full rounded-full overflow-hidden", colors.trackBg)}>
           <div
             className={cn("h-full rounded-full transition-all duration-500", colors.barGradient)}
-            style={{ width: `${Math.min(remaining, 100)}%` }}
+            style={{ width: `${Math.max(0, Math.min(remaining ?? 0, 100))}%` }}
           />
         </div>
       )}
