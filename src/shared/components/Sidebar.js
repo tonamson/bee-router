@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/utils/cn";
 import { APP_CONFIG, UPDATER_CONFIG } from "@/shared/constants/config";
@@ -121,30 +122,17 @@ export default function Sidebar({ onClose }) {
         <div className="px-5 py-3 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-3 group">
-              {/* Glowing amber hexagon bee icon */}
-              <div className="relative flex items-center justify-center size-9 rounded-xl bg-gradient-to-br from-brand-400 via-brand-500 to-brand-600 shadow-[0_0_16px_rgba(255,199,0,0.35)] text-black transition-transform duration-200 group-hover:scale-105">
-                <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
-                  {/* Outer hexagon */}
-                  <path
-                    d="M12 2L3.5 6.9v10.2L12 22l8.5-4.9V6.9L12 2zm0 2.4l6.5 3.75v7.5L12 19.4l-6.5-3.75v-7.5L12 4.4z"
-                    opacity="0.9"
-                  />
-                  {/* Bee wings & body */}
-                  <ellipse cx="12" cy="12" rx="3" ry="4" />
-                  <path
-                    d="M7.8 9.5c.8-1.5 2.3-2.5 4.2-2.5s3.4 1 4.2 2.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M10 11.5h4M9.5 13.5h5"
-                    stroke="#0D0E12"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
+              {/* BeeRouter Logo */}
+              <div className="relative flex items-center justify-center size-9 transition-transform duration-200 group-hover:scale-105">
+                <Image
+                  src="/logo.png?v=2"
+                  alt="BeeRouter Logo"
+                  width={36}
+                  height={36}
+                  className="object-contain"
+                  priority
+                  unoptimized
+                />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
