@@ -1,4 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="24" fill="#0a0a0a"/>
-  <text x="96" y="120" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#ffffff" text-anchor="middle">9R</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" fill="none">
+  <rect width="192" height="192" rx="42" fill="#16181F"/>
+  <rect x="1.5" y="1.5" width="189" height="189" rx="40.5" stroke="#FFC700" stroke-opacity="0.3" stroke-width="3"/>
+  <!-- Bee Body -->
+  <ellipse cx="96" cy="108" rx="39" ry="48" fill="url(#bee_yellow_192)" />
+  <!-- Stripes -->
+  <path d="M60 90H132" stroke="#16181F" stroke-width="12" stroke-linecap="round"/>
+  <path d="M63 114H129" stroke="#16181F" stroke-width="12" stroke-linecap="round"/>
+  <path d="M72 138H120" stroke="#16181F" stroke-width="11" stroke-linecap="round"/>
+  <!-- Head -->
+  <circle cx="96" cy="57" r="21" fill="#16181F" />
+  <!-- Antennae -->
+  <path d="M84 42L72 27" stroke="#FFC700" stroke-width="7" stroke-linecap="round"/>
+  <path d="M108 42L120 27" stroke="#FFC700" stroke-width="7" stroke-linecap="round"/>
+  <!-- Wings -->
+  <ellipse cx="60" cy="72" rx="27" ry="18" fill="#FFFFFF" fill-opacity="0.75" transform="rotate(-30 60 72)"/>
+  <ellipse cx="132" cy="72" rx="27" ry="18" fill="#FFFFFF" fill-opacity="0.75" transform="rotate(30 132 72)"/>
+  <defs>
+    <linearGradient id="bee_yellow_192" x1="96" y1="60" x2="96" y2="156" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD633"/>
+      <stop offset="1" stop-color="#FFC700"/>
+    </linearGradient>
+  </defs>
 </svg>

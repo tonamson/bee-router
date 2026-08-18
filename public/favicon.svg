@@ -1,10 +1,24 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="6" fill="url(#gradient)"/>
-  <text x="16" y="24" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" fill="white" text-anchor="middle">9</text>
+  <rect width="32" height="32" rx="8" fill="#16181F"/>
+  <rect x="0.5" y="0.5" width="31" height="31" rx="7.5" stroke="#FFC700" stroke-opacity="0.3"/>
+  <!-- Bee Body -->
+  <ellipse cx="16" cy="18" rx="6.5" ry="8" fill="url(#bee_yellow)" />
+  <!-- Stripes -->
+  <path d="M10 15H22" stroke="#16181F" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10.5 19H21.5" stroke="#16181F" stroke-width="2" stroke-linecap="round"/>
+  <path d="M12 23H20" stroke="#16181F" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Head -->
+  <circle cx="16" cy="9.5" r="3.5" fill="#16181F" />
+  <!-- Antennae -->
+  <path d="M14 7L12 4.5" stroke="#FFC700" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M18 7L20 4.5" stroke="#FFC700" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Wings -->
+  <ellipse cx="10" cy="12" rx="4.5" ry="3" fill="#FFFFFF" fill-opacity="0.75" transform="rotate(-30 10 12)"/>
+  <ellipse cx="22" cy="12" rx="4.5" ry="3" fill="#FFFFFF" fill-opacity="0.75" transform="rotate(30 22 12)"/>
   <defs>
-    <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#f97815"/>
-      <stop offset="1" stop-color="#c2590a"/>
+    <linearGradient id="bee_yellow" x1="16" y1="10" x2="16" y2="26" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD633"/>
+      <stop offset="1" stop-color="#FFC700"/>
     </linearGradient>
   </defs>
 </svg>

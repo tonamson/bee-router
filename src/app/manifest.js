@@ -1,12 +1,12 @@
 export default function manifest() {
   return {
-    name: '9Router - AI Infrastructure Management',
-    short_name: '9Router',
-    description: 'One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.',
+    name: 'BeeRouter - AI Gateway & Unified Routing',
+    short_name: 'BeeRouter',
+    description: 'One unified endpoint for all your AI providers. High-performance model routing, quota tracking, and intelligent fallbacks.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0a0a0a',
-    theme_color: '#0a0a0a',
+    background_color: '#0D0E12',
+    theme_color: '#FFC700',
     orientation: 'portrait-primary',
     icons: [
       {

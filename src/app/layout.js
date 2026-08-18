@@ -17,15 +17,15 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "9Router - AI Infrastructure Management",
-  description: "One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.",
+  title: "BeeRouter - AI Gateway & Unified Routing",
+  description: "One unified endpoint for all your AI providers. High-performance model routing, quota tracking, and intelligent fallbacks.",
   icons: {
     icon: "/favicon.svg",
   },
 };
 
 export const viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#0D0E12",
 };
 
 export default function RootLayout({ children }) {

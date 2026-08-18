@@ -2,8 +2,8 @@ import pkg from "../../../package.json" with { type: "json" };
 
 // App configuration
 export const APP_CONFIG = {
-  name: "9Router Proxy",
-  description: "AI Infrastructure Management",
+  name: "BeeRouter",
+  description: "The Smartest AI Hive — Fast AI Routing & Unified Proxy",
   version: pkg.version,
 };
 
