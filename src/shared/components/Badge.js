@@ -3,12 +3,14 @@
 import { cn } from "@/shared/utils/cn";
 
 const variants = {
-  default: "bg-surface-2 text-text-muted",
-  primary: "bg-brand-500/10 text-brand-600 dark:text-brand-300",
-  success: "bg-green-500/10 text-green-600 dark:text-green-400",
-  warning: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
-  error: "bg-red-500/10 text-red-600 dark:text-red-400",
-  info: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  default: "bg-surface-2 text-text-muted border border-border-subtle",
+  brand: "bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/30",
+  honey: "bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/30",
+  primary: "bg-brand-500/15 text-brand-600 dark:text-brand-400 border border-brand-500/30",
+  success: "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20",
+  warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+  error: "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20",
+  info: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
 };
 
 const sizes = {
@@ -28,22 +30,23 @@ export default function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-semibold",
-        variants[variant],
-        sizes[size],
+        "inline-flex items-center gap-1.5 rounded-full font-medium transition-colors",
+        variants[variant] || variants.default,
+        sizes[size] || sizes.md,
         className
       )}
     >
       {dot && (
         <span
           className={cn(
-            "size-1.5 rounded-full",
+            "size-1.5 rounded-full shrink-0",
             variant === "success" && "bg-green-500",
-            variant === "warning" && "bg-yellow-500",
+            variant === "warning" && "bg-amber-500",
             variant === "error" && "bg-red-500",
             variant === "info" && "bg-blue-500",
-            variant === "primary" && "bg-brand-500",
-            variant === "default" && "bg-gray-500"
+            (variant === "primary" || variant === "brand" || variant === "honey") &&
+              "bg-brand-500 shadow-[0_0_6px_rgba(255,199,0,0.6)]",
+            variant === "default" && "bg-text-subtle"
           )}
         />
       )}

@@ -2,34 +2,39 @@
 
 import { cn } from "@/shared/utils/cn";
 
-// Spinner loading
+// Spinner loading in brand yellow
 export function Spinner({ size = "md", className }) {
   const sizes = {
-    sm: "size-4",
-    md: "size-6",
-    lg: "size-8",
-    xl: "size-12",
+    xs: "size-3.5 border-[2px]",
+    sm: "size-4 border-2",
+    md: "size-6 border-2",
+    lg: "size-8 border-[3px]",
+    xl: "size-12 border-4",
   };
 
   return (
-    <span
+    <div
+      role="status"
+      aria-label="Loading"
       className={cn(
-        "material-symbols-outlined animate-spin text-brand-500",
-        sizes[size],
+        "inline-block rounded-full border-brand-500 border-t-transparent animate-spin shrink-0",
+        sizes[size] || sizes.md,
         className
       )}
     >
-      progress_activity
-    </span>
+      <span className="sr-only">Loading...</span>
+    </div>
   );
 }
 
 // Full page loading
 export function PageLoading({ message = "Loading..." }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg">
-      <Spinner size="xl" />
-      <p className="mt-4 text-text-muted">{message}</p>
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg/80 backdrop-blur-sm">
+      <div className="relative flex flex-col items-center">
+        <Spinner size="xl" />
+        <p className="mt-4 text-sm font-medium text-text-muted animate-pulse">{message}</p>
+      </div>
     </div>
   );
 }

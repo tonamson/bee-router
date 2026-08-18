@@ -36,21 +36,22 @@ export default function Toggle({
         disabled={disabled}
         onClick={handleClick}
         className={cn(
-          "relative inline-flex shrink-0 cursor-pointer rounded-full",
+          "relative inline-flex shrink-0 cursor-pointer rounded-full p-0.5",
           "transition-colors duration-200 ease-in-out",
           "focus:outline-none focus:ring-2 focus:ring-brand-500/30",
-          checked ? "bg-brand-500" : "bg-surface-3",
+          checked
+            ? "bg-brand-500 shadow-[0_0_10px_rgba(255,199,0,0.35)]"
+            : "bg-surface-3 border border-border/60",
           sizes[size].track,
           disabled && "cursor-not-allowed"
         )}
       >
         <span
           className={cn(
-            "pointer-events-none inline-block rounded-full bg-white shadow-sm",
+            "pointer-events-none inline-block rounded-full bg-white dark:bg-black/90 shadow-sm",
             "transform transition duration-200 ease-in-out",
-            checked ? sizes[size].translate : "translate-x-0.5",
-            sizes[size].thumb,
-            "mt-0.5"
+            checked ? sizes[size].translate : "translate-x-0",
+            sizes[size].thumb
           )}
         />
       </button>
