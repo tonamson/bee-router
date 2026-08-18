@@ -1181,7 +1181,7 @@ export default function APIPageClient({ machineId }) {
             {keys.map((key) => (
               <div
                 key={key.id}
-                className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 border-b border-border/60 last:border-b-0 ${key.isActive === false ? "opacity-60" : ""}`}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 border-b border-border/60 last:border-b-0 ${key.isActive === false ? "opacity-60" : ""}`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -1244,28 +1244,28 @@ export default function APIPageClient({ machineId }) {
                   <button
                     type="button"
                     onClick={() => setLimitsKey(key)}
-                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 transition-all"
                     title="Usage limits"
                   >
                     <span className="material-symbols-outlined text-[18px]">tune</span>
                   </button>
                   <Link
                     href={`/dashboard/analytics/keys/${key.id}`}
-                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 transition-all"
                     title="Key analytics"
                   >
                     <span className="material-symbols-outlined text-[18px]">bar_chart</span>
                   </Link>
                   <button
                     onClick={() => handleClearKeyUsage(key.id, key.name)}
-                    className="p-2 hover:bg-amber-500/15 rounded-lg text-text-muted hover:text-amber-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-amber-500/15 rounded-lg text-text-muted hover:text-amber-500 transition-all"
                     title="Clear usage for this key"
                   >
                     <span className="material-symbols-outlined text-[18px]">restart_alt</span>
                   </button>
                   <button
                     onClick={() => handleDeleteKey(key.id)}
-                    className="p-2 hover:bg-red-500/15 rounded-lg text-text-muted hover:text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
+                    className="p-2 hover:bg-red-500/15 rounded-lg text-text-muted hover:text-red-500 transition-all"
                     title="Delete key"
                   >
                     <span className="material-symbols-outlined text-[18px]">delete</span>
