@@ -55,10 +55,10 @@ export function applyLosslessText(text) {
   const hits = [];
   let next = stripAnsi(text);
   if (next !== text) hits.push("ansi");
-  const noCr = collapseProgress(next);
-  if (noCr !== next) {
-    hits.push("ansi");
-    next = noCr;
+  // `\r` overwrite only after ANSI — Mac `\r` file dumps must stay intact.
+  if (hits.includes("ansi")) {
+    const noCr = collapseProgress(next);
+    if (noCr !== next) next = noCr;
   }
   const min = minifyJsonText(next);
   if (min) {
@@ -80,7 +80,9 @@ export function applyLiteCompression(body) {
 
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
-    forEachTextSlot(body, ({ text, set }) => {
+    forEachTextSlot(body, ({ kind, text, set }) => {
+      // Tool-call args stay exact — minify/CR rewrite breaks Read paths.
+      if (kind === "args") return;
       const { text: next, hits } = applyLosslessText(text);
       if (hits.length === 0 || next === text) return;
       stats.bytesBefore += text.length;

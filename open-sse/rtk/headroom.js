@@ -4,6 +4,7 @@ import {
   openaiResponsesToOpenAIRequest,
   openaiToOpenAIResponsesRequest,
 } from "../translator/request/openai-responses.js";
+import { forEachGeminiResponseText } from "./walk.js";
 
 const DEFAULT_TIMEOUT_MS = 3000;
 
@@ -20,6 +21,8 @@ function messagePayload(body) {
   if (Array.isArray(body?.input)) return body.input;
   const kiro = collectKiroHeadroomMessages(body);
   if (kiro) return kiro.messages;
+  const gemini = collectGeminiHeadroomMessages(body);
+  if (gemini) return gemini.messages;
   return null;
 }
 
@@ -81,6 +84,83 @@ function maskEndpoint(endpoint) {
   } catch {
     return String(endpoint).replace(/\/\/[^/@\s]+@/, "//").replace(/[?#].*$/, "");
   }
+}
+
+function geminiContentsOf(body) {
+  if (Array.isArray(body?.request?.contents)) return { root: body.request, contents: body.request.contents };
+  if (Array.isArray(body?.contents)) return { root: body, contents: body.contents };
+  return null;
+}
+
+function isGeminiHeadroomFormat(format, body) {
+  if (format === "gemini" || format === "gemini-cli" || format === "vertex" || format === "antigravity") return true;
+  return !Array.isArray(body?.messages) && !Array.isArray(body?.input) && !!geminiContentsOf(body);
+}
+
+function collectGeminiHeadroomMessages(body) {
+  const found = geminiContentsOf(body);
+  if (!found) return null;
+  const { root, contents } = found;
+  const messages = [];
+  const targets = [];
+
+  const add = (role, text, set) => {
+    if (typeof text !== "string") return;
+    messages.push({ role, content: text });
+    targets.push(set);
+  };
+
+  const sysKey = Object.prototype.hasOwnProperty.call(root, "system_instruction")
+    ? "system_instruction"
+    : (root.systemInstruction != null ? "systemInstruction" : null);
+  if (sysKey) {
+    const sys = root[sysKey];
+    if (typeof sys === "string") {
+      add("system", sys, (t) => { root[sysKey] = t; });
+    } else if (sys && Array.isArray(sys.parts)) {
+      for (const part of sys.parts) {
+        if (typeof part?.text === "string") add("system", part.text, (t) => { part.text = t; });
+      }
+    }
+  }
+
+  for (const c of contents) {
+    if (!c || !Array.isArray(c.parts)) continue;
+    const role = c.role === "model" ? "assistant" : (c.role === "system" ? "system" : "user");
+    for (const part of c.parts) {
+      if (!part || part.thought === true) continue;
+      if (typeof part.text === "string") add(role, part.text, (t) => { part.text = t; });
+      if (part.functionResponse) {
+        forEachGeminiResponseText(part.functionResponse, ({ text, set }) => add("tool", text, set));
+      }
+    }
+  }
+
+  return messages.length > 0 ? { messages, targets } : null;
+}
+
+function applyGeminiHeadroomMessages(projection, compressedMessages, diagnostics) {
+  if (!Array.isArray(compressedMessages) || compressedMessages.length !== projection.messages.length) {
+    setDiagnostic(diagnostics, "proxy response did not match Gemini message count");
+    return false;
+  }
+  const updates = [];
+  for (let i = 0; i < projection.messages.length; i++) {
+    const expected = projection.messages[i];
+    const actual = compressedMessages[i];
+    if (!actual || actual.role !== expected.role) {
+      setDiagnostic(diagnostics, "proxy response did not preserve Gemini message order");
+      return false;
+    }
+    const text = textFromHeadroomMessage(actual);
+    if (text === null) {
+      setDiagnostic(diagnostics, "proxy response missing Gemini text content");
+      return false;
+    }
+    updates.push({ set: projection.targets[i], text });
+  }
+  for (const update of updates) update.set(update.text);
+  return true;
 }
 
 function hasUnsafeResponsesInputForCompression(body) {
@@ -308,6 +388,21 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
       if (!data) return null;
       if (!applyKiroHeadroomMessages(projection, data.messages, diagnostics)) return null;
+      if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
+      return data;
+    }
+
+    // Gemini / Antigravity / gemini-cli / vertex: project contents[] → OpenAI
+    // messages for the proxy, then copy text back. Skip thought parts (signature).
+    if (isGeminiHeadroomFormat(format, body)) {
+      const projection = collectGeminiHeadroomMessages(body);
+      if (!projection) {
+        setDiagnostic(diagnostics, "Gemini request did not project to messages[]");
+        return null;
+      }
+      const data = await callCompress(url, projection.messages, model, timeoutMs, compressUserMessages, diagnostics || {});
+      if (!data) return null;
+      if (!applyGeminiHeadroomMessages(projection, data.messages, diagnostics)) return null;
       if (diagnostics) diagnostics.after = captureSizeSnapshot(body);
       return data;
     }

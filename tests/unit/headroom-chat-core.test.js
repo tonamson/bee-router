@@ -251,6 +251,115 @@ describe("handleChatCore Headroom diagnostics", () => {
     );
   });
 
+  it("skips Lite and Crush when liteEnabled is false", async () => {
+    const pretty = '{\n  "id": 1,\n  "name": "ada"\n}';
+    await handleChatCore({
+      body: { model: "gpt-4o", stream: false, messages: [{ role: "user", content: pretty }] },
+      modelInfo: { provider: "openai", model: "gpt-4o" },
+      credentials: { apiKey: "test-key", providerSpecificData: {} },
+      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
+      connectionId: "test-conn",
+      liteEnabled: false,
+      rtkEnabled: false,
+      cavemanEnabled: false,
+      ponytailEnabled: false,
+      clientRawRequest: {
+        endpoint: "/v1/chat/completions",
+        body: {},
+        headers: { accept: "application/json" },
+      },
+    });
+    expect(executeMock).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.objectContaining({
+        messages: [expect.objectContaining({ content: pretty })],
+      }),
+    }));
+  });
+
+  it("skips RTK when rtkEnabled is false", async () => {
+    const lines = ["diff --git a/foo.js b/foo.js", "index abc..def 100644", "--- a/foo.js", "+++ b/foo.js", "@@ -1,3 +1,200 @@"];
+    for (let i = 0; i < 200; i++) lines.push(`+added line ${i} ${"x".repeat(20)}`);
+    const diff = lines.join("\n");
+    await handleChatCore({
+      body: { model: "gpt-4o", stream: false, messages: [{ role: "tool", tool_call_id: "c1", content: diff }] },
+      modelInfo: { provider: "openai", model: "gpt-4o" },
+      credentials: { apiKey: "test-key", providerSpecificData: {} },
+      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
+      connectionId: "test-conn",
+      rtkEnabled: false,
+      liteEnabled: false,
+      cavemanEnabled: false,
+      ponytailEnabled: false,
+      clientRawRequest: {
+        endpoint: "/v1/chat/completions",
+        body: {},
+        headers: { accept: "application/json" },
+      },
+    });
+    expect(executeMock).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.objectContaining({
+        messages: [expect.objectContaining({ content: diff })],
+      }),
+    }));
+  });
+
+  it("skips Caveman and Ponytail inject when those flags are false", async () => {
+    await handleChatCore({
+      body: { model: "gpt-4o", stream: false, messages: [{ role: "user", content: "hello" }] },
+      modelInfo: { provider: "openai", model: "gpt-4o" },
+      credentials: { apiKey: "test-key", providerSpecificData: {} },
+      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
+      connectionId: "test-conn",
+      cavemanEnabled: false,
+      cavemanLevel: "full",
+      ponytailEnabled: false,
+      ponytailLevel: "full",
+      liteEnabled: false,
+      rtkEnabled: false,
+      clientRawRequest: {
+        endpoint: "/v1/chat/completions",
+        body: {},
+        headers: { accept: "application/json" },
+      },
+    });
+    const sent = executeMock.mock.calls[0][0].body;
+    const blobs = JSON.stringify(sent);
+    expect(blobs).not.toContain("Respond like terse caveman");
+    expect(blobs).not.toContain("YAGNI extremist");
+    expect(blobs).not.toContain("the ladder enforced");
+  });
+
+  it("skips PXPIPE when the client header opts out", async () => {
+    const pxpipeTransform = vi.fn(async () => ({ applied: false, reason: "should-not-run" }));
+    await handleChatCore({
+      body: {
+        model: "claude-sonnet-4-0",
+        stream: false,
+        messages: [{ role: "user", content: "x".repeat(30_000) }],
+      },
+      modelInfo: { provider: "claude", model: "claude-sonnet-4-0" },
+      credentials: { apiKey: "test-key", providerSpecificData: {} },
+      log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn() },
+      connectionId: "test-conn",
+      pxpipeEnabled: true,
+      pxpipeMinChars: 100,
+      pxpipeTransform,
+      liteEnabled: false,
+      rtkEnabled: false,
+      cavemanEnabled: false,
+      ponytailEnabled: false,
+      clientRawRequest: {
+        endpoint: "/v1/messages",
+        body: {},
+        headers: {
+          accept: "application/json",
+          "x-bee-router-token-saver": "off",
+        },
+      },
+    });
+    expect(pxpipeTransform).not.toHaveBeenCalled();
+  });
+
   it("bypasses token savers when requested by the client", async () => {
     const log = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() };
     const pxpipeTransform = vi.fn();

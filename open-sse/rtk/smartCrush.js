@@ -67,7 +67,7 @@ export function crushMessages(body) {
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
     forEachTextSlot(body, ({ kind, text, set }) => {
-      if (kind !== "content") return;
+      if (kind !== "content" && kind !== "tool") return;
       const next = crushText(text);
       if (next === text) return;
       stats.bytesBefore += text.length;

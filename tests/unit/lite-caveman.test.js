@@ -40,7 +40,7 @@ describe("applyLiteCompression", () => {
     expect(stats.hits).toContain("ansi");
   });
 
-  it("minifies OpenAI tool call arguments", () => {
+  it("leaves tool-call arguments untouched", () => {
     const pretty = '{\n  "path": "src/a.js"\n}';
     const body = {
       messages: [{
@@ -49,8 +49,31 @@ describe("applyLiteCompression", () => {
         tool_calls: [{ id: "c1", type: "function", function: { name: "Read", arguments: pretty } }],
       }],
     };
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.messages[0].tool_calls[0].function.arguments).toBe(pretty);
+  });
+
+  it("leaves lone CR in file dumps (no ANSI)", () => {
+    const dump = "line one\rline two\nfunction foo() {\n  return 1;\n}\n";
+    const body = { messages: [{ role: "tool", content: dump }] };
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.messages[0].content).toBe(dump);
+  });
+
+  it("does not rewrite Gemini thought parts", () => {
+    const thought = "thinking about the file   \n\n\n\nplease wait";
+    const body = {
+      contents: [{
+        role: "model",
+        parts: [
+          { thought: true, text: thought },
+          { thoughtSignature: "sig", text: "" },
+          { text: "ok" },
+        ],
+      }],
+    };
     applyLiteCompression(body);
-    expect(body.messages[0].tool_calls[0].function.arguments).toBe('{"path":"src/a.js"}');
+    expect(body.contents[0].parts[0].text).toBe(thought);
   });
 
   it("applies lossless cleanup to Gemini contents", () => {
@@ -167,6 +190,21 @@ describe("cavemanCompress", () => {
     const body = { messages: [{ role: "tool", content: tool }] };
     cavemanCompress(body, true, "full");
     expect(body.messages[0].content).toBe(tool);
+  });
+
+  it("rewrites Gemini user prose and skips functionResponse", () => {
+    const prose = "Please could you please explain in detail how the authentication basically works? Thank you so much.";
+    const tool = "On branch main\nChanges not staged for commit:\n  modified: src/a.js\n".repeat(5);
+    const body = {
+      contents: [
+        { role: "user", parts: [{ text: prose }] },
+        { role: "user", parts: [{ functionResponse: { name: "Bash", response: { result: tool } } }] },
+      ],
+    };
+    const stats = cavemanCompress(body, true, "full");
+    expect(stats).not.toBeNull();
+    expect(body.contents[0].parts[0].text.length).toBeLessThan(prose.length);
+    expect(body.contents[1].parts[0].functionResponse.response.result).toBe(tool);
   });
 
   it("preserves code fences and URLs", () => {

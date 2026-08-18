@@ -82,13 +82,15 @@ export default function TokenSaverClient() {
 
   const patchSetting = async (patch) => {
     try {
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
+      return res.ok;
     } catch (error) {
       console.log("Error updating setting:", error);
+      return false;
     }
   };
 
@@ -105,21 +107,20 @@ export default function TokenSaverClient() {
     }
   };
 
-  const handleLiteEnabled = (value) => {
-    setLiteEnabled(value);
-    patchSetting({ liteEnabled: value });
+  const handleLiteEnabled = async (value) => {
+    if (await patchSetting({ liteEnabled: value })) setLiteEnabled(value);
   };
 
-  const handleCavemanEnabled = (value) => {
-    setCavemanEnabled(value);
-    patchSetting({ cavemanEnabled: value });
+  const handleCavemanEnabled = async (value) => {
+    if (await patchSetting({ cavemanEnabled: value })) setCavemanEnabled(value);
   };
 
-  const handleHeadroomEnabled = (value) => {
+  const handleHeadroomEnabled = async (value) => {
     const nextUrl = headroomUrl.trim() || "http://localhost:8787";
-    setHeadroomUrl(nextUrl);
-    setHeadroomEnabled(value);
-    patchSetting({ headroomEnabled: value, headroomUrl: nextUrl });
+    if (await patchSetting({ headroomEnabled: value, headroomUrl: nextUrl })) {
+      setHeadroomUrl(nextUrl);
+      setHeadroomEnabled(value);
+    }
   };
 
   const handleHeadroomUrlBlur = async () => {
@@ -344,19 +345,16 @@ export default function TokenSaverClient() {
     }
   }, [headroomStatus.running, refreshHeadroomStatus]);
 
-  const handleCavemanLevel = (level) => {
-    setCavemanLevel(level);
-    patchSetting({ cavemanLevel: level });
+  const handleCavemanLevel = async (level) => {
+    if (await patchSetting({ cavemanLevel: level })) setCavemanLevel(level);
   };
 
-  const handlePonytailEnabled = (value) => {
-    setPonytailEnabled(value);
-    patchSetting({ ponytailEnabled: value });
+  const handlePonytailEnabled = async (value) => {
+    if (await patchSetting({ ponytailEnabled: value })) setPonytailEnabled(value);
   };
 
-  const handlePonytailLevel = (level) => {
-    setPonytailLevel(level);
-    patchSetting({ ponytailLevel: level });
+  const handlePonytailLevel = async (level) => {
+    if (await patchSetting({ ponytailLevel: level })) setPonytailLevel(level);
   };
 
   const refreshPxpipeStatus = useCallback(async () => {
@@ -401,9 +399,8 @@ export default function TokenSaverClient() {
     [refreshPxpipeStatus, runPxpipeHealth]
   );
 
-  const handlePxpipeEnabled = (value) => {
-    setPxpipeEnabled(value);
-    patchSetting({ pxpipeEnabled: value });
+  const handlePxpipeEnabled = async (value) => {
+    if (await patchSetting({ pxpipeEnabled: value })) setPxpipeEnabled(value);
   };
 
   const handlePxpipeMinCharsBlur = () => {

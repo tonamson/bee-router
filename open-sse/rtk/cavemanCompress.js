@@ -2,15 +2,10 @@
 // Skips tool messages, tool_result blocks, code fences, URLs, paths.
 
 import { getRulesForContext, applyRulesToText, mapCavemanIntensity } from "./cavemanRules.js";
+import { forEachTextSlot } from "./walk.js";
 
 const MIN_LEN = 50;
 const PROTECT_RE = /```[\s\S]*?```|`[^`\n]+`|https?:\/\/\S+|(?:^|\s)(?:\.{0,2}\/[\w./\-]+)|^[ \t]*(?:Error|TypeError|RangeError|SyntaxError|ReferenceError):/gm;
-
-function walkItems(body) {
-  if (Array.isArray(body?.messages)) return body.messages;
-  if (Array.isArray(body?.input)) return body.input;
-  return null;
-}
 
 function extractProtected(text) {
   const blocks = [];
@@ -42,27 +37,15 @@ function rewriteText(text, role, intensity, stats) {
 export function cavemanCompress(body, enabled, level) {
   if (!enabled || !body) return null;
   const intensity = mapCavemanIntensity(level);
-  const items = walkItems(body);
-  if (!items) return null;
 
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
-    for (const msg of items) {
-      if (!msg) continue;
-      if (msg.role === "tool" || msg.role === "function" || msg.type === "function_call_output") continue;
-      if (msg.role !== "user" && msg.role !== "assistant") continue;
-
-      if (typeof msg.content === "string") {
-        msg.content = rewriteText(msg.content, msg.role, intensity, stats);
-        continue;
-      }
-      if (!Array.isArray(msg.content)) continue;
-      for (const part of msg.content) {
-        if (!part || typeof part.text !== "string") continue;
-        if (part.type === "tool_result" || part.type === "tool_use") continue;
-        part.text = rewriteText(part.text, msg.role, intensity, stats);
-      }
-    }
+    forEachTextSlot(body, ({ kind, role, text, set }) => {
+      if (kind !== "content") return;
+      if (role !== "user" && role !== "assistant") return;
+      const next = rewriteText(text, role, intensity, stats);
+      if (next !== text) set(next);
+    });
   } catch (e) {
     console.warn("[CAVEMAN] cavemanCompress error:", e.message);
     return null;

@@ -6,7 +6,13 @@ function visit(slot, fn) {
   fn(slot);
 }
 
-function visitContentPart(part, fn, kind) {
+function slotKindForRole(role, type) {
+  if (role === "system" || role === "developer") return "system";
+  if (role === "tool" || role === "function" || type === "function_call_output") return "tool";
+  return "content";
+}
+
+function visitContentPart(part, fn, kind, role) {
   if (!part || hasCacheControl(part)) return;
 
   if (
@@ -16,46 +22,47 @@ function visitContentPart(part, fn, kind) {
       part.type === "input_text" ||
       part.type === "output_text")
   ) {
-    visit({ kind, text: part.text, set: (t) => { part.text = t; } }, fn);
+    visit({ kind, role, text: part.text, set: (t) => { part.text = t; } }, fn);
   }
 
   if (part.type === "tool_result") {
     if (typeof part.content === "string") {
-      visit({ kind: "content", text: part.content, set: (t) => { part.content = t; } }, fn);
+      visit({ kind: "tool", role: "tool", text: part.content, set: (t) => { part.content = t; } }, fn);
     } else if (Array.isArray(part.content)) {
-      for (const inner of part.content) visitContentPart(inner, fn, "content");
+      for (const inner of part.content) visitContentPart(inner, fn, "tool", "tool");
     }
   }
 
   if (part.type === "tool_use" && typeof part.input === "string") {
-    visit({ kind: "args", text: part.input, set: (t) => { part.input = t; } }, fn);
+    visit({ kind: "args", role, text: part.input, set: (t) => { part.input = t; } }, fn);
   }
 }
 
 function visitMessage(msg, fn) {
   if (!msg || hasCacheControl(msg)) return;
-  const kind = msg.role === "system" || msg.role === "developer" ? "system" : "content";
+  const role = msg.role || (msg.type === "function_call_output" ? "tool" : undefined);
+  const kind = slotKindForRole(role, msg.type);
 
   if (typeof msg.content === "string") {
-    visit({ kind, text: msg.content, set: (t) => { msg.content = t; } }, fn);
+    visit({ kind, role, text: msg.content, set: (t) => { msg.content = t; } }, fn);
   } else if (Array.isArray(msg.content)) {
-    for (const part of msg.content) visitContentPart(part, fn, kind);
+    for (const part of msg.content) visitContentPart(part, fn, kind, role);
   }
 
   if (typeof msg.output === "string" && (msg.type === "function_call_output" || msg.role === "tool")) {
-    visit({ kind: "content", text: msg.output, set: (t) => { msg.output = t; } }, fn);
+    visit({ kind: "tool", role: "tool", text: msg.output, set: (t) => { msg.output = t; } }, fn);
   } else if (msg.type === "function_call_output" && Array.isArray(msg.output)) {
-    for (const part of msg.output) visitContentPart(part, fn, "content");
+    for (const part of msg.output) visitContentPart(part, fn, "tool", "tool");
   }
 
   if (msg.type === "function_call" && typeof msg.arguments === "string") {
-    visit({ kind: "args", text: msg.arguments, set: (t) => { msg.arguments = t; } }, fn);
+    visit({ kind: "args", role: "assistant", text: msg.arguments, set: (t) => { msg.arguments = t; } }, fn);
   }
 
   if (Array.isArray(msg.tool_calls)) {
     for (const tc of msg.tool_calls) {
       if (typeof tc?.function?.arguments === "string") {
-        visit({ kind: "args", text: tc.function.arguments, set: (t) => { tc.function.arguments = t; } }, fn);
+        visit({ kind: "args", role: "assistant", text: tc.function.arguments, set: (t) => { tc.function.arguments = t; } }, fn);
       }
     }
   }
@@ -65,7 +72,7 @@ function visitGeminiSystem(sys, fn, setString) {
   if (!sys) return;
   if (typeof sys === "string") {
     if (typeof setString === "function") {
-      visit({ kind: "system", text: sys, set: setString }, fn);
+      visit({ kind: "system", role: "system", text: sys, set: setString }, fn);
     }
     return;
   }
@@ -73,7 +80,7 @@ function visitGeminiSystem(sys, fn, setString) {
   if (!Array.isArray(parts)) return;
   for (const part of parts) {
     if (typeof part?.text === "string") {
-      visit({ kind: "system", text: part.text, set: (t) => { part.text = t; } }, fn);
+      visit({ kind: "system", role: "system", text: part.text, set: (t) => { part.text = t; } }, fn);
     }
   }
 }
@@ -111,19 +118,21 @@ function walkGeminiResponseObject(obj, fn) {
 
 function visitGeminiContent(c, fn) {
   if (!c || !Array.isArray(c.parts)) return;
-  const kind = c.role === "system" ? "system" : "content";
+  const role = c.role === "model" ? "assistant" : (c.role === "system" ? "system" : "user");
+  const kind = role === "system" ? "system" : "content";
   for (const part of c.parts) {
-    if (!part) continue;
+    // Mutating thought text invalidates Gemini thoughtSignature → 400, tools fail.
+    if (!part || part.thought === true) continue;
     if (typeof part.text === "string") {
-      visit({ kind, text: part.text, set: (t) => { part.text = t; } }, fn);
+      visit({ kind, role, text: part.text, set: (t) => { part.text = t; } }, fn);
     }
     if (part.functionResponse) {
       forEachGeminiResponseText(part.functionResponse, ({ text, set }) => {
-        visit({ kind: "content", text, set }, fn);
+        visit({ kind: "tool", role: "tool", text, set }, fn);
       });
     }
     if (typeof part.functionCall?.args === "string") {
-      visit({ kind: "args", text: part.functionCall.args, set: (t) => { part.functionCall.args = t; } }, fn);
+      visit({ kind: "args", role: "assistant", text: part.functionCall.args, set: (t) => { part.functionCall.args = t; } }, fn);
     }
   }
 }
@@ -138,10 +147,10 @@ function visitKiro(body, fn) {
     const user = msg?.userInputMessage;
     if (user) {
       if (typeof user.content === "string") {
-        visit({ kind: "content", text: user.content, set: (t) => { user.content = t; } }, fn);
+        visit({ kind: "content", role: "user", text: user.content, set: (t) => { user.content = t; } }, fn);
       }
       if (typeof user.systemInstruction === "string") {
-        visit({ kind: "system", text: user.systemInstruction, set: (t) => { user.systemInstruction = t; } }, fn);
+        visit({ kind: "system", role: "system", text: user.systemInstruction, set: (t) => { user.systemInstruction = t; } }, fn);
       }
       const toolResults = user.userInputMessageContext?.toolResults;
       if (Array.isArray(toolResults)) {
@@ -149,7 +158,7 @@ function visitKiro(body, fn) {
           if (!Array.isArray(tr?.content)) continue;
           for (const part of tr.content) {
             if (typeof part?.text === "string") {
-              visit({ kind: "content", text: part.text, set: (t) => { part.text = t; } }, fn);
+              visit({ kind: "tool", role: "tool", text: part.text, set: (t) => { part.text = t; } }, fn);
             }
           }
         }
@@ -158,12 +167,12 @@ function visitKiro(body, fn) {
     const asst = msg?.assistantResponseMessage;
     if (asst) {
       if (typeof asst.content === "string") {
-        visit({ kind: "content", text: asst.content, set: (t) => { asst.content = t; } }, fn);
+        visit({ kind: "content", role: "assistant", text: asst.content, set: (t) => { asst.content = t; } }, fn);
       }
       if (Array.isArray(asst.toolUses)) {
         for (const tu of asst.toolUses) {
           if (typeof tu?.input === "string") {
-            visit({ kind: "args", text: tu.input, set: (t) => { tu.input = t; } }, fn);
+            visit({ kind: "args", role: "assistant", text: tu.input, set: (t) => { tu.input = t; } }, fn);
           }
         }
       }
@@ -171,7 +180,7 @@ function visitKiro(body, fn) {
   }
 }
 
-/** Visit every mutable text slot. Slot: { kind: "content"|"args"|"system", text, set }. */
+/** Visit every mutable text slot. Slot: { kind: "content"|"tool"|"args"|"system", role, text, set }. */
 export function forEachTextSlot(body, fn) {
   if (!body || typeof fn !== "function") return;
 

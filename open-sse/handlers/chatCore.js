@@ -275,6 +275,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   // Token-saver flags accumulator for the single "⚙" log line below.
   const xf = [];
+  if (rtkStats?.hits?.length) xf.push("RTK");
   if (crushStats) xf.push("CRUSH");
   if (liteStats) xf.push("LITE");
   if (cavemanStats) xf.push(`CAVEMAN-IN:${cavemanLevel}`);
@@ -293,7 +294,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
 
   // PXPIPE: image bulky context (Claude-format bodies only), last saver before dispatch
   let pxpipeSummary = null;
-  if (pxpipeEnabled) {
+  if (tokenSaverEnabled && pxpipeEnabled) {
     const pxpipeResult = await compressWithPxpipe(translatedBody, {
       enabled: true, format: finalFormat, model: upstreamModel,
       minChars: pxpipeMinChars, timeoutMs: pxpipeTimeoutMs, transform: pxpipeTransform,
@@ -303,6 +304,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     if (pxpipeSummary?.applied) xf.push(`PXPIPE:${pxpipeSummary.imageCount}img`);
     try { onPxpipeEvent?.({ provider, model, ...pxpipeSummary }); } catch { /* stats must not break requests */ }
   }
+  if (headroomStats) xf.push("HEADROOM");
 
   if (xf.length && log?.line) log.line(reqTag, "⚙", xf.join(" · "));
 

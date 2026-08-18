@@ -40,6 +40,31 @@ describe("DB SQLite layer — public API parity", () => {
     expect(re.customField).toBe("x");
   });
 
+  it("token-saver flags persist false (defaults do not swallow off)", async () => {
+    const updated = await sqliteDb.updateSettings({
+      liteEnabled: false,
+      rtkEnabled: false,
+      cavemanEnabled: false,
+      ponytailEnabled: false,
+      headroomEnabled: false,
+      pxpipeEnabled: false,
+    });
+    expect(updated.liteEnabled).toBe(false);
+    expect(updated.rtkEnabled).toBe(false);
+    expect(updated.cavemanEnabled).toBe(false);
+    expect(updated.ponytailEnabled).toBe(false);
+    expect(updated.headroomEnabled).toBe(false);
+    expect(updated.pxpipeEnabled).toBe(false);
+
+    const re = await sqliteDb.getSettings();
+    expect(re.liteEnabled).toBe(false);
+    expect(re.rtkEnabled).toBe(false);
+    expect(re.cavemanEnabled).toBe(false);
+    expect(re.ponytailEnabled).toBe(false);
+    expect(re.headroomEnabled).toBe(false);
+    expect(re.pxpipeEnabled).toBe(false);
+  });
+
   it("isCloudEnabled reflects settings", async () => {
     await sqliteDb.updateSettings({ cloudEnabled: true });
     expect(await sqliteDb.isCloudEnabled()).toBe(true);

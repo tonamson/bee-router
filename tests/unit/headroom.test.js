@@ -195,12 +195,68 @@ describe("compressWithHeadroom", () => {
 
   it("skips unknown shapes", async () => {
     global.fetch = vi.fn();
-    const body = { contents: [{ parts: [{ text: "long" }] }] };
+    const body = { conversationId: "x" };
 
     const stats = await compressWithHeadroom(body, { enabled: true, url: "http://localhost:8787" });
 
     expect(stats).toBeNull();
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("projects Gemini contents to the proxy and copies text back", async () => {
+    global.fetch = vi.fn(async () => new Response(JSON.stringify({
+      messages: [
+        { role: "user", content: "short" },
+        { role: "tool", content: "ok" },
+      ],
+      tokens_saved: 10,
+    }), { status: 200 }));
+    const body = {
+      contents: [
+        { role: "user", parts: [{ text: "long please" }] },
+        { role: "user", parts: [{ functionResponse: { name: "Read", response: { result: "file dump" } } }] },
+      ],
+    };
+
+    const stats = await compressWithHeadroom(body, {
+      enabled: true,
+      url: "http://localhost:8787",
+      format: "gemini",
+    });
+
+    expect(stats.tokens_saved).toBe(10);
+    expect(body.contents[0].parts[0].text).toBe("short");
+    expect(body.contents[1].parts[0].functionResponse.response.result).toBe("ok");
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body).messages).toEqual([
+      { role: "user", content: "long please" },
+      { role: "tool", content: "file dump" },
+    ]);
+  });
+
+  it("does not send Gemini thought parts to Headroom", async () => {
+    global.fetch = vi.fn(async () => new Response(JSON.stringify({
+      messages: [{ role: "assistant", content: "short" }],
+    }), { status: 200 }));
+    const thought = "secret thought";
+    const body = {
+      request: {
+        contents: [{
+          role: "model",
+          parts: [
+            { thought: true, text: thought },
+            { text: "visible" },
+          ],
+        }],
+      },
+    };
+
+    await compressWithHeadroom(body, { enabled: true, url: "http://localhost:8787", format: "antigravity" });
+
+    expect(body.request.contents[0].parts[0].text).toBe(thought);
+    expect(body.request.contents[0].parts[1].text).toBe("short");
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body).messages).toEqual([
+      { role: "assistant", content: "visible" },
+    ]);
   });
 });
 
