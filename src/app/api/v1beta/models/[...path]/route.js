@@ -10,6 +10,7 @@ import { PROVIDER_MODELS } from "@/shared/constants/models";
 import { GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS } from "open-sse/config/runtimeConfig.js";
 import { initTranslators } from "open-sse/translator/index.js";
 import { geminiToOpenAIRequest } from "open-sse/translator/request/gemini-to-openai.js";
+import { openaiToAntigravityResponse } from "open-sse/translator/response/openai-to-antigravity.js";
 import { parseRouterEnv, resolveAgyRouteModel } from "@/lib/antigravityCliConfig";
 import fs from "fs/promises";
 import os from "os";
@@ -389,14 +390,6 @@ function convertGeminiToInternal(geminiBody, model, stream) {
   return geminiToOpenAIRequest(model, geminiBody, stream);
 }
 
-/** Map OpenAI finish_reason => Gemini finishReason */
-const FINISH_REASON_MAP = {
-  stop: "STOP",
-  length: "MAX_TOKENS",
-  tool_calls: "STOP",
-  content_filter: "SAFETY",
-};
-
 /**
  * Transform an OpenAI SSE stream into a Gemini SSE stream.
  *
@@ -417,6 +410,7 @@ function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
 
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
+  const state = {};
 
   const transformStream = new TransformStream({
     transform(chunk, controller) {
@@ -439,67 +433,14 @@ function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
           continue;
         }
 
-        const choice = parsed.choices?.[0];
-        if (!choice) continue;
-
-        const delta = choice.delta || {};
-
-        const parts = [];
-        if (delta.reasoning_content) {
-          parts.push({ text: delta.reasoning_content, thought: true });
-        }
-        if (delta.content) {
-          parts.push({ text: delta.content });
-        }
-
-        // Skip pure role-only deltas with no content and no finish signal
-        if (parts.length === 0 && !choice.finish_reason) continue;
-
-        const candidate = {
-          content: {
-            role: "model",
-            parts: parts.length > 0 ? parts : [{ text: "" }],
-          },
-          index: 0,
-        };
-
-        if (choice.finish_reason) {
-          candidate.finishReason = FINISH_REASON_MAP[choice.finish_reason] || "STOP";
-        }
-
-        const geminiChunk = { candidates: [candidate] };
-
-        // Attach usage + modelVersion on the final chunk (when finish_reason is set)
-        if (choice.finish_reason && parsed.usage) {
-          geminiChunk.usageMetadata = {
-            promptTokenCount: parsed.usage.prompt_tokens || 0,
-            candidatesTokenCount: parsed.usage.completion_tokens || 0,
-            totalTokenCount: parsed.usage.total_tokens || 0,
-          };
-          const reasoningTokens =
-            parsed.usage.completion_tokens_details?.reasoning_tokens;
-          if (reasoningTokens) {
-            geminiChunk.usageMetadata.thoughtsTokenCount = reasoningTokens;
-          }
-          const cached = Number(
-            parsed.usage.prompt_tokens_details?.cached_tokens
-            ?? parsed.usage.cached_tokens
-            ?? parsed.usage.input_tokens_details?.cached_tokens
-            ?? parsed.usage.cache_read_input_tokens
-            ?? 0
-          );
-          if (cached > 0) {
-            geminiChunk.usageMetadata.cachedContentTokenCount = cached;
-          }
-          geminiChunk.modelVersion = parsed.model || model;
-        }
+        const gemini = openaiChunkToGemini(parsed, state, model);
+        if (!gemini) continue;
 
         controller.enqueue(
-          encoder.encode("data: " + JSON.stringify(geminiChunk) + "\r\n\r\n")
+          encoder.encode("data: " + JSON.stringify(gemini) + "\r\n\r\n")
         );
       }
     },
-    // No flush() needed: Gemini SSE ends by stream close, not a sentinel
   });
 
   return new Response(upstreamResponse.body.pipeThrough(transformStream), {
@@ -510,6 +451,16 @@ function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
       "Access-Control-Allow-Origin": "*",
     },
   });
+}
+
+/** OpenAI SSE/JSON → Gemini public GenerateContent shape (no CloudCode `response` envelope). */
+function openaiChunkToGemini(chunk, state, model) {
+  const wrapped = openaiToAntigravityResponse(chunk, state);
+  if (!wrapped?.response) return null;
+  if (!wrapped.response.modelVersion) {
+    wrapped.response.modelVersion = chunk.model || model;
+  }
+  return wrapped.response;
 }
 
 /**
@@ -542,48 +493,20 @@ async function convertOpenAIResponseToGemini(response, model) {
     });
   }
 
-  const { message, finish_reason } = choice;
-
-  const parts = [];
-  if (message.reasoning_content) {
-    parts.push({ text: message.reasoning_content, thought: true });
-  }
-  parts.push({ text: message.content || "" });
-
-  const finishReason = FINISH_REASON_MAP[finish_reason] || "STOP";
-
-  const geminiResponse = {
-    candidates: [
-      {
-        content: { role: "model", parts },
-        finishReason,
-        index: 0,
+  const message = choice.message || {};
+  const geminiResponse = openaiChunkToGemini({
+    id: body.id,
+    model: body.model || model,
+    choices: [{
+      delta: {
+        content: message.content,
+        reasoning_content: message.reasoning_content,
+        tool_calls: message.tool_calls,
       },
-    ],
-    modelVersion: body.model || model,
-  };
-
-  if (body.usage) {
-    geminiResponse.usageMetadata = {
-      promptTokenCount: body.usage.prompt_tokens || 0,
-      candidatesTokenCount: body.usage.completion_tokens || 0,
-      totalTokenCount: body.usage.total_tokens || 0,
-    };
-    const reasoningTokens = body.usage.completion_tokens_details?.reasoning_tokens;
-    if (reasoningTokens) {
-      geminiResponse.usageMetadata.thoughtsTokenCount = reasoningTokens;
-    }
-    const cached = Number(
-      body.usage.prompt_tokens_details?.cached_tokens
-      ?? body.usage.cached_tokens
-      ?? body.usage.input_tokens_details?.cached_tokens
-      ?? body.usage.cache_read_input_tokens
-      ?? 0
-    );
-    if (cached > 0) {
-      geminiResponse.usageMetadata.cachedContentTokenCount = cached;
-    }
-  }
+      finish_reason: choice.finish_reason,
+    }],
+    usage: body.usage,
+  }, {}, model) || { candidates: [] };
 
   return Response.json(geminiResponse, {
     headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
