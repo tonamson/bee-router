@@ -273,7 +273,7 @@ export default function TokenSaveAnalyticsClient() {
               const max = Math.max(...data.compression.timeline.map((x) => x.tokensSavedEst || 0), 1);
               const h = Math.max(2, Math.round(((d.tokensSavedEst || 0) / max) * 100));
               return (
-                <div key={d.date} className="flex-1 flex flex-col items-center gap-1 min-w-0" title={`${d.date}: ${fmt(d.tokensSavedEst)} tok · ${fmtUsd(d.costSavedEst)}`}>
+                <div key={d.date} className="flex-1 flex flex-col justify-end h-full min-w-0" title={`${d.date}: ${fmt(d.tokensSavedEst)} tok · ${fmtUsd(d.costSavedEst)}`}>
                   <div className="w-full bg-primary/20 rounded-t" style={{ height: `${h}%` }} />
                 </div>
               );

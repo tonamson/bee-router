@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 describe("token-save events", () => {
   let tmp;
@@ -105,5 +106,16 @@ describe("token-save events", () => {
     expect(after.windows.all.tokensSavedEst).toBe(200);
     expect(after.recent).toHaveLength(1);
     expect(after.recent[0].apiKey).toBe("sk-bbb");
+  });
+});
+
+describe("token-save timeline chart markup", () => {
+  it("gives bar columns a definite height so % bars paint", () => {
+    const src = fs.readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../../src/app/(dashboard)/dashboard/analytics/token-save/TokenSaveAnalyticsClient.js"),
+      "utf8",
+    );
+    // % height on a flex-col wrapper with auto height collapses to 0px.
+    expect(src).toMatch(/className=\{?"[^"]*\bh-full\b[^"]*"\}?\s+title=\{\`\$\{d\.date\}/);
   });
 });
