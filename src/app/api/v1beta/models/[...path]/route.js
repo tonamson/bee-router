@@ -94,7 +94,7 @@ export async function POST(request, { params }) {
     }
 
     try {
-      const envText = await fs.readFile(nodePath.join(os.homedir(), ".gemini", "antigravity-cli", "9router.env"), "utf8");
+      const envText = await fs.readFile(nodePath.join(os.homedir(), ".gemini", "antigravity-cli", "bee-router.env"), "utf8");
       model = resolveAgyRouteModel(model, parseRouterEnv(envText));
     } catch { /* no agy override */ }
 

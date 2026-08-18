@@ -18,7 +18,7 @@ async function ensureInitialized() {
 async function loadAgyRouteEnv() {
   if (Date.now() - cachedRouteEnv.at < 2000) return cachedRouteEnv.value;
   try {
-    const text = await fs.readFile(path.join(os.homedir(), ".gemini", "antigravity-cli", "9router.env"), "utf8");
+    const text = await fs.readFile(path.join(os.homedir(), ".gemini", "antigravity-cli", "bee-router.env"), "utf8");
     cachedRouteEnv = { value: parseRouterEnv(text), at: Date.now() };
   } catch {
     cachedRouteEnv = { value: {}, at: Date.now() };
@@ -58,7 +58,7 @@ export async function POST(request) {
     }
 
     if (String(action).includes("loadCodeAssist") || String(action).includes("onboardUser")) {
-      return Response.json({ currentTier: { id: "legacy-tier" }, cloudaicompanionProject: "9router" });
+      return Response.json({ currentTier: { id: "legacy-tier" }, cloudaicompanionProject: "bee-router" });
     }
 
     const env = await loadAgyRouteEnv();

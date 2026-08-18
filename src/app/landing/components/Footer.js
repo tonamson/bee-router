@@ -44,7 +44,7 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               <a
                 className="w-8 h-8 rounded-lg bg-[#16181F] border border-[#282B37] flex items-center justify-center text-gray-400 hover:text-[#FFC700] hover:border-[#FFC700]/40 transition-colors"
-                href="https://github.com/decolua/9router"
+                href="https://github.com/tonamson/bee-router"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="GitHub repository"
@@ -76,7 +76,7 @@ export default function Footer() {
             <h4 className="font-bold text-white text-sm">Resources</h4>
             <a
               className="text-gray-400 hover:text-[#FFC700] text-sm transition-colors"
-              href="https://github.com/decolua/9router#readme"
+              href="https://github.com/tonamson/bee-router#readme"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -84,7 +84,7 @@ export default function Footer() {
             </a>
             <a
               className="text-gray-400 hover:text-[#FFC700] text-sm transition-colors"
-              href="https://github.com/decolua/9router"
+              href="https://github.com/tonamson/bee-router"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -92,7 +92,7 @@ export default function Footer() {
             </a>
             <a
               className="text-gray-400 hover:text-[#FFC700] text-sm transition-colors"
-              href="https://www.npmjs.com/package/9router"
+              href="https://www.npmjs.com/package/bee-router"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -105,7 +105,7 @@ export default function Footer() {
             <h4 className="font-bold text-white text-sm">Open Source</h4>
             <a
               className="text-gray-400 hover:text-[#FFC700] text-sm transition-colors"
-              href="https://github.com/decolua/9router/blob/main/LICENSE"
+              href="https://github.com/tonamson/bee-router/blob/master/LICENSE"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -113,7 +113,7 @@ export default function Footer() {
             </a>
             <a
               className="text-gray-400 hover:text-[#FFC700] text-sm transition-colors"
-              href="https://github.com/decolua/9router"
+              href="https://github.com/tonamson/bee-router"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -128,7 +128,7 @@ export default function Footer() {
           <div className="flex gap-6">
             <a
               className="hover:text-white transition-colors"
-              href="https://github.com/decolua/9router"
+              href="https://github.com/tonamson/bee-router"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -136,7 +136,7 @@ export default function Footer() {
             </a>
             <a
               className="hover:text-white transition-colors"
-              href="https://www.npmjs.com/package/9router"
+              href="https://www.npmjs.com/package/bee-router"
               target="_blank"
               rel="noopener noreferrer"
             >

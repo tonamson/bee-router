@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Transform the 9Router UI into BeeRouter with a high-craft Bumblebee & Honey theme, modern obsidian surfaces, crisp Material Symbols vector icons, streamlined sidebar navigation (removing 9Remote and 9English), and polished landing/login/dashboard interfaces.
+**Goal:** Transform the BeeRouter UI into BeeRouter with a high-craft Bumblebee & Honey theme, modern obsidian surfaces, crisp Material Symbols vector icons, streamlined sidebar navigation (removing 9Remote and 9English), and polished landing/login/dashboard interfaces.
 
 **Architecture:** Token-driven design system implemented natively via Tailwind CSS v4 in `globals.css` with a Bumblebee & Honey palette (`#FFC700` primary, `#F59E0B` hover/gradient, `#0D0E12` dark background, `#16181F` obsidian surface). Core UI primitives, layouts, animations, and pages consume these tokens uniformly.
 
@@ -313,7 +313,7 @@ git commit -m "feat(navigation): clean up Sidebar with BeeRouter branding and re
 
 - [ ] **Step 3: Update `Features.js`, `HowItWorks.js`, `GetStarted.js`, and `Footer.js`**
 - Replace coral/orange badges with Bumblebee Yellow/Amber badges.
-- Replace 9router text with BeeRouter.
+- Replace bee-router text with BeeRouter.
 - Update Footer links and copyright.
 
 - [ ] **Step 4: Commit Task 4**

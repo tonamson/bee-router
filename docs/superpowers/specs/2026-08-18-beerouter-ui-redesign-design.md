@@ -1,7 +1,7 @@
 # BeeRouter UI Redesign Specification
 
 - **Date:** 2026-08-18
-- **Topic:** Full UI/UX Redesign — Transformation from 9Router to BeeRouter (Bumblebee & Honey Theme)
+- **Topic:** Full UI/UX Redesign — Transformation from BeeRouter to BeeRouter (Bumblebee & Honey Theme)
 - **Status:** Approved by User
 
 ---
@@ -9,7 +9,7 @@
 ## 1. Executive Summary & Brand Identity
 
 ### 1.1 Overview
-This specification details the comprehensive redesign of the frontend application from **9Router** into **BeeRouter**. The project transitions the brand identity, visual style, color palette, navigation hierarchy, component primitives, and all pages to a **Vibrant Bumblebee & Modern Obsidian** theme.
+This specification details the comprehensive redesign of the frontend application from **BeeRouter** into **BeeRouter**. The project transitions the brand identity, visual style, color palette, navigation hierarchy, component primitives, and all pages to a **Vibrant Bumblebee & Modern Obsidian** theme.
 
 ### 1.2 Core Brand Attributes
 - **Product Name:** BeeRouter
@@ -94,7 +94,7 @@ The color system is organized around the **Bumblebee Yellow** and **Honey Amber*
 - **Removals & Cleanup:**
   - Completely remove `9Remote` button and `NineRemotePromoModal`.
   - Completely remove `9English` external link.
-  - Remove all leftover references to 9router/9remote.
+  - Remove all leftover references to bee-router/9remote.
 
 ### 3.2 Top Header (`src/shared/components/Header.js`)
 - Breadcrumb separators styled with subtle mini hexagons (`⬡`).

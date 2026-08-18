@@ -1,7 +1,7 @@
 # Design Spec: Comprehensive Vietnamese Translation Coverage
 
 ## 1. Overview
-This design outlines the complete localization coverage for the Vietnamese language (`vi`) across the entire **mrouter** (9Router / BeeRouter) web application. It upgrades the client-side runtime translation engine to support attribute translations (placeholders, titles, aria-labels) and expands the Vietnamese dictionary (`public/i18n/literals/vi.json`) to comprehensively cover the Landing page, Dashboard, Providers, Token Saver, Endpoint, CLI Tools, Usage/Analytics, Profile/SSO, and Auth/Login pages.
+This design outlines the complete localization coverage for the Vietnamese language (`vi`) across the entire **bee-router** (BeeRouter / BeeRouter) web application. It upgrades the client-side runtime translation engine to support attribute translations (placeholders, titles, aria-labels) and expands the Vietnamese dictionary (`public/i18n/literals/vi.json`) to comprehensively cover the Landing page, Dashboard, Providers, Token Saver, Endpoint, CLI Tools, Usage/Analytics, Profile/SSO, and Auth/Login pages.
 
 ---
 

@@ -81,8 +81,15 @@ function processTextNode(node) {
   ];
   if (skipParentTags.includes(tagName)) return;
 
+  const current = node.nodeValue;
   if (!node._originalText) {
-    node._originalText = node.nodeValue;
+    node._originalText = current;
+  } else if (current !== node._originalText) {
+    const prevTranslated = currentLocale === "en" ? node._originalText : translate(node._originalText);
+    if (current !== prevTranslated) {
+      // React replaced this text (e.g. "—" → "$0.00"). Stale first-paint cache must not win.
+      node._originalText = current;
+    }
   }
 
   const original = node._originalText;

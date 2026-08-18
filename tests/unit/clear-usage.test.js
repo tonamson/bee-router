@@ -9,7 +9,7 @@ let db;
 let getAdapter;
 
 beforeAll(async () => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "9router-clear-usage-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "bee-router-clear-usage-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
   db = await import("@/lib/db/index.js");

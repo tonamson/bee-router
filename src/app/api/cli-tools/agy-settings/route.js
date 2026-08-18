@@ -8,7 +8,7 @@ import path from "path";
 import os from "os";
 import {
   applyAntigravitySettings,
-  has9RouterConfig,
+  hasBeeRouterConfig,
   normalizeGeminiBaseUrl,
   isAgyWrapper,
   parseRouterEnv,
@@ -22,7 +22,7 @@ const execAsync = promisify(exec);
 
 const getAgyDir = () => path.join(os.homedir(), ".gemini", "antigravity-cli");
 const getSettingsPath = () => path.join(getAgyDir(), "settings.json");
-const getEnvPath = () => path.join(getAgyDir(), "9router.env");
+const getEnvPath = () => path.join(getAgyDir(), "bee-router.env");
 const getAgyBinPath = () => {
   if (os.platform() === "win32") {
     return path.join(os.homedir(), "AppData", "Local", "agy", "bin", "agy.exe");
@@ -159,7 +159,7 @@ export async function GET() {
         GOOGLE_GEMINI_BASE_URL: env.GOOGLE_GEMINI_BASE_URL || "",
         GEMINI_API_KEY: env.GEMINI_API_KEY || "",
       },
-      has9Router: has9RouterConfig(settings, env),
+      hasBeeRouter: hasBeeRouterConfig(settings, env),
       configPath: getSettingsPath(),
       envPath: getEnvPath(),
     });
@@ -182,14 +182,14 @@ export async function POST(request) {
 
     const currentSettings = await readJson(getSettingsPath());
     const currentEnv = await readEnvFile();
-    const previousModel = currentEnv.NINEROUTER_PREV_MODEL
+    const previousModel = currentEnv.BEE_ROUTER_PREV_MODEL
       || (currentSettings.modelProvider === "gemini" ? "" : currentSettings.model)
       || "";
 
     const settings = applyAntigravitySettings(currentSettings, { model: selectedModel });
     const normalizedBaseUrl = normalizeGeminiBaseUrl(baseUrl);
     const envText = serializeRouterEnv({
-      apiKey: apiKey || "sk_9router",
+      apiKey: apiKey || "sk_bee-router",
       baseUrl: normalizedBaseUrl,
       previousModel,
       routeModel: selectedModel,
@@ -224,7 +224,7 @@ export async function DELETE() {
 
     const currentEnv = await readEnvFile();
     const settings = resetAntigravitySettings(currentSettings, {
-      previousModel: currentEnv.NINEROUTER_PREV_MODEL,
+      previousModel: currentEnv.BEE_ROUTER_PREV_MODEL,
     });
     await fs.mkdir(getAgyDir(), { recursive: true });
     await fs.writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
@@ -239,7 +239,7 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: "Antigravity CLI 9router settings removed",
+      message: "Antigravity CLI bee-router settings removed",
     });
   } catch (error) {
     console.log("Error resetting antigravity settings:", error);

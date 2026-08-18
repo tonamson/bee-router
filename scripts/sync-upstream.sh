@@ -12,7 +12,7 @@ UPSTREAM_URL="https://github.com/decolua/9router.git"
 UPSTREAM_BRANCH="master"
 TARGET_BRANCH="dev/dev"
 
-echo -e "${CYAN}=== 9Router Upstream Sync Tool ===${NC}"
+echo -e "${CYAN}=== BeeRouter Upstream Sync Tool ===${NC}"
 
 # 1. Check current branch
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || true)
@@ -84,7 +84,7 @@ fi
 echo -e "Merging upstream/${UPSTREAM_BRANCH} into ${TARGET_BRANCH}..."
 BEFORE_COMMIT=$(git rev-parse HEAD)
 
-if ! git merge "upstream/${UPSTREAM_BRANCH}" -m "chore(sync): merge upstream/${UPSTREAM_BRANCH} (9router) into ${TARGET_BRANCH}"; then
+if ! git merge "upstream/${UPSTREAM_BRANCH}" -m "chore(sync): merge upstream/${UPSTREAM_BRANCH} (bee-router) into ${TARGET_BRANCH}"; then
   echo -e "\n${RED}====================================================${NC}"
   echo -e "${RED}MERGE CONFLICT DETECTED in ${TARGET_BRANCH}!${NC}"
   echo -e "${RED}====================================================${NC}"
@@ -106,7 +106,7 @@ AFTER_COMMIT=$(git rev-parse HEAD)
 
 # 8. Report merge summary
 if [ "$BEFORE_COMMIT" = "$AFTER_COMMIT" ]; then
-  echo -e "${GREEN}Already up to date. No new changes from 9router.${NC}"
+  echo -e "${GREEN}Already up to date. No new changes from bee-router.${NC}"
 else
   echo -e "${GREEN}Successfully merged upstream changes into ${TARGET_BRANCH}!${NC}"
   echo -e "New commits merged:"

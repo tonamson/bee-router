@@ -41,7 +41,7 @@ export default function HeroSection() {
             Open Dashboard
           </button>
           <a 
-            href="https://github.com/decolua/9router" 
+            href="https://github.com/tonamson/bee-router" 
             target="_blank" 
             rel="noopener noreferrer"
             className="h-12 px-8 rounded-xl border border-[#282B37] bg-[#16181F] hover:bg-[#1F222B] hover:border-[#FFC700]/40 text-white text-base font-bold transition-all flex items-center gap-2 shadow-sm hover:scale-[1.02] cursor-pointer"

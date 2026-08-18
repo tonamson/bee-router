@@ -18,7 +18,7 @@ async function flush(ms = 80) {
 }
 
 beforeAll(async () => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "9router-obs-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "bee-router-obs-"));
   process.env.DATA_DIR = tempDir;
   delete process.env.ENABLE_REQUEST_LOGS;
   delete process.env.OBSERVABILITY_ENABLED;

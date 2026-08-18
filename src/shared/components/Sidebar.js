@@ -554,7 +554,7 @@ function ManualUpdatePanel({
         </li>
         <li>Paste the command into your terminal and press Enter.</li>
         <li>
-          Run <code className="px-1.5 py-0.5 rounded bg-white/10 text-brand-400 font-mono">9router</code> again after install.
+          Run <code className="px-1.5 py-0.5 rounded bg-white/10 text-brand-400 font-mono">bee-router</code> again after install.
         </li>
       </ol>
 

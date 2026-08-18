@@ -1,7 +1,7 @@
 # Design Spec: Restrict i18n to English and Vietnamese Only
 
 ## 1. Overview
-This design outlines the cleanup and restriction of multilingual (i18n) support across the **mrouter** (9Router) project, preserving only **English (`en`)** and **Vietnamese (`vi`)**. All other languages (33 translation JSONs, 9 translated README docs, and associated configurations) will be removed to reduce repository bloat, simplify maintenance, and streamline the UI.
+This design outlines the cleanup and restriction of multilingual (i18n) support across the **bee-router** (BeeRouter) project, preserving only **English (`en`)** and **Vietnamese (`vi`)**. All other languages (33 translation JSONs, 9 translated README docs, and associated configurations) will be removed to reduce repository bloat, simplify maintenance, and streamline the UI.
 
 ---
 

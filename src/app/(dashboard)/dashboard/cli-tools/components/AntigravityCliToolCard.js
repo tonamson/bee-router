@@ -108,7 +108,7 @@ export default function AntigravityCliToolCard({
     try {
       const keyToUse = selectedApiKey?.trim()
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
-        || (!cloudEnabled ? "sk_9router" : null);
+        || (!cloudEnabled ? "sk_bee-router" : null);
 
       const res = await fetch(ENDPOINT, {
         method: "POST",
@@ -161,7 +161,7 @@ export default function AntigravityCliToolCard({
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
-      : (!cloudEnabled ? "sk_9router" : "<API_KEY_FROM_DASHBOARD>");
+      : (!cloudEnabled ? "sk_bee-router" : "<API_KEY_FROM_DASHBOARD>");
     const baseUrl = getEffectiveBaseUrl();
     const model = selectedModel || "provider/model-id";
 
@@ -171,12 +171,12 @@ export default function AntigravityCliToolCard({
         content: `{\n  "modelProvider": "gemini",\n  "model": "${model}"\n}\n`,
       },
       {
-        filename: "~/.gemini/antigravity-cli/9router.env",
+        filename: "~/.gemini/antigravity-cli/bee-router.env",
         content: `GEMINI_API_KEY=${keyToUse}\nGOOGLE_GEMINI_BASE_URL=${baseUrl}\n`,
       },
       {
         filename: "~/.gemini/antigravity-cli/agy.real + ~/.local/bin/agy wrapper",
-        content: `#!/bin/sh\n# 9router-agy-wrapper\nset -a; . ~/.gemini/antigravity-cli/9router.env; set +a\nexec ~/.gemini/antigravity-cli/agy.real "$@"\n`,
+        content: `#!/bin/sh\n# bee-router-agy-wrapper\nset -a; . ~/.gemini/antigravity-cli/bee-router.env; set +a\nexec ~/.gemini/antigravity-cli/agy.real "$@"\n`,
       },
     ];
   };
@@ -218,7 +218,7 @@ export default function AntigravityCliToolCard({
                   <div className="flex-1">
                     <p className="font-medium text-yellow-600 dark:text-yellow-400">Antigravity CLI not detected locally</p>
                     <code className="block mt-2 p-2 bg-black/20 rounded text-xs font-mono">curl -fsSL https://antigravity.google/cli/install.sh | bash</code>
-                    <p className="text-sm text-text-muted mt-2">Manual configuration is still available if 9router is deployed on a remote server.</p>
+                    <p className="text-sm text-text-muted mt-2">Manual configuration is still available if bee-router is deployed on a remote server.</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pl-9">
@@ -304,7 +304,7 @@ export default function AntigravityCliToolCard({
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={!selectedModel} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!agyStatus?.has9Router} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!agyStatus?.hasBeeRouter} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

@@ -56,7 +56,7 @@ export default function LandingPage() {
                   Open Dashboard
                 </button>
                 <a 
-                  href="https://github.com/decolua/9router#readme" 
+                  href="https://github.com/tonamson/bee-router#readme" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto h-14 px-10 rounded-xl border border-[#282B37] bg-[#16181F] hover:bg-[#1F222B] hover:border-[#FFC700]/40 text-white text-lg font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 cursor-pointer"

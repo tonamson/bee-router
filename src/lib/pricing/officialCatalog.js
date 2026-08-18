@@ -67,7 +67,7 @@ export function applyCatalogToKnownModels(catalog, knownPricing) {
       matched++;
     }
   }
-  // Catalog is source of truth for models 9router never listed (grok-4.6, …).
+  // Catalog is source of truth for models bee-router never listed (grok-4.6, …).
   for (const [id, rates] of index.byCanonical) {
     if (out._canonical[id]) continue;
     out._canonical[id] = rates;

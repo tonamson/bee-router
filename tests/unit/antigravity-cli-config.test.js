@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyAntigravitySettings,
-  has9RouterConfig,
+  hasBeeRouterConfig,
   normalizeGeminiBaseUrl,
   parseRouterEnv,
   removeShellBlock,
@@ -56,32 +56,32 @@ describe("antigravityCliConfig", () => {
     const env = parseRouterEnv(envText);
     expect(env.GEMINI_API_KEY).toBe("sk_test");
     expect(env.GOOGLE_GEMINI_BASE_URL).toBe("http://127.0.0.1:20128");
-    expect(env.NINEROUTER_PREV_MODEL).toBe("Gemini 3.7 Flash (High)");
-    expect(envText).toContain('NINEROUTER_PREV_MODEL="Gemini 3.7 Flash (High)"');
-    expect(resolveAgyRouteModel("gemini-3.1-pro", { NINEROUTER_MODEL: "ag/gemini-3.7-flash-medium" }))
+    expect(env.BEE_ROUTER_PREV_MODEL).toBe("Gemini 3.7 Flash (High)");
+    expect(envText).toContain('BEE_ROUTER_PREV_MODEL="Gemini 3.7 Flash (High)"');
+    expect(resolveAgyRouteModel("gemini-3.1-pro", { BEE_ROUTER_MODEL: "ag/gemini-3.7-flash-medium" }))
       .toBe("ag/gemini-3.7-flash-medium");
     const internal = buildAgyInternalChatBody(
       { model: "gemini-3.6-flash", stream: true, request: { contents: [] } },
-      { NINEROUTER_MODEL: "ag/gemini-3.7-flash-high" },
+      { BEE_ROUTER_MODEL: "ag/gemini-3.7-flash-high" },
     );
     expect(internal.stream).toBeUndefined();
     expect(internal.model).toBe("ag/gemini-3.7-flash-high");
     expect(internal.userAgent).toBe("antigravity");
-    expect(has9RouterConfig({ modelProvider: "gemini" }, env)).toBe(true);
+    expect(hasBeeRouterConfig({ modelProvider: "gemini" }, env)).toBe(true);
 
-    const first = upsertShellBlock("export PATH=1\n", "/tmp/9router.env");
-    const second = upsertShellBlock(first, "/tmp/9router.env");
-    expect(second.match(/9router-agy-begin/g)).toHaveLength(1);
-    expect(removeShellBlock(second)).not.toContain("9router-agy-begin");
+    const first = upsertShellBlock("export PATH=1\n", "/tmp/bee-router.env");
+    const second = upsertShellBlock(first, "/tmp/bee-router.env");
+    expect(second.match(/bee-router-agy-begin/g)).toHaveLength(1);
+    expect(removeShellBlock(second)).not.toContain("bee-router-agy-begin");
   });
 
   it("wrapper sources env then execs real binary", () => {
     const script = serializeAgyWrapper({
-      envPath: "/tmp/9router.env",
+      envPath: "/tmp/bee-router.env",
       realBin: "/tmp/agy.real",
     });
     expect(isAgyWrapper(script)).toBe(true);
-    expect(script).toContain('. "/tmp/9router.env"');
+    expect(script).toContain('. "/tmp/bee-router.env"');
     expect(script).toContain('exec "/tmp/agy.real" "$@"');
   });
 });

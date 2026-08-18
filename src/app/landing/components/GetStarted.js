@@ -83,11 +83,11 @@ export default function GetStarted() {
               <div className="p-6 font-mono text-sm leading-relaxed overflow-x-auto">
                 <div 
                   className="flex items-center gap-2 mb-4 p-2.5 rounded-lg bg-[#16181F] border border-[#282B37] group cursor-pointer hover:border-[#FFC700]/50 transition-colors"
-                  onClick={() => handleCopy("npx 9router")}
+                  onClick={() => handleCopy("npx bee-router")}
                   title="Click to copy"
                 >
                   <span className="text-[#FFC700] font-bold">$</span>
-                  <span className="text-white font-bold">npx 9router</span>
+                  <span className="text-white font-bold">npx bee-router</span>
                   <span className="ml-auto text-xs px-2 py-0.5 rounded bg-[#282B37] text-gray-300 group-hover:text-[#FFC700] group-hover:bg-[#FFC700]/10 transition-colors">
                     {copied === "landing" ? "✓ Copied" : "Copy"}
                   </span>
@@ -106,8 +106,8 @@ export default function GetStarted() {
                 </div>
                 
                 <div className="text-gray-400 text-xs font-mono bg-[#0D0E12] p-3 rounded-lg border border-[#282B37]">
-                  <span className="text-gray-500">macOS/Linux:</span> ~/.9router/db/data.sqlite<br />
-                  <span className="text-gray-500">Windows:    </span> %APPDATA%/9router/db/data.sqlite
+                  <span className="text-gray-500">macOS/Linux:</span> ~/.bee-router/db/data.sqlite<br />
+                  <span className="text-gray-500">Windows:    </span> %APPDATA%/bee-router/db/data.sqlite
                 </div>
               </div>
             </div>

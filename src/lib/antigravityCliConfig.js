@@ -1,12 +1,12 @@
 export const MODEL_PROVIDER = "gemini";
-export const SHELL_MARK_BEGIN = "# 9router-agy-begin";
-export const SHELL_MARK_END = "# 9router-agy-end";
-export const PREV_MODEL_KEY = "NINEROUTER_PREV_MODEL";
-export const ROUTE_MODEL_KEY = "NINEROUTER_MODEL";
-/** agy Gemini-API mode only accepts its catalog names, not 9router provider/model ids. */
+export const SHELL_MARK_BEGIN = "# bee-router-agy-begin";
+export const SHELL_MARK_END = "# bee-router-agy-end";
+export const PREV_MODEL_KEY = "BEE_ROUTER_PREV_MODEL";
+export const ROUTE_MODEL_KEY = "BEE_ROUTER_MODEL";
+/** agy Gemini-API mode only accepts its catalog names, not bee-router provider/model ids. */
 export const AGY_CATALOG_MODEL = "Gemini 3.1 Pro";
 
-export function is9RouterModelId(model) {
+export function isBeeRouterModelId(model) {
   return typeof model === "string" && model.includes("/");
 }
 
@@ -15,7 +15,7 @@ export function resolveAgyRouteModel(incomingModel, env) {
   const dest = env?.[ROUTE_MODEL_KEY];
   if (!dest) return incomingModel;
   const raw = String(incomingModel || "").replace(/^models\//, "");
-  if (!raw || is9RouterModelId(raw)) return incomingModel;
+  if (!raw || isBeeRouterModelId(raw)) return incomingModel;
   if (/^gemini/i.test(raw) || /^Gemini\s/i.test(raw)) return dest;
   return incomingModel;
 }
@@ -40,7 +40,7 @@ export function applyAntigravitySettings(currentSettings, { model }) {
     ? { ...currentSettings }
     : {};
   next.modelProvider = MODEL_PROVIDER;
-  if (model) next.model = is9RouterModelId(model) ? AGY_CATALOG_MODEL : model;
+  if (model) next.model = isBeeRouterModelId(model) ? AGY_CATALOG_MODEL : model;
   return next;
 }
 
@@ -55,7 +55,7 @@ export function resetAntigravitySettings(currentSettings, { previousModel } = {}
   return next;
 }
 
-export function has9RouterConfig(settings, env) {
+export function hasBeeRouterConfig(settings, env) {
   return settings?.modelProvider === MODEL_PROVIDER && Boolean(env?.GOOGLE_GEMINI_BASE_URL);
 }
 
@@ -73,11 +73,11 @@ function unescapeEnvValue(value) {
   return raw;
 }
 
-export const WRAPPER_MARK = "9router-agy-wrapper";
+export const WRAPPER_MARK = "bee-router-agy-wrapper";
 
 export function serializeRouterEnv({ apiKey, baseUrl, previousModel, routeModel }) {
   const lines = [
-    "# 9router AGY — sourced by the local agy wrapper. Do not edit modelProvider here.",
+    "# bee-router AGY — sourced by the local agy wrapper. Do not edit modelProvider here.",
     `GEMINI_API_KEY=${escapeEnvValue(apiKey)}`,
     `GOOGLE_GEMINI_BASE_URL=${escapeEnvValue(baseUrl)}`,
   ];

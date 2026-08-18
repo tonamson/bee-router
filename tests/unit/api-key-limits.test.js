@@ -9,7 +9,7 @@ let db;
 let limits;
 
 beforeAll(async () => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "9router-key-limits-"));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "bee-router-key-limits-"));
   process.env.DATA_DIR = tempDir;
   vi.resetModules();
   db = await import("@/lib/db/index.js");

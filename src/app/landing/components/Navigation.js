@@ -54,7 +54,7 @@ export default function Navigation() {
           </a>
           <a
             className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors"
-            href="https://github.com/decolua/9router#readme"
+            href="https://github.com/tonamson/bee-router#readme"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -62,7 +62,7 @@ export default function Navigation() {
           </a>
           <a
             className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors flex items-center gap-1"
-            href="https://github.com/decolua/9router"
+            href="https://github.com/tonamson/bee-router"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -98,10 +98,10 @@ export default function Navigation() {
             <a className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors" href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>
               How it Works
             </a>
-            <a className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors" href="https://github.com/decolua/9router#readme" target="_blank" rel="noopener noreferrer">
+            <a className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors" href="https://github.com/tonamson/bee-router#readme" target="_blank" rel="noopener noreferrer">
               Docs
             </a>
-            <a className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors flex items-center gap-1" href="https://github.com/decolua/9router" target="_blank" rel="noopener noreferrer">
+            <a className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors flex items-center gap-1" href="https://github.com/tonamson/bee-router" target="_blank" rel="noopener noreferrer">
               GitHub <span className="material-symbols-outlined text-[14px]">open_in_new</span>
             </a>
             <button 
