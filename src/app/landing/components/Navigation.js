@@ -72,6 +72,12 @@ export default function Navigation() {
 
         {/* CTA + Mobile menu */}
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push("/login")}
+            className="hidden sm:flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-gray-300 hover:text-white hover:bg-[#16181F] border border-transparent hover:border-[#282B37] transition-all cursor-pointer"
+          >
+            Sign in
+          </button>
           <button 
             onClick={() => router.push("/dashboard")}
             className="hidden sm:flex h-9 items-center justify-center rounded-lg px-4 bg-[#FFC700] hover:bg-[#FFD633] transition-all text-black text-sm font-bold shadow-[0_0_20px_rgba(255,199,0,0.4)] hover:shadow-[0_0_25px_rgba(255,199,0,0.6)] cursor-pointer"
@@ -104,6 +110,15 @@ export default function Navigation() {
             <a className="text-gray-300 hover:text-[#FFC700] text-sm font-medium transition-colors flex items-center gap-1" href="https://github.com/tonamson/bee-router" target="_blank" rel="noopener noreferrer">
               GitHub <span className="material-symbols-outlined text-[14px]">open_in_new</span>
             </a>
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                router.push("/login");
+              }}
+              className="h-10 rounded-lg border border-[#282B37] bg-[#16181F] hover:bg-[#1F222B] text-white text-sm font-semibold flex items-center justify-center cursor-pointer transition-colors"
+            >
+              Sign in
+            </button>
             <button 
               onClick={() => router.push("/dashboard")}
               className="h-10 rounded-lg bg-[#FFC700] hover:bg-[#FFD633] text-black text-sm font-bold shadow-[0_0_15px_rgba(255,199,0,0.35)] cursor-pointer"
