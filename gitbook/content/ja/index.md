@@ -105,7 +105,7 @@ MiniMax経由で200万: $0.40
 
 ```bash
 # グローバルインストール
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 
 # 起動(ダッシュボードが自動で開きます)
 bee-router

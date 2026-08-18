@@ -9,8 +9,8 @@
   
   **Kết nối tất cả công cụ AI Code (Claude Code, Codex, Cursor, Cline, Copilot, Antigravity...) tới 40+ Nhà cung cấp AI & 100+ Mô hình.**
   
-  [![npm](https://img.shields.io/npm/v/bee-router.svg)](https://www.npmjs.com/package/bee-router)
-  [![Downloads](https://img.shields.io/npm/dm/bee-router.svg)](https://www.npmjs.com/package/bee-router)
+  [![npm](https://img.shields.io/npm/v/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
+  [![Downloads](https://img.shields.io/npm/dm/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
   [![License](https://github.com/tonamson/bee-router/blob/master/LICENSE)](https://github.com/tonamson/bee-router/blob/master/LICENSE)
   
   [🚀 Bắt đầu nhanh](#-quick-start) • [💡 Tính năng](#-key-features) • [📖 Cài đặt](#-setup-guide) • [🌐 Website](https://9router.com)
@@ -71,7 +71,7 @@ Kết quả: Không bao giờ ngừng code, chi phí tối thiểu + tiết ki�
 **1. Cài đặt toàn cục:**
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 bee-router
 ```
 

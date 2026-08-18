@@ -4,11 +4,11 @@
 
 **Connect All AI Code Tools (Claude Code, Cursor, Antigravity, Copilot, Codex, Gemini, OpenCode, Cline, OpenClaw...) to 40+ AI Providers & 100+ Models.**
 
-[![npm](https://img.shields.io/npm/v/bee-router.svg)](https://www.npmjs.com/package/bee-router)
-[![Downloads](https://img.shields.io/npm/dm/bee-router.svg)](https://www.npmjs.com/package/bee-router)
+[![npm](https://img.shields.io/npm/v/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
+[![Downloads](https://img.shields.io/npm/dm/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
 [![Docker Pulls](https://img.shields.io/docker/pulls/tonamson/bee-router.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/tonamson/bee-router)
 [![GHCR](https://img.shields.io/badge/GHCR-tonamson%2Fbee--router-blue?logo=github)](https://github.com/tonamson/bee-router/pkgs/container/bee-router)
-[![License](https://img.shields.io/npm/l/bee-router.svg)](https://github.com/tonamson/bee-router/blob/master/LICENSE)
+[![License](https://img.shields.io/npm/l/@tonamson2/bee-router.svg)](https://github.com/tonamson/bee-router/blob/master/LICENSE)
 
 [🌐 GitHub](https://github.com/tonamson/bee-router) • [📖 Full Docs](https://github.com/tonamson/bee-router)
 
@@ -38,7 +38,7 @@
 **Option 1 — npm (recommended for desktop):**
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 bee-router
 
 # Or run directly with npx

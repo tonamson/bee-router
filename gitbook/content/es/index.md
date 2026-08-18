@@ -105,7 +105,7 @@ Comienza en 2 minutos:
 
 ```bash
 # Instala globalmente
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 
 # Inicia (el dashboard se abre automáticamente)
 bee-router

@@ -9,7 +9,7 @@
 ### 1. 安装
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **要求:** Node.js 20+([安装详情](getting-started/installation.md))

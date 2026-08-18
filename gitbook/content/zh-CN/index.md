@@ -105,7 +105,7 @@ BeeRouter 是一款智能代理,位于你的编码工具(Cursor、Cline、Claude
 
 ```bash
 # 全局安装
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 
 # 启动(仪表盘自动打开)
 bee-router

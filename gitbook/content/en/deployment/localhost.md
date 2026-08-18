@@ -9,7 +9,7 @@ Run BeeRouter on your local machine for development and personal use.
 Install BeeRouter globally via npm:
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **Requirements:**
@@ -113,7 +113,7 @@ If you encounter permission errors during installation:
 
 ```bash
 # Use sudo (not recommended)
-sudo npm install -g bee-router
+sudo npm install -g @tonamson2/bee-router
 
 # Or fix npm permissions (recommended)
 mkdir ~/.npm-global

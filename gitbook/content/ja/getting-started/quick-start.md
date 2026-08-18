@@ -9,7 +9,7 @@ BeeRouterを5分で起動し、AIリクエストをインテリジェントに�
 ### 1. インストール
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **要件:** Node.js 20+ ([インストール詳細](getting-started/installation.md))

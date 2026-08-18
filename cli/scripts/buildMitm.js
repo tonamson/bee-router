@@ -1,6 +1,27 @@
-const esbuild = require("esbuild");
 const fs = require("fs");
 const path = require("path");
+const { createRequire } = require("module");
+
+const cliDir = path.resolve(__dirname, "..");
+const appDir = path.resolve(cliDir, "..");
+
+function loadEsbuild() {
+  const req = createRequire(path.join(cliDir, "package.json"));
+  try {
+    return req("esbuild");
+  } catch {
+    /* fall through — often only installed at repo root */
+  }
+  try {
+    return createRequire(path.join(appDir, "package.json"))("esbuild");
+  } catch {
+    throw new Error(
+      "esbuild not found. From cli/: npm install  (devDependency)  then retry publish"
+    );
+  }
+}
+
+const esbuild = loadEsbuild();
 
 // ── Build config ─────────────────────────────────────────
 const BUILD_CONFIG = {
@@ -10,13 +31,11 @@ const BUILD_CONFIG = {
 };
 // ─────────────────────────────────────────────────────────
 
-const cliDir = path.resolve(__dirname, "..");
-const appDir = path.resolve(cliDir, "..");
 const cliAppDir = process.env.BEE_ROUTER_CLI_APP_DIR || path.join(cliDir, "app");
 const cliMitmDir = path.join(cliAppDir, "src", "mitm");
 // Bundle everything — no externals. This keeps MITM runtime self-contained so
 // it can be copied to DATA_DIR/runtime/ and spawned from there (escapes
-// node_modules file locks that block `npm i -g bee-router@latest` on Windows).
+// node_modules file locks that block `npm i -g @tonamson2/bee-router@latest` on Windows).
 const EXTERNALS = [];
 const ENTRIES = ["server.js"];
 

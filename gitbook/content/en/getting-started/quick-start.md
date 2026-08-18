@@ -9,7 +9,7 @@ Get BeeRouter running in 5 minutes and start routing AI requests intelligently.
 ### 1. Install
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **Requirements:** Node.js 20+ ([Installation details](getting-started/installation.md))

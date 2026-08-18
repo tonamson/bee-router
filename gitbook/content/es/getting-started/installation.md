@@ -34,7 +34,7 @@ npm --version
 Instala BeeRouter globalmente para usar desde cualquier lugar:
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **Iniciar BeeRouter:**
@@ -283,7 +283,7 @@ echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # Luego instalar nuevamente
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 ### Versión de Node.js muy antigua
@@ -372,7 +372,7 @@ pm2 save
 ### Desarrollo local
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 bee-router
 ```
 
@@ -382,7 +382,7 @@ bee-router
 
 ```bash
 # Instalar
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 
 # Configurar
 export JWT_SECRET="your-secure-secret"

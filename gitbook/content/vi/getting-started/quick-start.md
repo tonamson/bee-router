@@ -9,7 +9,7 @@ Khởi chạy BeeRouter trong 5 phút và bắt đầu định tuyến các requ
 ### 1. Cài đặt
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **Yêu cầu:** Node.js 20+ ([Chi tiết cài đặt](getting-started/installation.md))

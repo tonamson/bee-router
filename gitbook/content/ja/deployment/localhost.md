@@ -9,7 +9,7 @@
 npm経由でBeeRouterをグローバルインストール:
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **要件:**
@@ -113,7 +113,7 @@ kill -9 <PID>
 
 ```bash
 # sudoを使用 (非推奨)
-sudo npm install -g bee-router
+sudo npm install -g @tonamson2/bee-router
 
 # またはnpm権限を修正 (推奨)
 mkdir ~/.npm-global

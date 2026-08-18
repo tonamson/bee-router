@@ -92,7 +92,7 @@ export default function Footer() {
             </a>
             <a
               className="text-gray-400 hover:text-[#FFC700] text-sm transition-colors"
-              href="https://www.npmjs.com/package/bee-router"
+              href="https://www.npmjs.com/package/@tonamson2/bee-router"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -136,7 +136,7 @@ export default function Footer() {
             </a>
             <a
               className="hover:text-white transition-colors"
-              href="https://www.npmjs.com/package/bee-router"
+              href="https://www.npmjs.com/package/@tonamson2/bee-router"
               target="_blank"
               rel="noopener noreferrer"
             >

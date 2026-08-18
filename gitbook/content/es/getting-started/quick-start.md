@@ -9,7 +9,7 @@ Pon en marcha BeeRouter en 5 minutos y comienza a enrutar solicitudes de IA de f
 ### 1. Instalar
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **Requisitos:** Node.js 20+ ([Detalles de instalación](getting-started/installation.md))

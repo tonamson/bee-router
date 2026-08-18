@@ -6,8 +6,8 @@
   **Golden-bee gateway for many AI providers.**  
   One local OpenAI-compatible endpoint. Route Claude Code, Codex, Cursor, Cline, OpenClaw… across 40+ upstreams. Combo fallback, quota tracking, RTK token saver.
 
-  [![npm](https://img.shields.io/npm/v/bee-router.svg)](https://www.npmjs.com/package/bee-router)
-  [![license](https://img.shields.io/npm/l/bee-router.svg)](./LICENSE)
+  [![npm](https://img.shields.io/npm/v/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
+  [![license](https://img.shields.io/npm/l/@tonamson2/bee-router.svg)](./LICENSE)
   [![docker](https://img.shields.io/docker/pulls/tonamson/bee-router.svg?logo=docker&label=Docker)](https://hub.docker.com/r/tonamson/bee-router)
 
   [Quick start](#quick-start) · [How it works](#how-it-works) · [CLI](#cli) · [Providers](#providers) · [API](#api) · [Docs](./gitbook/content/en/index.md) · [Tiếng Việt](./i18n/README.vi.md)
@@ -31,7 +31,7 @@ This repo is a fork of [decolua/9router](https://github.com/decolua/9router), re
 
 | Artifact | Package | Role |
 | --- | --- | --- |
-| CLI | [`bee-router`](https://www.npmjs.com/package/bee-router) | Install, start, tray |
+| CLI | [`@tonamson2/bee-router`](https://www.npmjs.com/package/@tonamson2/bee-router) | Install, start, tray |
 | App | `bee-router-app` (this repo, private) | Dashboard + `/v1` gateway |
 
 ---
@@ -39,7 +39,7 @@ This repo is a fork of [decolua/9router](https://github.com/decolua/9router), re
 ## Quick start
 
 ```bash
-npm i -g bee-router
+npm i -g @tonamson2/bee-router
 bee-router
 ```
 

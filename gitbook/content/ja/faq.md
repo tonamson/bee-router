@@ -198,7 +198,7 @@ npm start
 
 ### Localhost(デフォルト)
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 bee-router
 → Dashboard: http://localhost:3000
 → API: http://localhost:20128/v1

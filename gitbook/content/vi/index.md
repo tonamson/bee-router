@@ -105,7 +105,7 @@ Bắt đầu trong 2 phút:
 
 ```bash
 # Install globally
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 
 # Start (dashboard opens automatically)
 bee-router

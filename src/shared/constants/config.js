@@ -14,9 +14,9 @@ export const GITHUB_CONFIG = {
 
 // Updater configuration
 export const UPDATER_CONFIG = {
-  npmPackageName: "bee-router",
-  installCmd: "npm i -g bee-router",
-  installCmdLatest: "npm i -g bee-router@latest --prefer-online",
+  npmPackageName: "@tonamson2/bee-router",
+  installCmd: "npm i -g @tonamson2/bee-router",
+  installCmdLatest: "npm i -g @tonamson2/bee-router@latest --prefer-online",
   shutdownCountdownSec: 3,
   exitDelayMs: 500,
   statusPort: 20129,

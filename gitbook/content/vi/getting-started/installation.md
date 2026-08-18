@@ -34,7 +34,7 @@ npm --version
 Cài BeeRouter toàn cục để dùng ở bất kỳ đâu:
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **Khởi động BeeRouter:**
@@ -283,7 +283,7 @@ echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
 # Then install again
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 ### Node.js Phiên bản quá cũ
@@ -372,7 +372,7 @@ pm2 save
 ### Phát triển cục bộ
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 bee-router
 ```
 
@@ -382,7 +382,7 @@ bee-router
 
 ```bash
 # Install
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 
 # Configure
 export JWT_SECRET="your-secure-secret"

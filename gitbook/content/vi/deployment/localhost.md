@@ -9,7 +9,7 @@ Chạy BeeRouter trên máy cá nhân để phát triển và dùng cá nhân.
 Cài đặt BeeRouter toàn cục qua npm:
 
 ```bash
-npm install -g bee-router
+npm install -g @tonamson2/bee-router
 ```
 
 **Yêu cầu:**
@@ -113,7 +113,7 @@ Nếu gặp lỗi permission khi cài đặt:
 
 ```bash
 # Use sudo (not recommended)
-sudo npm install -g bee-router
+sudo npm install -g @tonamson2/bee-router
 
 # Or fix npm permissions (recommended)
 mkdir ~/.npm-global
