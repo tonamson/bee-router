@@ -22,6 +22,22 @@ if [ -z "$CURRENT_BRANCH" ]; then
 fi
 echo -e "Current working branch: ${YELLOW}${CURRENT_BRANCH}${NC}"
 
+# State trackers for cleanup trap
+STASHED=0
+STASH_TAG=""
+SUCCESS=0
+
+cleanup_on_exit() {
+  local exit_code=$?
+  if [ "$SUCCESS" -ne 1 ] && [ "$STASHED" -eq 1 ]; then
+    echo -e "\n${YELLOW}====================================================${NC}"
+    echo -e "${YELLOW}Notice: Uncommitted changes were saved in stash: ${STASH_TAG}${NC}"
+    echo -e "To recover them after fixing the issue, run: ${CYAN}git stash pop${NC}"
+    echo -e "${YELLOW}====================================================${NC}"
+  fi
+}
+trap cleanup_on_exit EXIT
+
 # 2. Configure upstream remote if missing
 if ! git remote get-url upstream &>/dev/null; then
   echo -e "Remote 'upstream' not found. Adding ${CYAN}${UPSTREAM_URL}${NC}..."
@@ -29,10 +45,12 @@ if ! git remote get-url upstream &>/dev/null; then
 else
   EXISTING_URL=$(git remote get-url upstream)
   echo -e "Upstream remote found: ${CYAN}${EXISTING_URL}${NC}"
+  if [ "$EXISTING_URL" != "$UPSTREAM_URL" ]; then
+    echo -e "${YELLOW}Warning: Upstream remote URL is ${EXISTING_URL}, expected ${UPSTREAM_URL}.${NC}"
+  fi
 fi
 
 # 3. Check for uncommitted changes and stash if necessary
-STASHED=0
 if [ -n "$(git status --porcelain)" ]; then
   echo -e "${YELLOW}Working tree has uncommitted changes. Stashing temporarily...${NC}"
   STASH_TAG="auto-stash-before-sync-$(date +%s)"
@@ -52,8 +70,8 @@ elif git show-ref --verify --quiet "refs/remotes/origin/${TARGET_BRANCH}"; then
   echo -e "Tracking ${TARGET_BRANCH} from origin..."
   git checkout -b "$TARGET_BRANCH" "origin/${TARGET_BRANCH}"
 else
-  echo -e "Creating new branch ${TARGET_BRANCH}..."
-  git checkout -b "$TARGET_BRANCH"
+  echo -e "Creating new branch ${TARGET_BRANCH} from upstream/${UPSTREAM_BRANCH}..."
+  git checkout -b "$TARGET_BRANCH" "upstream/${UPSTREAM_BRANCH}"
 fi
 
 # 6. Pull latest origin/dev/dev if it exists
@@ -105,6 +123,8 @@ fi
 if [ "$STASHED" -eq 1 ]; then
   echo -e "${YELLOW}Restoring previously stashed changes...${NC}"
   git stash pop
+  STASHED=0
 fi
 
+SUCCESS=1
 echo -e "\n${GREEN}✔ Sync completed successfully!${NC}"
