@@ -54,98 +54,126 @@ export function onLocaleChange(callback) {
   };
 }
 
+function shouldSkipElement(element) {
+  if (!element) return true;
+  let cur = element;
+  while (cur) {
+    if (cur.hasAttribute && cur.hasAttribute("data-i18n-skip")) {
+      return true;
+    }
+    cur = cur.parentElement;
+  }
+  const tagName = element.tagName?.toLowerCase();
+  const skipTags = ["script", "style", "code", "pre"];
+  return skipTags.includes(tagName);
+}
+
 // Process text node
 function processTextNode(node) {
   if (!node.nodeValue || !node.nodeValue.trim()) return;
-  
-  // Skip if parent is script, style, code, or structural elements
   const parent = node.parentElement;
-  if (!parent) return;
-  
-  // Skip if parent or any ancestor has data-i18n-skip attribute
-  let element = parent;
-  while (element) {
-    if (element.hasAttribute && element.hasAttribute('data-i18n-skip')) {
-      return;
-    }
-    element = element.parentElement;
-  }
-  
+  if (!parent || shouldSkipElement(parent)) return;
+
   const tagName = parent.tagName?.toLowerCase();
-  
-  // Skip elements that don't allow text nodes
-  const skipTags = [
-    "script", "style", "code", "pre",
+  const skipParentTags = [
     "colgroup", "table", "thead", "tbody", "tfoot", "tr",
     "select", "datalist", "optgroup"
   ];
-  
-  if (skipTags.includes(tagName)) return;
-  
-  // Store original text if not already stored
+  if (skipParentTags.includes(tagName)) return;
+
   if (!node._originalText) {
     node._originalText = node.nodeValue;
   }
-  
-  // Use original text for translation
+
   const original = node._originalText;
-  const translated = translate(original);
-  
-  // Only update if different to avoid unnecessary DOM mutations
+  const translated = currentLocale === "en" ? original : translate(original);
+
   if (translated !== node.nodeValue) {
     node.nodeValue = translated;
   }
 }
 
-// Process all text nodes in element
+// Process element attributes (placeholder, title, aria-label)
+function processElementAttributes(element) {
+  if (!element || element.nodeType !== Node.ELEMENT_NODE || shouldSkipElement(element)) return;
+
+  const attrs = ["placeholder", "title", "aria-label"];
+  for (const attr of attrs) {
+    if (element.hasAttribute(attr)) {
+      const propKey = `_original_${attr}`;
+      if (!element[propKey]) {
+        element[propKey] = element.getAttribute(attr);
+      }
+      const original = element[propKey];
+      if (original && original.trim()) {
+        const translated = currentLocale === "en" ? original : translate(original);
+        if (translated !== element.getAttribute(attr)) {
+          element.setAttribute(attr, translated);
+        }
+      }
+    }
+  }
+}
+
+// Process all text nodes and attributes in element
 function processElement(element) {
   if (!element) return;
-  
+  if (element.nodeType === Node.ELEMENT_NODE) {
+    processElementAttributes(element);
+  }
+
   const walker = document.createTreeWalker(
     element,
     NodeFilter.SHOW_TEXT,
     null,
     false
   );
-  
+
   let node;
   const nodesToProcess = [];
-  
-  // Collect all nodes first to avoid live collection issues
   while ((node = walker.nextNode())) {
     nodesToProcess.push(node);
   }
-  
-  // Process collected nodes
   nodesToProcess.forEach(processTextNode);
+
+  if (element.querySelectorAll) {
+    const elementsWithAttrs = element.querySelectorAll("[placeholder], [title], [aria-label]");
+    elementsWithAttrs.forEach(processElementAttributes);
+  }
 }
 
 // Initialize runtime i18n
 export async function initRuntimeI18n() {
   if (typeof window === "undefined") return;
-  
+
   currentLocale = getLocaleFromCookie();
   await loadTranslations(currentLocale);
-  
-  // Process existing DOM
+
   processElement(document.body);
-  
-  // Watch for new nodes
+
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE) {
-          processElement(node);
-        } else if (node.nodeType === Node.TEXT_NODE) {
-          processTextNode(node);
+      if (mutation.type === "childList") {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            processElement(node);
+          } else if (node.nodeType === Node.TEXT_NODE) {
+            processTextNode(node);
+          }
+        });
+      } else if (mutation.type === "attributes") {
+        if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+          processElementAttributes(mutation.target);
         }
-      });
+      }
     });
   });
-  
+
   observer.observe(document.body, {
     childList: true,
     subtree: true,
+    attributes: true,
+    attributeFilter: ["placeholder", "title", "aria-label"],
   });
 }
 
@@ -153,10 +181,7 @@ export async function initRuntimeI18n() {
 export async function reloadTranslations() {
   currentLocale = getLocaleFromCookie();
   await loadTranslations(currentLocale);
-  
-  // Notify all registered callbacks
+
   reloadCallbacks.forEach(callback => callback());
-  
-  // Re-process entire DOM (will use stored original text)
   processElement(document.body);
 }
