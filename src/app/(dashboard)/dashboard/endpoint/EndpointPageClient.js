@@ -125,14 +125,14 @@ console.log(response.choices[0].message.content);`,
       <div className="relative p-4 bg-[#0D0E12]">
         <button
           onClick={() => copy(activeSnippet, "code_snippet")}
-          className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2/90 hover:bg-brand-500/20 text-text-muted hover:text-brand-400 border border-border/60 transition-all z-10"
+          className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-white/10 hover:bg-brand-500/25 text-[#C8CCD4] hover:text-brand-400 border border-white/15 transition-all z-10"
         >
           <span className="material-symbols-outlined text-[14px]">
             {copied === "code_snippet" ? "check" : "content_copy"}
           </span>
           <span>{copied === "code_snippet" ? "Copied" : "Copy"}</span>
         </button>
-        <pre className="font-mono text-xs text-text-main overflow-x-auto p-2 leading-relaxed selection:bg-brand-500/30 selection:text-brand-200">
+        <pre className="font-mono text-xs text-[#E8EAED] overflow-x-auto p-2 leading-relaxed selection:bg-brand-500/30 selection:text-[#111318]">
           <code>{activeSnippet}</code>
         </pre>
       </div>
