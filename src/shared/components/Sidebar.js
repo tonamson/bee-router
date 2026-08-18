@@ -10,7 +10,6 @@ import { MEDIA_PROVIDER_KINDS } from "@/shared/constants/providers";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import Button from "./Button";
 import { ConfirmModal } from "./Modal";
-import NineRemotePromoModal from "./NineRemotePromoModal";
 
 // const VISIBLE_MEDIA_KINDS = ["embedding", "image", "imageToText", "tts", "stt", "webSearch", "webFetch", "video", "music"];
 const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
@@ -18,19 +17,17 @@ const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
 const COMBINED_WEB_ITEM = { id: "web", label: "Web Fetch & Search", icon: "travel_explore", href: "/dashboard/media-providers/web" };
 
 const navItems = [
-  { href: "/dashboard/endpoint", label: "Endpoint & Key", icon: "api" },
+  { href: "/dashboard/endpoint", label: "Endpoint & Keys", icon: "key" },
   { href: "/dashboard/providers", label: "Providers", icon: "dns" },
-  // { href: "/dashboard/basic-chat", label: "Basic Chat", icon: "chat" }, // Hidden
-  { href: "/dashboard/combos", label: "Combo & Vision Adapter", icon: "layers" },
-  { href: "/dashboard/usage", label: "Usage", icon: "bar_chart" },
+  { href: "/dashboard/combos", label: "Combos & Routing", icon: "layers" },
+  { href: "/dashboard/usage", label: "Usage & Stats", icon: "bar_chart" },
   { href: "/dashboard/quota", label: "Quota Tracker", icon: "data_usage" },
   { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
-  // { href: "/dashboard/pxpipe", label: "PXPIPE", icon: "image" },
   { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
 ];
 
 const debugItems = [
-  { href: "/dashboard/console-log", label: "Console Log", icon: "terminal" },
+  { href: "/dashboard/console-log", label: "Console Log", icon: "dvr" },
   { href: "/dashboard/translator", label: "Translator", icon: "translate" },
 ];
 
@@ -43,7 +40,6 @@ export default function Sidebar({ onClose }) {
   const pathname = usePathname();
   const [mediaOpen, setMediaOpen] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(pathname.startsWith("/dashboard/analytics"));
-  const [showRemoteModal, setShowRemoteModal] = useState(false);
   const [isDisconnected, setIsDisconnected] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -56,16 +52,20 @@ export default function Sidebar({ onClose }) {
 
   useEffect(() => {
     fetch("/api/settings")
-      .then(res => res.json())
-      .then(data => { if (data.enableTranslator) setEnableTranslator(true); })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.enableTranslator) setEnableTranslator(true);
+      })
       .catch(() => {});
   }, []);
 
   // Lazy check for new npm version on mount
   useEffect(() => {
     fetch("/api/version")
-      .then(res => res.json())
-      .then(data => { if (data.hasUpdate) setUpdateInfo(data); })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.hasUpdate) setUpdateInfo(data);
+      })
       .catch(() => {});
   }, []);
 
@@ -84,7 +84,11 @@ export default function Sidebar({ onClose }) {
 
   // Triggered by Copy button inside ManualUpdatePanel: copy + countdown + shutdown
   const handleCopyAndShutdown = async () => {
-    try { await navigator.clipboard.writeText(INSTALL_CMD); } catch { /* clipboard blocked */ }
+    try {
+      await navigator.clipboard.writeText(INSTALL_CMD);
+    } catch {
+      /* clipboard blocked */
+    }
     copy(INSTALL_CMD);
     let remaining = UPDATER_CONFIG.shutdownCountdownSec;
     setShutdownCountdown(remaining);
@@ -104,10 +108,6 @@ export default function Sidebar({ onClose }) {
     setShutdownCountdown(0);
   };
 
-  // Note: legacy updater poll removed. New flow: copy install cmd + shutdown server,
-  // user runs the command manually in another terminal.
-
-
   return (
     <>
       <aside className="flex w-72 flex-col border-r border-border-subtle bg-vibrancy backdrop-blur-xl transition-colors duration-300 min-h-full">
@@ -118,28 +118,61 @@ export default function Sidebar({ onClose }) {
           <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
         </div>
 
-        {/* Logo */}
-        <div className="px-6 py-4 flex flex-col gap-2">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-9 rounded-[10px] bg-gradient-to-br from-brand-500 to-brand-700 shadow-[var(--shadow-warm)]">
-              <span className="material-symbols-outlined text-white text-[20px]">hub</span>
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-semibold tracking-tight text-text-main">
-                {APP_CONFIG.name}
-              </h1>
-              <span className="text-xs text-text-muted">v{APP_CONFIG.version}</span>
-            </div>
-          </Link>
+        {/* Brand Header */}
+        <div className="px-5 py-3 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <Link href="/dashboard" className="flex items-center gap-3 group">
+              {/* Glowing amber hexagon bee icon */}
+              <div className="relative flex items-center justify-center size-9 rounded-xl bg-gradient-to-br from-brand-400 via-brand-500 to-brand-600 shadow-[0_0_16px_rgba(255,199,0,0.35)] text-black transition-transform duration-200 group-hover:scale-105">
+                <svg className="size-5" viewBox="0 0 24 24" fill="currentColor">
+                  {/* Outer hexagon */}
+                  <path
+                    d="M12 2L3.5 6.9v10.2L12 22l8.5-4.9V6.9L12 2zm0 2.4l6.5 3.75v7.5L12 19.4l-6.5-3.75v-7.5L12 4.4z"
+                    opacity="0.9"
+                  />
+                  {/* Bee wings & body */}
+                  <ellipse cx="12" cy="12" rx="3" ry="4" />
+                  <path
+                    d="M7.8 9.5c.8-1.5 2.3-2.5 4.2-2.5s3.4 1 4.2 2.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M10 11.5h4M9.5 13.5h5"
+                    stroke="#0D0E12"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-bold tracking-tight text-text-main group-hover:text-brand-500 transition-colors">
+                    {APP_CONFIG.name}
+                  </h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-text-muted">v{APP_CONFIG.version}</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Online
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </div>
+
           {updateInfo && (
-            <div className="flex flex-col gap-1.5 rounded p-1 -m-1">
-              <span className="text-xs font-semibold text-green-600 dark:text-amber-500">
-                ↑ New version available: v{updateInfo.latestVersion}
+            <div className="flex flex-col gap-1.5 rounded-lg p-2 bg-brand-500/10 border border-brand-500/20 mt-1">
+              <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">
+                ↑ Update available: v{updateInfo.latestVersion}
               </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowUpdateModal(true)}
-                  className="px-2 py-1 rounded bg-green-600 hover:bg-green-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                  className="px-2 py-1 rounded bg-brand-500 hover:bg-brand-400 text-black text-[11px] font-bold transition-colors cursor-pointer shadow-xs"
                 >
                   Update now
                 </button>
@@ -148,7 +181,7 @@ export default function Sidebar({ onClose }) {
                   title="Copy install command"
                   className="flex-1 text-left hover:opacity-80 transition-opacity cursor-pointer min-w-0"
                 >
-                  <code className="block text-[10px] text-green-600/80 dark:text-amber-400/70 font-mono truncate">
+                  <code className="block text-[10px] text-brand-600/80 dark:text-brand-400/80 font-mono truncate">
                     {copied ? "✓ copied!" : INSTALL_CMD}
                   </code>
                 </button>
@@ -158,28 +191,28 @@ export default function Sidebar({ onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={onClose}
               className={cn(
-                "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
                 isActive(item.href)
-                  ? "bg-primary/10 text-primary"
-                  : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                  ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                  : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
               )}
             >
               <span
                 className={cn(
                   "material-symbols-outlined text-[18px]",
-                  isActive(item.href) ? "fill-1" : "group-hover:text-primary transition-colors"
+                  isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
                 )}
               >
                 {item.icon}
               </span>
-              <span className="text-[13px] font-medium">{item.label}</span>
+              <span className="text-[13px]">{item.label}</span>
             </Link>
           ))}
 
@@ -187,14 +220,21 @@ export default function Sidebar({ onClose }) {
             type="button"
             onClick={() => setAnalyticsOpen((v) => !v)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
               pathname.startsWith("/dashboard/analytics")
-                ? "bg-primary/10 text-primary"
-                : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
             )}
           >
-            <span className="material-symbols-outlined text-[18px]">insights</span>
-            <span className="text-[13px] font-medium flex-1 text-left">Analytics</span>
+            <span
+              className={cn(
+                "material-symbols-outlined text-[18px]",
+                pathname.startsWith("/dashboard/analytics") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+              )}
+            >
+              insights
+            </span>
+            <span className="text-[13px] flex-1 text-left">Analytics</span>
             <span
               className="material-symbols-outlined text-[14px] transition-transform"
               style={{ transform: analyticsOpen ? "rotate(180deg)" : "rotate(0deg)" }}
@@ -203,52 +243,73 @@ export default function Sidebar({ onClose }) {
             </span>
           </button>
           {analyticsOpen && (
-            <div className="pl-4">
+            <div className="pl-4 space-y-0.5 mt-0.5">
               <Link
                 href="/dashboard/analytics/keys"
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                  "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
                   pathname.startsWith("/dashboard/analytics/keys")
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    ? "bg-primary/10 text-primary border-primary font-medium"
+                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                 )}
               >
-                <span className="material-symbols-outlined text-[16px]">key</span>
-                <span className="text-sm">API Keys</span>
+                <span
+                  className={cn(
+                    "material-symbols-outlined text-[16px]",
+                    pathname.startsWith("/dashboard/analytics/keys") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                  )}
+                >
+                  key
+                </span>
+                <span className="text-xs">API Keys</span>
               </Link>
               <Link
                 href="/dashboard/analytics/token-save"
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                  "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
                   pathname.startsWith("/dashboard/analytics/token-save")
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    ? "bg-primary/10 text-primary border-primary font-medium"
+                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                 )}
               >
-                <span className="material-symbols-outlined text-[16px]">savings</span>
-                <span className="text-sm">Token Save</span>
+                <span
+                  className={cn(
+                    "material-symbols-outlined text-[16px]",
+                    pathname.startsWith("/dashboard/analytics/token-save") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                  )}
+                >
+                  savings
+                </span>
+                <span className="text-xs">Token Save</span>
               </Link>
               <Link
                 href="/dashboard/analytics/pricing"
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                  "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
                   pathname.startsWith("/dashboard/analytics/pricing")
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    ? "bg-primary/10 text-primary border-primary font-medium"
+                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                 )}
               >
-                <span className="material-symbols-outlined text-[16px]">attach_money</span>
-                <span className="text-sm">Pricing</span>
+                <span
+                  className={cn(
+                    "material-symbols-outlined text-[16px]",
+                    pathname.startsWith("/dashboard/analytics/pricing") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                  )}
+                >
+                  attach_money
+                </span>
+                <span className="text-xs">Pricing</span>
               </Link>
             </div>
           )}
 
           {/* System section */}
           <div className="pt-3 mt-2 space-y-0.5">
-            <p className="px-4 text-xs font-semibold text-text-muted/60 uppercase tracking-wider mb-2">
+            <p className="px-3 text-[11px] font-bold text-text-muted/60 uppercase tracking-wider mb-2">
               System
             </p>
 
@@ -256,34 +317,51 @@ export default function Sidebar({ onClose }) {
             <button
               onClick={() => setMediaOpen((v) => !v)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
                 pathname.startsWith("/dashboard/media-providers")
-                  ? "bg-primary/10 text-primary"
-                  : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                  ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                  : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
               )}
             >
-              <span className="material-symbols-outlined text-[18px]">perm_media</span>
-              <span className="text-[13px] font-medium flex-1 text-left">Media Providers</span>
-              <span className="material-symbols-outlined text-[14px] transition-transform" style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+              <span
+                className={cn(
+                  "material-symbols-outlined text-[18px]",
+                  pathname.startsWith("/dashboard/media-providers") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                )}
+              >
+                perm_media
+              </span>
+              <span className="text-[13px] flex-1 text-left">Media Providers</span>
+              <span
+                className="material-symbols-outlined text-[14px] transition-transform"
+                style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+              >
                 expand_more
               </span>
             </button>
             {mediaOpen && (
-              <div className="pl-4">
+              <div className="pl-4 space-y-0.5 mt-0.5">
                 {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
                   <Link
                     key={kind.id}
                     href={`/dashboard/media-providers/${kind.id}`}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                      "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
                       pathname.startsWith(`/dashboard/media-providers/${kind.id}`)
-                        ? "bg-primary/10 text-primary"
-                        : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                        ? "bg-primary/10 text-primary border-primary font-medium"
+                        : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                     )}
                   >
-                    <span className="material-symbols-outlined text-[16px]">{kind.icon}</span>
-                    <span className="text-sm">{kind.label}</span>
+                    <span
+                      className={cn(
+                        "material-symbols-outlined text-[16px]",
+                        pathname.startsWith(`/dashboard/media-providers/${kind.id}`) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                      )}
+                    >
+                      {kind.icon}
+                    </span>
+                    <span className="text-xs">{kind.label}</span>
                   </Link>
                 ))}
                 <Link
@@ -291,14 +369,21 @@ export default function Sidebar({ onClose }) {
                   href={COMBINED_WEB_ITEM.href}
                   onClick={onClose}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-1 rounded-lg transition-all group",
+                    "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
                     pathname.startsWith(COMBINED_WEB_ITEM.href)
-                      ? "bg-primary/10 text-primary"
-                      : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                      ? "bg-primary/10 text-primary border-primary font-medium"
+                      : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                   )}
                 >
-                  <span className="material-symbols-outlined text-[16px]">{COMBINED_WEB_ITEM.icon}</span>
-                  <span className="text-sm">{COMBINED_WEB_ITEM.label}</span>
+                  <span
+                    className={cn(
+                      "material-symbols-outlined text-[16px]",
+                      pathname.startsWith(COMBINED_WEB_ITEM.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                    )}
+                  >
+                    {COMBINED_WEB_ITEM.icon}
+                  </span>
+                  <span className="text-xs">{COMBINED_WEB_ITEM.label}</span>
                 </Link>
               </div>
             )}
@@ -309,21 +394,21 @@ export default function Sidebar({ onClose }) {
                 href={item.href}
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                  "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
                   isActive(item.href)
-                    ? "bg-primary/10 text-primary"
-                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                 )}
               >
                 <span
                   className={cn(
                     "material-symbols-outlined text-[18px]",
-                    isActive(item.href) ? "fill-1" : "group-hover:text-primary transition-colors"
+                    isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
                   )}
                 >
                   {item.icon}
                 </span>
-                <span className="text-[13px] font-medium">{item.label}</span>
+                <span className="text-[13px]">{item.label}</span>
               </Link>
             ))}
 
@@ -336,91 +421,56 @@ export default function Sidebar({ onClose }) {
                   href={item.href}
                   onClick={onClose}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                    "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
                     isActive(item.href)
-                      ? "bg-primary/10 text-primary"
-                      : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                      ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                      : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                   )}
                 >
                   <span
                     className={cn(
                       "material-symbols-outlined text-[18px]",
-                      isActive(item.href) ? "fill-1" : "group-hover:text-primary transition-colors"
+                      isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
                     )}
                   >
                     {item.icon}
                   </span>
-                  <span className="text-[13px] font-medium">{item.label}</span>
+                  <span className="text-[13px]">{item.label}</span>
                 </Link>
               ) : null;
             })}
-
-            {/* Remote */}
-            <button
-              onClick={() => setShowRemoteModal(true)}
-              className={cn(
-                "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group w-full",
-                "text-text-muted hover:bg-surface-2 hover:text-text-main"
-              )}
-            >
-              <span className="material-symbols-outlined text-[18px] group-hover:text-primary transition-colors">
-                computer
-              </span>
-              <span className="text-[13px] font-medium">9Remote</span>
-            </button>
-
-            {/* 9English */}
-            <a
-              href="https://9english.net/"
-              target="_blank"
-              rel="noreferrer"
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group w-full",
-                "text-text-muted hover:bg-surface-2 hover:text-text-main"
-              )}
-            >
-              <span className="material-symbols-outlined text-[18px] group-hover:text-primary transition-colors">
-                translate
-              </span>
-              <span className="text-[13px] font-medium">9English</span>
-            </a>
 
             {/* Settings */}
             <Link
               href="/dashboard/profile"
               onClick={onClose}
               className={cn(
-                "flex items-center gap-3 px-3 py-1 rounded-lg transition-all group",
+                "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
                 isActive("/dashboard/profile")
-                  ? "bg-primary/10 text-primary"
-                  : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                  ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                  : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
               )}
             >
               <span
                 className={cn(
                   "material-symbols-outlined text-[18px]",
-                  isActive("/dashboard/profile") ? "fill-1" : "group-hover:text-primary transition-colors"
+                  isActive("/dashboard/profile") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
                 )}
               >
                 settings
               </span>
-              <span className="text-[13px] font-medium">Settings</span>
+              <span className="text-[13px]">Settings</span>
             </Link>
           </div>
         </nav>
-
       </aside>
-
-      {/* Remote Promo Modal */}
-      <NineRemotePromoModal isOpen={showRemoteModal} onClose={() => setShowRemoteModal(false)} />
 
       {/* Update Confirmation Modal */}
       <ConfirmModal
         isOpen={showUpdateModal}
         onClose={() => setShowUpdateModal(false)}
         onConfirm={handleUpdate}
-        title="Update 9Router"
+        title={`Update ${APP_CONFIG.name}`}
         message={`Show install command for v${updateInfo?.latestVersion || ""}? You can copy it and shutdown to install manually.`}
         confirmText="Show Command"
         cancelText="Cancel"
@@ -442,7 +492,7 @@ export default function Sidebar({ onClose }) {
             />
           ) : (
             <div className="text-center p-8">
-              <div className="flex items-center justify-center size-16 rounded-full bg-red-500/20 text-red-500 mx-auto mb-4">
+              <div className="flex items-center justify-center size-16 rounded-full bg-red-500/20 text-red-500 mx-auto mb-4 border border-red-500/30">
                 <span className="material-symbols-outlined text-[32px]">power_off</span>
               </div>
               <h2 className="text-xl font-semibold text-white mb-2">Server Disconnected</h2>
@@ -462,16 +512,27 @@ Sidebar.propTypes = {
   onClose: PropTypes.func,
 };
 
-function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdown, onCancel, countdown, isDisconnected }) {
+function ManualUpdatePanel({
+  latestVersion,
+  installCmd,
+  copied,
+  onCopyAndShutdown,
+  onCancel,
+  countdown,
+  isDisconnected,
+}) {
   const isCountingDown = countdown > 0;
   return (
-    <div className="w-full max-w-lg rounded-xl bg-neutral-900/95 border border-white/10 p-6 text-white">
+    <div className="w-full max-w-lg rounded-xl bg-neutral-900/95 border border-white/10 p-6 text-white shadow-2xl">
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center justify-center size-11 rounded-full bg-amber-500/20 text-amber-400">
+        <div className="flex items-center justify-center size-11 rounded-xl bg-brand-500/20 text-brand-400 border border-brand-500/30">
           <span className="material-symbols-outlined text-[24px]">content_copy</span>
         </div>
         <div>
-          <h2 className="text-lg font-semibold">Update 9Router{latestVersion ? ` to v${latestVersion}` : ""}</h2>
+          <h2 className="text-lg font-semibold">
+            Update {APP_CONFIG.name}
+            {latestVersion ? ` to v${latestVersion}` : ""}
+          </h2>
           <p className="text-xs text-white/60">
             {isDisconnected
               ? "Server stopped. Paste the command into a terminal to install."
@@ -483,14 +544,18 @@ function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdow
       </div>
 
       <p className="text-sm text-white/80 mb-2">Install command:</p>
-      <div className="w-full px-3 py-2 rounded bg-white/5 mb-4">
-        <code className="text-xs font-mono text-amber-400 break-all">{installCmd}</code>
+      <div className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 mb-4">
+        <code className="text-xs font-mono text-brand-400 break-all">{installCmd}</code>
       </div>
 
-      <ol className="text-xs text-white/70 space-y-1 list-decimal list-inside mb-4">
-        <li>Click <strong>Copy & Shutdown</strong> below.</li>
+      <ol className="text-xs text-white/70 space-y-1.5 list-decimal list-inside mb-4">
+        <li>
+          Click <strong>Copy & Shutdown</strong> below.
+        </li>
         <li>Paste the command into your terminal and press Enter.</li>
-        <li>Run <code className="px-1 rounded bg-white/10 text-green-400">9router</code> again after install.</li>
+        <li>
+          Run <code className="px-1.5 py-0.5 rounded bg-white/10 text-brand-400 font-mono">9router</code> again after install.
+        </li>
       </ol>
 
       {isDisconnected ? (
@@ -503,7 +568,11 @@ function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdow
             Cancel
           </Button>
           <Button variant="primary" fullWidth onClick={onCopyAndShutdown} disabled={isCountingDown}>
-            {copied ? "✓ Copied — shutting down..." : isCountingDown ? `Shutting down in ${countdown}s` : "Copy & Shutdown"}
+            {copied
+              ? "✓ Copied — shutting down..."
+              : isCountingDown
+                ? `Shutting down in ${countdown}s`
+                : "Copy & Shutdown"}
           </Button>
         </div>
       )}
@@ -520,3 +589,4 @@ ManualUpdatePanel.propTypes = {
   countdown: PropTypes.number,
   isDisconnected: PropTypes.bool,
 };
+
