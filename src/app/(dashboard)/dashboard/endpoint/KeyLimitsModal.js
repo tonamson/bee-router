@@ -79,7 +79,7 @@ export default function KeyLimitsModal({ keyRow, onClose, onSaved }) {
   };
 
   return (
-    <Modal isOpen={!!keyRow} title={`Limits · ${keyRow.name || "API key"}`} onClose={onClose} size="md">
+    <Modal isOpen={!!keyRow} title="API Key Limits" onClose={onClose} size="md">
       <div className="flex flex-col gap-4">
         <p className="text-xs text-text-muted">Leave a field empty for no cap. 0 is the same as empty.</p>
         {FIELDS.map((f) => (

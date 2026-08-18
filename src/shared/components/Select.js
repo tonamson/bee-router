@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@/shared/utils/cn";
+import { getCurrentLocale, onLocaleChange, translate } from "@/i18n/runtime";
 
 export default function Select({
   label,
@@ -16,6 +18,9 @@ export default function Select({
   selectClassName,
   ...props
 }) {
+  const [, setLocaleTick] = useState(getCurrentLocale);
+  useEffect(() => onLocaleChange(() => setLocaleTick(getCurrentLocale())), []);
+
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       {label && (
@@ -41,11 +46,11 @@ export default function Select({
           {...props}
         >
           <option value="" disabled>
-            {placeholder}
+            {translate(placeholder)}
           </option>
           {options.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {translate(option.label)}
             </option>
           ))}
         </select>

@@ -768,10 +768,10 @@ export default function APIPageClient({ machineId }) {
     }
   };
 
-  const handleClearKeyUsage = async (id, name) => {
+  const handleClearKeyUsage = async (id) => {
     setConfirmState({
       title: "Clear usage",
-      message: `Permanently delete token usage logs and counters for "${name}"? This cannot be undone.`,
+      message: "Permanently delete token usage logs and counters for this key? This cannot be undone.",
       onConfirm: async () => {
         setConfirmState(null);
         try {
@@ -1229,7 +1229,7 @@ export default function APIPageClient({ machineId }) {
                       if (key.isActive && !checked) {
                         setConfirmState({
                           title: "Pause API Key",
-                          message: `Pause API key "${key.name}"?\n\nThis key will stop working immediately but can be resumed later.`,
+                          message: "This key will stop working immediately but can be resumed later.",
                           onConfirm: async () => {
                             setConfirmState(null);
                             handleToggleKey(key.id, checked);
@@ -1257,7 +1257,7 @@ export default function APIPageClient({ machineId }) {
                     <span className="material-symbols-outlined text-[18px]">bar_chart</span>
                   </Link>
                   <button
-                    onClick={() => handleClearKeyUsage(key.id, key.name)}
+                    onClick={() => handleClearKeyUsage(key.id)}
                     className="p-2 hover:bg-amber-500/15 rounded-lg text-text-muted hover:text-amber-500 transition-all"
                     title="Clear usage for this key"
                   >
