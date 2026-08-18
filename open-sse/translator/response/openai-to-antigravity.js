@@ -111,8 +111,15 @@ export function openaiToAntigravityResponse(chunk, state) {
     if (usage.completion_tokens_details?.reasoning_tokens) {
       response.usageMetadata.thoughtsTokenCount = usage.completion_tokens_details.reasoning_tokens;
     }
-    if (usage.prompt_tokens_details?.cached_tokens) {
-      response.usageMetadata.cachedContentTokenCount = usage.prompt_tokens_details.cached_tokens;
+    const cached = Number(
+      usage.prompt_tokens_details?.cached_tokens
+      ?? usage.cached_tokens
+      ?? usage.input_tokens_details?.cached_tokens
+      ?? usage.cache_read_input_tokens
+      ?? 0
+    );
+    if (cached > 0) {
+      response.usageMetadata.cachedContentTokenCount = cached;
     }
   }
 

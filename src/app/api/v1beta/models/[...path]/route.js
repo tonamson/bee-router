@@ -481,6 +481,16 @@ function transformOpenAISSEToGeminiSSE(upstreamResponse, model) {
           if (reasoningTokens) {
             geminiChunk.usageMetadata.thoughtsTokenCount = reasoningTokens;
           }
+          const cached = Number(
+            parsed.usage.prompt_tokens_details?.cached_tokens
+            ?? parsed.usage.cached_tokens
+            ?? parsed.usage.input_tokens_details?.cached_tokens
+            ?? parsed.usage.cache_read_input_tokens
+            ?? 0
+          );
+          if (cached > 0) {
+            geminiChunk.usageMetadata.cachedContentTokenCount = cached;
+          }
           geminiChunk.modelVersion = parsed.model || model;
         }
 
@@ -562,6 +572,16 @@ async function convertOpenAIResponseToGemini(response, model) {
     const reasoningTokens = body.usage.completion_tokens_details?.reasoning_tokens;
     if (reasoningTokens) {
       geminiResponse.usageMetadata.thoughtsTokenCount = reasoningTokens;
+    }
+    const cached = Number(
+      body.usage.prompt_tokens_details?.cached_tokens
+      ?? body.usage.cached_tokens
+      ?? body.usage.input_tokens_details?.cached_tokens
+      ?? body.usage.cache_read_input_tokens
+      ?? 0
+    );
+    if (cached > 0) {
+      geminiResponse.usageMetadata.cachedContentTokenCount = cached;
     }
   }
 

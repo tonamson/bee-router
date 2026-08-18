@@ -239,18 +239,6 @@ CLI pack: `npm run cli:pack`. Sync upstream: `npm run sync:upstream` → `decolu
 
 ---
 
-## Community videos
-
-These were made against the 9router UI; flow is the same, package name is now `bee-router`.
-
-- [Tiết kiệm token OpenClaw — Mì AI](https://www.youtube.com/watch?v=X69n5Lm06Yw) (VI)
-- [Claude Code free setup — Hamid](https://youtu.be/VQAw612S27Y)
-- [OpenClaw A–Z — Mai Gia](https://www.youtube.com/watch?v=G-5A_D5Pm6Y) (VI)
-
-PR a row if you ship a BeeRouter video.
-
----
-
 ## Support
 
 - Issues: [github.com/tonamson/bee-router/issues](https://github.com/tonamson/bee-router/issues)
