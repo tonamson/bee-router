@@ -14,44 +14,11 @@ function getLocaleFromCookie() {
   return normalizeLocale(value);
 }
 
-// Locale display names and flags - will be translated by runtime i18n
+// Locale display names and flags
 const getLocaleInfo = (locale) => {
   const locales = {
-    "en": { name: "English", flag: "🇺🇸" },
-    "vi": { name: "Tiếng Việt", flag: "🇻🇳" },
-    "zh-CN": { name: "简体中文", flag: "🇨🇳" },
-    "zh-TW": { name: "繁體中文", flag: "🇹🇼" },
-    "ja": { name: "日本語", flag: "🇯🇵" },
-    "pt-BR": { name: "Português (Brasil)", flag: "🇧🇷" },
-    "pt-PT": { name: "Português (Portugal)", flag: "🇵🇹" },
-    "ko": { name: "한국어", flag: "🇰🇷" },
-    "es": { name: "Español", flag: "🇪🇸" },
-    "de": { name: "Deutsch", flag: "🇩🇪" },
-    "fr": { name: "Français", flag: "🇫🇷" },
-    "he": { name: "עברית", flag: "🇮🇱" },
-    "ar": { name: "العربية", flag: "🇸🇦" },
-    "ru": { name: "Русский", flag: "🇷🇺" },
-    "pl": { name: "Polski", flag: "🇵🇱" },
-    "cs": { name: "Čeština", flag: "🇨🇿" },
-    "nl": { name: "Nederlands", flag: "🇳🇱" },
-    "tr": { name: "Türkçe", flag: "🇹🇷" },
-    "uk": { name: "Українська", flag: "🇺🇦" },
-    "tl": { name: "Tagalog", flag: "🇵🇭" },
-    "id": { name: "Indonesia", flag: "🇮🇩" },
-    "th": { name: "ไทย", flag: "🇹🇭" },
-    "km": { name: "ខ្មែរ", flag: "🇰🇭" },
-    "hi": { name: "हिन्दी", flag: "🇮🇳" },
-    "bn": { name: "বাংলা", flag: "🇧🇩" },
-    "ur": { name: "اردو", flag: "🇵🇰" },
-    "ro": { name: "Română", flag: "🇷🇴" },
-    "sv": { name: "Svenska", flag: "🇸🇪" },
-    "it": { name: "Italiano", flag: "🇮🇹" },
-    "el": { name: "Ελληνικά", flag: "🇬🇷" },
-    "hu": { name: "Magyar", flag: "🇭🇺" },
-    "fi": { name: "Suomi", flag: "🇫🇮" },
-    "da": { name: "Dansk", flag: "🇩🇰" },
-    "no": { name: "Norsk", flag: "🇳🇴" },
-    "fa": { name: "فارسی", flag: "🇮🇷" }
+    en: { name: "English", flag: "🇺🇸" },
+    vi: { name: "Tiếng Việt", flag: "🇻🇳" },
   };
   return locales[locale] || { name: locale, flag: "🌐" };
 };
@@ -128,7 +95,7 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
         </button>
       )}
 
-      {/* Portal modal - renders at document.body to avoid parent layout constraints */}
+      {/* Portal modal */}
       {isOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-i18n-skip="true">
           {/* Overlay */}
@@ -140,7 +107,7 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
           {/* Modal content */}
           <div
             ref={modalRef}
-            className="relative w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-w-2xl flex flex-col max-h-[80vh]"
+            className="relative w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-w-md flex flex-col"
           >
             {/* Modal header */}
             <div className="flex items-center justify-between p-3 border-b border-black/5 dark:border-white/5">
@@ -154,9 +121,9 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
               </button>
             </div>
 
-            {/* Modal body - fixed grid columns, equal sizing */}
-            <div className="p-6 overflow-y-auto flex-1">
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-2">
+            {/* Modal body */}
+            <div className="p-4 flex-1">
+              <div className="grid grid-cols-2 gap-3">
                 {LOCALES.map((item) => {
                   const active = locale === item;
                   const info = getLocaleInfo(item);
@@ -165,18 +132,17 @@ export default function LanguageSwitcher({ className = "", isOpen: controlledOpe
                       key={item}
                       onClick={() => handleSetLocale(item)}
                       disabled={isPending}
-                      className={`flex flex-col items-center justify-start gap-1 px-2 py-3 rounded-lg text-xs font-medium transition-colors w-full ${
+                      className={`flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl text-sm font-medium transition-colors w-full border ${
                         active
-                          ? "bg-primary/15 text-primary ring-2 ring-primary"
-                          : "text-text-main hover:bg-black/5 dark:hover:bg-white/5"
+                          ? "bg-primary/15 text-primary border-primary ring-1 ring-primary"
+                          : "border-black/5 dark:border-white/5 text-text-main hover:bg-black/5 dark:hover:bg-white/5"
                       } ${isPending ? "opacity-70 cursor-wait" : ""}`}
                       title={info.name}
                     >
-                      <span className="text-2xl">{info.flag}</span>
-                      {/* Fixed 2-line height so all cards are uniform */}
-                      <span className="text-center leading-tight line-clamp-2 h-8 flex items-center">{info.name}</span>
+                      <span className="text-3xl">{info.flag}</span>
+                      <span className="text-center font-medium">{info.name}</span>
                       {active && (
-                        <span className="material-symbols-outlined text-sm">check</span>
+                        <span className="material-symbols-outlined text-base text-primary">check</span>
                       )}
                     </button>
                   );
