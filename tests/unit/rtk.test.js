@@ -595,6 +595,100 @@ describe("compressMessages (enabled)", () => {
     expect(stats.hits.length).toBe(0);
     expect(body.messages[1].content).toBe(big);
   });
+
+  it("compresses Gemini functionResponse.result string", () => {
+    const big = makeLongDiff();
+    const body = {
+      contents: [{
+        role: "user",
+        parts: [{ functionResponse: { id: "c1", name: "Bash", response: { result: big } } }],
+      }],
+    };
+    const stats = compressMessages(body, true);
+    expect(stats).not.toBeNull();
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.contents[0].parts[0].functionResponse.response.result.length).toBeLessThan(big.length);
+  });
+
+  it("compresses Antigravity request.contents functionResponse", () => {
+    const big = makeLongDiff();
+    const body = {
+      userAgent: "antigravity",
+      request: {
+        contents: [{
+          role: "user",
+          parts: [{ functionResponse: { id: "c1", name: "Bash", response: { result: big } } }],
+        }],
+      },
+    };
+    const stats = compressMessages(body, true);
+    expect(stats).not.toBeNull();
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.request.contents[0].parts[0].functionResponse.response.result.length).toBeLessThan(big.length);
+    expect(stats.hits[0].shape).toBe("gemini-function-response");
+  });
+
+  it("compresses openai→antigravity double-wrapped result.result", () => {
+    const big = makeLongDiff();
+    const body = {
+      userAgent: "antigravity",
+      request: {
+        contents: [{
+          role: "user",
+          parts: [{
+            functionResponse: {
+              id: "call_1",
+              name: "Bash",
+              // openai-to-gemini wraps non-JSON tool output as { result: { result: string } }
+              response: { result: { result: big } },
+            },
+          }],
+        }],
+      },
+    };
+    const stats = compressMessages(body, true);
+    expect(stats).not.toBeNull();
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.request.contents[0].parts[0].functionResponse.response.result.result.length).toBeLessThan(big.length);
+  });
+
+  it("compresses after openai→antigravity translate", async () => {
+    const { openaiToAntigravityRequest } = await import("../../open-sse/translator/request/openai-to-gemini.js");
+    const big = makeLongDiff();
+    const translated = openaiToAntigravityRequest("gemini-3-flash", {
+      messages: [
+        { role: "user", content: "run git diff" },
+        {
+          role: "assistant",
+          content: null,
+          tool_calls: [{ id: "call_1", type: "function", function: { name: "Bash", arguments: "{}" } }],
+        },
+        { role: "tool", tool_call_id: "call_1", content: big },
+      ],
+    }, false);
+    const stats = compressMessages(translated, true);
+    expect(stats).not.toBeNull();
+    expect(stats.hits.length).toBeGreaterThan(0);
+    const fr = translated.request.contents.flatMap((c) => c.parts).find((p) => p.functionResponse)?.functionResponse;
+    const slot = typeof fr.response.result === "string" ? fr.response.result : fr.response.result?.result;
+    expect(slot.length).toBeLessThan(big.length);
+  });
+
+  it("skips Antigravity non-shell functionResponse (Read)", () => {
+    const big = makeLongDiff();
+    const body = {
+      userAgent: "antigravity",
+      request: {
+        contents: [{
+          role: "user",
+          parts: [{ functionResponse: { name: "Read", response: { result: big } } }],
+        }],
+      },
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.request.contents[0].parts[0].functionResponse.response.result).toBe(big);
+  });
 });
 
 describe("formatRtkLog", () => {

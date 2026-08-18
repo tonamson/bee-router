@@ -62,6 +62,34 @@ describe("applyLiteCompression", () => {
     expect(body.contents[0].parts[0].functionResponse.response).toBe('{"ok":true}');
   });
 
+  it("applies lossless cleanup to Antigravity request.contents", () => {
+    const pretty = '{\n  "ok": true\n}';
+    const body = {
+      userAgent: "antigravity",
+      request: {
+        contents: [{ role: "user", parts: [{ functionResponse: { name: "x", response: pretty } }] }],
+      },
+    };
+    const stats = applyLiteCompression(body);
+    expect(stats).not.toBeNull();
+    expect(body.request.contents[0].parts[0].functionResponse.response).toBe('{"ok":true}');
+  });
+
+  it("minifies JSON nested in Antigravity functionResponse.result", () => {
+    const pretty = '{\n  "ok": true\n}';
+    const body = {
+      userAgent: "antigravity",
+      request: {
+        contents: [{
+          role: "user",
+          parts: [{ functionResponse: { name: "x", response: { result: pretty } } }],
+        }],
+      },
+    };
+    applyLiteCompression(body);
+    expect(body.request.contents[0].parts[0].functionResponse.response.result).toBe('{"ok":true}');
+  });
+
   it("applies lossless cleanup to Kiro tool results", () => {
     const pretty = '{\n  "ok": true\n}';
     const body = {

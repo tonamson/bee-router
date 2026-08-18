@@ -4,6 +4,7 @@ import { RAW_CAP, MIN_COMPRESS_SIZE } from "./constants.js";
 import { autoDetectFilter } from "./autodetect.js";
 import { safeApply } from "./applyFilter.js";
 import { hasCacheControl, shouldApplyRtkFilter, buildToolNameLookup, toolIdOf } from "./cacheGuard.js";
+import { forEachGeminiResponseText } from "./walk.js";
 
 // Compress tool_result content in-place. Returns stats or null if disabled/failed.
 export function compressMessages(body, enabled) {
@@ -13,6 +14,11 @@ export function compressMessages(body, enabled) {
   // Kiro format: conversationState.history + conversationState.currentMessage
   if (body.conversationState) {
     return compressKiroFormat(body, enabled);
+  }
+
+  // Gemini / Antigravity / gemini-cli: contents[] or request.contents[]
+  if (geminiContentsOf(body)) {
+    return compressGeminiFormat(body);
   }
 
   // Support both OpenAI/Claude "messages" and OpenAI Responses "input"
@@ -94,6 +100,35 @@ export function compressMessages(body, enabled) {
     }
   } catch (e) {
     console.warn("[RTK] compressMessages error:", e.message);
+    return null;
+  }
+  return stats;
+}
+
+function geminiContentsOf(body) {
+  if (Array.isArray(body?.request?.contents)) return body.request.contents;
+  if (Array.isArray(body?.contents)) return body.contents;
+  return null;
+}
+
+// Compress Gemini/Antigravity functionResponse text (target-format, post-translate).
+function compressGeminiFormat(body) {
+  const contents = geminiContentsOf(body);
+  const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
+  try {
+    for (const c of contents) {
+      if (!c || !Array.isArray(c.parts)) continue;
+      for (const part of c.parts) {
+        const fr = part?.functionResponse;
+        if (!fr) continue;
+        if (!shouldApplyRtkFilter(fr.name)) continue;
+        forEachGeminiResponseText(fr, ({ text, set }) => {
+          set(compressText(text, stats, "gemini-function-response"));
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[RTK] compressGeminiFormat error:", e.message);
     return null;
   }
   return stats;

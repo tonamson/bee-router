@@ -78,6 +78,37 @@ function visitGeminiSystem(sys, fn, setString) {
   }
 }
 
+const GEMINI_RESPONSE_KEYS = ["output", "result", "content"];
+
+/** Visit string slots on Gemini/Antigravity functionResponse (incl. one nest). */
+export function forEachGeminiResponseText(fr, fn) {
+  if (!fr) return;
+  const resp = fr.response;
+  if (typeof resp === "string") {
+    fn({ text: resp, set: (t) => { fr.response = t; } });
+    return;
+  }
+  if (!resp || typeof resp !== "object") return;
+  if (resp.error != null || resp.is_error === true) return;
+  walkGeminiResponseObject(resp, fn);
+}
+
+function walkGeminiResponseObject(obj, fn) {
+  for (const key of GEMINI_RESPONSE_KEYS) {
+    const val = obj[key];
+    if (typeof val === "string") {
+      fn({ text: val, set: (t) => { obj[key] = t; } });
+    } else if (val && typeof val === "object" && !Array.isArray(val)) {
+      // openai-to-gemini wraps non-JSON tool output as { result: { result: string } }
+      for (const inner of GEMINI_RESPONSE_KEYS) {
+        if (typeof val[inner] === "string") {
+          fn({ text: val[inner], set: (t) => { val[inner] = t; } });
+        }
+      }
+    }
+  }
+}
+
 function visitGeminiContent(c, fn) {
   if (!c || !Array.isArray(c.parts)) return;
   const kind = c.role === "system" ? "system" : "content";
@@ -86,15 +117,10 @@ function visitGeminiContent(c, fn) {
     if (typeof part.text === "string") {
       visit({ kind, text: part.text, set: (t) => { part.text = t; } }, fn);
     }
-    const fr = part.functionResponse;
-    if (typeof fr?.response === "string") {
-      visit({ kind: "content", text: fr.response, set: (t) => { fr.response = t; } }, fn);
-    } else if (fr?.response && typeof fr.response === "object") {
-      for (const key of ["output", "result", "content"]) {
-        if (typeof fr.response[key] === "string") {
-          visit({ kind: "content", text: fr.response[key], set: (t) => { fr.response[key] = t; } }, fn);
-        }
-      }
+    if (part.functionResponse) {
+      forEachGeminiResponseText(part.functionResponse, ({ text, set }) => {
+        visit({ kind: "content", text, set }, fn);
+      });
     }
     if (typeof part.functionCall?.args === "string") {
       visit({ kind: "args", text: part.functionCall.args, set: (t) => { part.functionCall.args = t; } }, fn);
@@ -156,13 +182,17 @@ export function forEachTextSlot(body, fn) {
     for (const msg of items) visitMessage(msg, fn);
   }
 
-  if (Array.isArray(body.contents)) {
-    for (const c of body.contents) visitGeminiContent(c, fn);
-  }
-  if (body.system_instruction != null) {
-    visitGeminiSystem(body.system_instruction, fn, (t) => { body.system_instruction = t; });
-  } else if (body.systemInstruction != null) {
-    visitGeminiSystem(body.systemInstruction, fn, (t) => { body.systemInstruction = t; });
+  const geminiRoots = [body];
+  if (body.request && typeof body.request === "object") geminiRoots.push(body.request);
+  for (const root of geminiRoots) {
+    if (Array.isArray(root.contents)) {
+      for (const c of root.contents) visitGeminiContent(c, fn);
+    }
+    if (root.system_instruction != null) {
+      visitGeminiSystem(root.system_instruction, fn, (t) => { root.system_instruction = t; });
+    } else if (root.systemInstruction != null) {
+      visitGeminiSystem(root.systemInstruction, fn, (t) => { root.systemInstruction = t; });
+    }
   }
 
   if (body.conversationState) visitKiro(body, fn);
