@@ -31,7 +31,7 @@ function getStatusDisplay(connected, error, errorCode) {
   if (connected > 0) {
     parts.push(
       <Badge key="connected" variant="success" size="sm" dot>
-        {connected} Connected
+        {`${connected} `}Connected
       </Badge>,
     );
   }
