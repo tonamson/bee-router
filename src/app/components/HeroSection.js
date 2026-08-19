@@ -13,11 +13,6 @@ export default function HeroSection() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-[#FFC700]/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="relative z-10 max-w-4xl w-full text-center flex flex-col items-center gap-8">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#FFC700]/30 bg-[#FFC700]/10 px-4 py-1.5 text-xs font-semibold text-[#FFC700] shadow-[0_0_15px_rgba(255,199,0,0.15)]">
-          <span className="flex h-2 w-2 rounded-full bg-[#FFC700] animate-pulse" />
-          Local OpenAI-compatible gateway · v{APP_CONFIG?.version || "1.0"}
-        </div>
-
         <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tight text-white">
           One endpoint for every<br />
           <span className="bg-gradient-to-r from-[#FFC700] via-[#FFD633] to-[#F59E0B] bg-clip-text text-transparent">
