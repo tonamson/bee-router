@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/components";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
+import { getCurrentLocale, onLocaleChange, translate } from "@/i18n/runtime";
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
@@ -20,8 +21,8 @@ function ModelField({ label, value, placeholder, onChange, onSelect, disabled, h
   return (
     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
       <div className="sm:text-right">
-        <span className="text-xs font-semibold text-text-main sm:text-sm">{label}</span>
-        {help && <p className="mt-0.5 text-[10px] leading-tight text-text-muted">{help}</p>}
+        <span className="text-xs font-semibold text-text-main sm:text-sm">{translate(label)}</span>
+        {help && <p className="mt-0.5 text-[10px] leading-tight text-text-muted">{translate(help)}</p>}
       </div>
       <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
       <div className="relative w-full min-w-0">
@@ -73,6 +74,8 @@ export default function GrokBuildToolCard({
   tailscaleEnabled,
   tailscaleUrl,
 }) {
+  const [, setLocaleTick] = useState(getCurrentLocale);
+  useEffect(() => onLocaleChange(() => setLocaleTick(getCurrentLocale())), []);
   const { getCaps } = useModelCaps();
   const getContextWindow = (model) => getCaps(model)?.contextWindow || null;
   const initialModel = initialStatus?.settings?.model?.model || "";
@@ -302,7 +305,7 @@ export default function GrokBuildToolCard({
                     {tool.notes.map((note, index) => (
                       <div key={index} className={`flex items-start gap-2 rounded p-2 text-xs ${note.type === "warning" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"}`}>
                         <span className="material-symbols-outlined mt-0.5 text-[14px]">{note.type === "warning" ? "warning" : "info"}</span>
-                        <span>{note.text}</span>
+                        <span>{translate(note.text)}</span>
                       </div>
                     ))}
                   </div>
@@ -373,7 +376,7 @@ export default function GrokBuildToolCard({
           selectedModel={modelTarget === "main" ? selectedModel : subagentModels[modelTarget] || ""}
           activeProviders={activeProviders}
           modelAliases={modelAliases}
-          title={modelTarget === "main" ? "Select Main Model for Grok Build" : `Select ${SUBAGENT_TYPES.find((type) => type.id === modelTarget)?.label || "Subagent"} Model`}
+          title={translate(modelTarget === "main" ? "Select Main Model for Grok Build" : `Select ${SUBAGENT_TYPES.find((type) => type.id === modelTarget)?.label || "Subagent"} Model`)}
         />
       )}
 

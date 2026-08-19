@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CardSkeleton } from "@/shared/components";
+import { translate } from "@/i18n/runtime";
 import { CLI_TOOLS } from "@/shared/constants/cliTools";
 import { getModelsByProviderId, PROVIDER_ID_TO_ALIAS } from "@/shared/constants/models";
 import {
@@ -196,7 +197,7 @@ export default function ToolDetailClient({ toolId, machineId }) {
       </Link>
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold text-text-main sm:text-2xl">{tool.name}</h1>
-        <p className="text-sm text-text-muted">{tool.description}</p>
+        <p className="text-sm text-text-muted">{translate(tool.description)}</p>
       </div>
       {loading ? <CardSkeleton /> : renderToolCard()}
     </div>
