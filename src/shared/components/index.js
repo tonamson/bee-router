@@ -38,6 +38,7 @@ export { default as Tooltip } from "./Tooltip";
 export { default as ProviderInfoCard } from "./ProviderInfoCard";
 export { default as CapacityBadges } from "./CapacityBadges";
 export { default as CommandPalette } from "./CommandPalette";
+export { default as UpdateOverlay } from "./UpdateOverlay";
 
 // Layouts
 export * from "./layouts";
