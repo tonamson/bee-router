@@ -22,7 +22,6 @@ import {
 import Link from "next/link";
 import { getErrorCode, getRelativeTime } from "@/shared/utils";
 import { useNotificationStore } from "@/store/notificationStore";
-import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
 
@@ -106,14 +105,7 @@ export default function ProvidersPage() {
   const [testingMode, setTestingMode] = useState(null);
   const [testResults, setTestResults] = useState(null);
   const notify = useNotificationStore();
-  const searchQuery = useHeaderSearchStore((s) => s.query);
-  const registerSearch = useHeaderSearchStore((s) => s.register);
-  const unregisterSearch = useHeaderSearchStore((s) => s.unregister);
-
-  useEffect(() => {
-    registerSearch("Search providers...");
-    return () => unregisterSearch();
-  }, [registerSearch, unregisterSearch]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const matchSearch = (name) =>
     !searchQuery.trim() ||
@@ -367,6 +359,14 @@ export default function ProvidersPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
+      <input
+        type="search"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder="Search providers..."
+        className="h-9 w-full max-w-sm rounded-[8px] border border-border bg-bg px-3 text-sm text-text-main"
+      />
+
       {!hasAnyResult && (
         <div className="text-center py-8 border border-dashed border-border rounded-xl">
           <span className="material-symbols-outlined text-[32px] text-text-muted mb-2">
