@@ -80,6 +80,9 @@ open-sse.old/
 .graphifyignore
 graphify-out/*
 
+# Git worktrees (isolated feature checkouts)
+.worktrees/
+
 # Local-only working dirs (notes, vendored repos, scripts, skills)
 .claude/
 .docs/
