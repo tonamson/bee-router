@@ -46,7 +46,7 @@ bee-router
 **优势:**
 - ✅ 任意目录均可运行
 - ✅ 命令简单:`bee-router`
-- ✅ 通过 `npm update -g bee-router` 自动更新
+- ✅ 通过 `npm update -g @tonamson2/bee-router` 自动更新
 
 ### 方式 2:本地安装
 
@@ -55,13 +55,13 @@ bee-router
 ```bash
 mkdir my-bee-router
 cd my-bee-router
-npm install bee-router
+npm install @tonamson2/bee-router
 ```
 
 **启动 BeeRouter:**
 
 ```bash
-npx bee-router
+npx @tonamson2/bee-router
 ```
 
 **优势:**
@@ -444,7 +444,7 @@ server {
 ### 移除全局安装
 
 ```bash
-npm uninstall -g bee-router
+npm uninstall -g @tonamson2/bee-router
 ```
 
 ### 移除数据目录

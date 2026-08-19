@@ -46,7 +46,7 @@ bee-router
 **Benefits:**
 - ✅ Run from any directory
 - ✅ Simple command: `bee-router`
-- ✅ Auto-updates with `npm update -g bee-router`
+- ✅ Auto-updates with `npm update -g @tonamson2/bee-router`
 
 ### Method 2: Local Installation
 
@@ -55,13 +55,13 @@ Install in a specific project:
 ```bash
 mkdir my-bee-router
 cd my-bee-router
-npm install bee-router
+npm install @tonamson2/bee-router
 ```
 
 **Start BeeRouter:**
 
 ```bash
-npx bee-router
+npx @tonamson2/bee-router
 ```
 
 **Benefits:**
@@ -444,7 +444,7 @@ server {
 ### Remove Global Installation
 
 ```bash
-npm uninstall -g bee-router
+npm uninstall -g @tonamson2/bee-router
 ```
 
 ### Remove Data Directory

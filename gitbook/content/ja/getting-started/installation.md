@@ -46,7 +46,7 @@ bee-router
 **利点:**
 - ✅ どのディレクトリからでも実行
 - ✅ シンプルなコマンド: `bee-router`
-- ✅ `npm update -g bee-router` で自動更新
+- ✅ `npm update -g @tonamson2/bee-router` で自動更新
 
 ### 方法2: ローカルインストール
 
@@ -55,13 +55,13 @@ bee-router
 ```bash
 mkdir my-bee-router
 cd my-bee-router
-npm install bee-router
+npm install @tonamson2/bee-router
 ```
 
 **BeeRouterを起動:**
 
 ```bash
-npx bee-router
+npx @tonamson2/bee-router
 ```
 
 **利点:**
@@ -444,7 +444,7 @@ server {
 ### グローバルインストールを削除
 
 ```bash
-npm uninstall -g bee-router
+npm uninstall -g @tonamson2/bee-router
 ```
 
 ### データディレクトリを削除

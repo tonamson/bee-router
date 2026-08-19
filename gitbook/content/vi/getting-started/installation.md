@@ -46,7 +46,7 @@ bee-router
 **Lợi ích:**
 - ✅ Chạy từ mọi thư mục
 - ✅ Lệnh đơn giản: `bee-router`
-- ✅ Auto-update với `npm update -g bee-router`
+- ✅ Auto-update với `npm update -g @tonamson2/bee-router`
 
 ### Cách 2: Cài Local
 
@@ -55,13 +55,13 @@ Cài trong project cụ thể:
 ```bash
 mkdir my-bee-router
 cd my-bee-router
-npm install bee-router
+npm install @tonamson2/bee-router
 ```
 
 **Khởi động BeeRouter:**
 
 ```bash
-npx bee-router
+npx @tonamson2/bee-router
 ```
 
 **Lợi ích:**
@@ -444,7 +444,7 @@ server {
 ### Gỡ Global Installation
 
 ```bash
-npm uninstall -g bee-router
+npm uninstall -g @tonamson2/bee-router
 ```
 
 ### Xóa Data Directory

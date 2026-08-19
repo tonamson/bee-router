@@ -81,7 +81,7 @@ bee-router
 最新バージョンに更新:
 
 ```bash
-npm update -g bee-router
+npm update -g @tonamson2/bee-router
 ```
 
 現在のバージョンを確認:

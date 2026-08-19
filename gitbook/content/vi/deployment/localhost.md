@@ -81,7 +81,7 @@ Mọi cấu hình, API keys và combos được giữ lại trong thư mục dat
 Cập nhật phiên bản mới nhất:
 
 ```bash
-npm update -g bee-router
+npm update -g @tonamson2/bee-router
 ```
 
 Kiểm tra version hiện tại:

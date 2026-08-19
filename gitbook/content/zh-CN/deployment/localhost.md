@@ -81,7 +81,7 @@ bee-router
 更新到最新版本:
 
 ```bash
-npm update -g bee-router
+npm update -g @tonamson2/bee-router
 ```
 
 查看当前版本:

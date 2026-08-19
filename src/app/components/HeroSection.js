@@ -44,12 +44,12 @@ export default function HeroSection() {
           </a>
 
           <div
-            onClick={() => copy("npx bee-router", "hero-npx")}
+            onClick={() => copy("npx @tonamson2/bee-router", "hero-npx")}
             className="h-12 px-4 rounded-xl border border-[#282B37] bg-[#0D0E12] hover:border-[#FFC700]/50 text-gray-300 font-mono text-xs flex items-center gap-3 transition-all cursor-pointer group"
             title="Click to copy quickstart command"
           >
             <span className="text-[#FFC700]">$</span>
-            <span className="text-white font-medium">npx bee-router</span>
+            <span className="text-white font-medium">npx @tonamson2/bee-router</span>
             <span className="text-gray-500 group-hover:text-[#FFC700] transition-colors material-symbols-outlined text-[16px]">
               {copied === "hero-npx" ? "check" : "content_copy"}
             </span>

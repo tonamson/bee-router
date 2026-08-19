@@ -27,7 +27,7 @@ http://localhost:20128/v1
 
 BeeRouter translates formats, picks an account, applies combo fallback, refreshes OAuth, and streams the reply. Data stays on disk under `~/.bee-router` unless you set `DATA_DIR`.
 
-This repo is a fork of [decolua/9router](https://github.com/decolua/9router), rebranded and published as **`bee-router`**. Upstream cloud sync still uses `https://9router.com` if you enable it.
+This repo is a fork of [decolua/9router](https://github.com/decolua/9router), rebranded and published as **`@tonamson2/bee-router`**. Upstream cloud sync still uses `https://9router.com` if you enable it.
 
 | Artifact | Package | Role |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ Model:     kr/claude-sonnet-4.5
 ```
 
 ```bash
-npx bee-router                 # no global install
+npx @tonamson2/bee-router      # no global install
 bee-router --port 8080
 bee-router --no-browser
 bee-router --skip-update

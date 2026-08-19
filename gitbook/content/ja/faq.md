@@ -287,7 +287,7 @@ npm run deploy:cloudflare
 
 ### グローバルNPMインストール
 ```bash
-npm update -g bee-router
+npm update -g @tonamson2/bee-router
 ```
 
 ### ローカルインストール

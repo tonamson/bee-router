@@ -81,7 +81,7 @@ All your configurations, API keys, and combos are preserved in the data director
 Update to the latest version:
 
 ```bash
-npm update -g bee-router
+npm update -g @tonamson2/bee-router
 ```
 
 Check your current version:

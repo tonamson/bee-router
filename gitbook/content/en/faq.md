@@ -287,7 +287,7 @@ See [deployment guide](getting-started/installation.md#deployment) for details.
 
 ### Global NPM Install
 ```bash
-npm update -g bee-router
+npm update -g @tonamson2/bee-router
 ```
 
 ### Local Install

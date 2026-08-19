@@ -42,7 +42,7 @@ npm install -g @tonamson2/bee-router
 bee-router
 
 # Or run directly with npx
-npx bee-router
+npx @tonamson2/bee-router
 ```
 
 **Option 2 — Docker (server/VPS):**
