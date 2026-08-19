@@ -1,18 +1,14 @@
-// Port of auto_detect_filter (rtk/src/cmds/system/pipe_cmd.rs:132-188) + JS extras
-// Detection order: git-log → git-diff → git-status → build-output → grep → find → tree → ls → search-list
-//                  → read-numbered → dedup-log → smart-truncate → null
-import { DETECT_WINDOW, READ_NUMBERED_MIN_HIT_RATIO, SMART_TRUNCATE_MIN_LINES } from "./constants.js";
+// Content-only detect. No tool-name list.
+// High-confidence dumps only. Path lists / JSON / file reads → null (agy ListDir, Read).
+// Detection order: git-log → git-diff → git-status → build-output → grep → tree → ls → search-list
+import { DETECT_WINDOW } from "./constants.js";
 import { gitDiff } from "./filters/gitDiff.js";
 import { gitStatus } from "./filters/gitStatus.js";
 import { gitLog } from "./filters/gitLog.js";
 import { buildOutput } from "./filters/buildOutput.js";
 import { grep } from "./filters/grep.js";
-import { find } from "./filters/find.js";
-import { dedupLog } from "./filters/dedupLog.js";
 import { ls } from "./filters/ls.js";
 import { tree } from "./filters/tree.js";
-import { smartTruncate } from "./filters/smartTruncate.js";
-import { readNumbered, READ_NUMBERED_LINE_RE } from "./filters/readNumbered.js";
 import { searchList, SEARCH_LIST_HEADER_RE } from "./filters/searchList.js";
 
 const RE_GIT_DIFF = /^diff --git /m;
@@ -26,6 +22,11 @@ const RE_LS_ROW = /^[-dlbcps][rwx-]{9}/m;
 const RE_LS_TOTAL = /^total \d+$/m;
 
 export function autoDetectFilter(text) {
+  if (typeof text !== "string" || !text) return null;
+  const trimmed = text.trim();
+  // ListDir / tool JSON is not a shell dump.
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) return null;
+
   // Rust: floor_char_boundary to avoid UTF-8 split — JS .slice() by char is safe
   const head = text.length > DETECT_WINDOW ? text.slice(0, DETECT_WINDOW) : text;
 
@@ -45,9 +46,6 @@ export function autoDetectFilter(text) {
   const first5 = nonEmpty.slice(0, 5);
   if (first5.some(isGrepLine)) return grep;
 
-  // Rust find rule: ALL non-empty lines path-like (no ':'), >=3 lines
-  if (nonEmpty.length >= 3 && nonEmpty.every(isPathLike)) return find;
-
   // Tree: contains box-drawing glyphs typical of `tree` command
   if (RE_TREE_GLYPH.test(head)) return tree;
 
@@ -57,23 +55,14 @@ export function autoDetectFilter(text) {
   // Cursor Glob search list header
   if (SEARCH_LIST_HEADER_RE.test(head)) return searchList;
 
-  // Line-numbered file dump ("  N|content") — fire only if many lines match
-  if (lines.length >= SMART_TRUNCATE_MIN_LINES && isLineNumbered(lines)) {
-    return readNumbered;
-  }
-
-  // Fallback: dedupLog for generic multi-line noise with duplicates
-  if (nonEmpty.length >= 5) return dedupLog;
-
-  // Last resort: big blob with no structure — smart truncate
-  if (text.split("\n").length >= SMART_TRUNCATE_MIN_LINES) return smartTruncate;
-
   return null;
 }
 
 function isGrepLine(line) {
-  // Rust: splitn(3, ':') → parts.len()==3 && parts[1].parse::<usize>().is_ok()
-  const first = line.indexOf(":");
+  // Skip Windows `C:` so `C:\path\a.js:10:text` still counts as file:line:content.
+  let from = 0;
+  if (/^[A-Za-z]:[\\/]/.test(line)) from = 2;
+  const first = line.indexOf(":", from);
   if (first === -1) return false;
   const second = line.indexOf(":", first + 1);
   if (second === -1) return false;
@@ -81,36 +70,11 @@ function isGrepLine(line) {
   return /^\d+$/.test(lineno);
 }
 
-function isPathLike(line) {
-  const t = line.trim();
-  if (t.length === 0) return false;
-  // A drive-letter prefix (e.g. "C:\Users\me" or "C:/Users/me") marks a
-  // Windows absolute path, so treat the whole line as path-like. Trailing
-  // colons (e.g. "C:\path\file.js:10") are tolerated, matching grep-style
-  // suffixes on Windows dumps.
-  if (/^[A-Za-z]:[\\/]/.test(t)) return true;
-  if (t.includes(":")) return false;
-  return t.startsWith(".") || t.startsWith("/") || t.includes("/");
-}
-
 function isMostlyPorcelain(head) {
   const lines = head.split("\n").filter(l => l.trim());
   if (lines.length < 3) return false;
   const hits = lines.filter(l => RE_PORCELAIN.test(l)).length;
   return hits / lines.length >= 0.6;
-}
-
-function isLineNumbered(lines) {
-  let hits = 0;
-  let nonEmpty = 0;
-  const sample = lines.slice(0, 100);
-  for (const l of sample) {
-    if (l.length === 0) continue;
-    nonEmpty++;
-    if (READ_NUMBERED_LINE_RE.test(l)) hits++;
-  }
-  if (nonEmpty < 5) return false;
-  return hits / nonEmpty >= READ_NUMBERED_MIN_HIT_RATIO;
 }
 
 function countMatches(text, re) {

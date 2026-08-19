@@ -67,7 +67,9 @@ export function crushMessages(body) {
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
     forEachTextSlot(body, ({ kind, text, set }) => {
-      if (kind !== "content" && kind !== "tool") return;
+      // Tool JSON (ListDir entries, file rows) must stay JSON — tabular crush
+      // makes the next model turn emit broken functionCall args.
+      if (kind !== "content") return;
       const next = crushText(text);
       if (next === text) return;
       stats.bytesBefore += text.length;

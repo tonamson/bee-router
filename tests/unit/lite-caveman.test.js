@@ -23,21 +23,18 @@ describe("applyLiteCompression", () => {
     expect(stats).toBeNull();
   });
 
-  it("minifies pretty JSON tool output", () => {
+  it("leaves pretty JSON tool output untouched", () => {
     const pretty = '{\n  "id": 1,\n  "name": "ada"\n}';
     const body = { messages: [{ role: "tool", content: pretty }] };
-    const stats = applyLiteCompression(body);
-    expect(body.messages[0].content).toBe('{"id":1,"name":"ada"}');
-    expect(stats.hits).toContain("json");
-    expect(JSON.parse(body.messages[0].content)).toEqual({ id: 1, name: "ada" });
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.messages[0].content).toBe(pretty);
   });
 
-  it("strips ANSI and progress CR from tool output", () => {
+  it("leaves ANSI tool output untouched", () => {
     const raw = "\u001b[32mDownloading...\u001b[0m\r\u001b[32mDone\u001b[0m\n";
     const body = { messages: [{ role: "tool", content: raw }] };
-    const stats = applyLiteCompression(body);
-    expect(body.messages[0].content).toBe("Done\n");
-    expect(stats.hits).toContain("ansi");
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.messages[0].content).toBe(raw);
   });
 
   it("leaves tool-call arguments untouched", () => {
@@ -94,16 +91,16 @@ describe("applyLiteCompression", () => {
     expect(body.request.contents[0].parts[1].text).toBe(signed);
   });
 
-  it("applies lossless cleanup to Gemini contents", () => {
+  it("leaves Gemini functionResponse untouched", () => {
     const pretty = '{\n  "ok": true\n}';
     const body = {
       contents: [{ role: "user", parts: [{ functionResponse: { name: "x", response: pretty } }] }],
     };
-    applyLiteCompression(body);
-    expect(body.contents[0].parts[0].functionResponse.response).toBe('{"ok":true}');
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.contents[0].parts[0].functionResponse.response).toBe(pretty);
   });
 
-  it("applies lossless cleanup to Antigravity request.contents", () => {
+  it("leaves Antigravity functionResponse untouched", () => {
     const pretty = '{\n  "ok": true\n}';
     const body = {
       userAgent: "antigravity",
@@ -111,12 +108,11 @@ describe("applyLiteCompression", () => {
         contents: [{ role: "user", parts: [{ functionResponse: { name: "x", response: pretty } }] }],
       },
     };
-    const stats = applyLiteCompression(body);
-    expect(stats).not.toBeNull();
-    expect(body.request.contents[0].parts[0].functionResponse.response).toBe('{"ok":true}');
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.request.contents[0].parts[0].functionResponse.response).toBe(pretty);
   });
 
-  it("minifies JSON nested in Antigravity functionResponse.result", () => {
+  it("leaves nested Antigravity functionResponse.result untouched", () => {
     const pretty = '{\n  "ok": true\n}';
     const body = {
       userAgent: "antigravity",
@@ -127,11 +123,11 @@ describe("applyLiteCompression", () => {
         }],
       },
     };
-    applyLiteCompression(body);
-    expect(body.request.contents[0].parts[0].functionResponse.response.result).toBe('{"ok":true}');
+    expect(applyLiteCompression(body)).toBeNull();
+    expect(body.request.contents[0].parts[0].functionResponse.response.result).toBe(pretty);
   });
 
-  it("applies lossless cleanup to Kiro tool results", () => {
+  it("leaves Kiro tool results untouched", () => {
     const pretty = '{\n  "ok": true\n}';
     const body = {
       conversationState: {
@@ -145,9 +141,9 @@ describe("applyLiteCompression", () => {
         }],
       },
     };
-    applyLiteCompression(body);
+    expect(applyLiteCompression(body)).toBeNull();
     expect(body.conversationState.history[0].userInputMessage.userInputMessageContext.toolResults[0].content[0].text)
-      .toBe('{"ok":true}');
+      .toBe(pretty);
   });
 
   it("leaves CRLF newlines intact", () => {

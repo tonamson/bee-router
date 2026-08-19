@@ -20,26 +20,21 @@ const UNIX_PATHS = [
 ].join("\n");
 
 describe("Windows find-path detection", () => {
-  it("detects Windows drive-letter paths as `find`", () => {
-    expect(autoDetectFilter(WIN_PATHS)).toBe(find);
+  it("does not autodetect Windows path lists (ListDir, not find dump)", () => {
+    expect(autoDetectFilter(WIN_PATHS)).toBeNull();
   });
 
-  it("still detects Unix paths as `find` (no regression)", () => {
-    expect(autoDetectFilter(UNIX_PATHS)).toBe(find);
+  it("does not autodetect Unix path lists", () => {
+    expect(autoDetectFilter(UNIX_PATHS)).toBeNull();
   });
 
-  it("still routes a Windows file:line dump to a compacting filter", () => {
+  it("still routes a Windows file:line dump to grep", () => {
     const input = [
       "C:\\Users\\me\\project\\src\\a.js:10:const x = 1",
       "C:\\Users\\me\\project\\src\\b.js:20:const y = 2",
       "C:\\Users\\me\\project\\src\\c.js:30:const z = 3"
     ].join("\n");
-    // Each line is grep-shaped (file:line:content), so it routes to `grep`
-    // — but a drive-letter-only dump would route to `find`. Both are
-    // compaction-positive, so either is acceptable here.
-    const f = autoDetectFilter(input);
-    expect(f).not.toBeNull();
-    expect([find, grep]).toContain(f);
+    expect(autoDetectFilter(input)).toBe(grep);
   });
 });
 

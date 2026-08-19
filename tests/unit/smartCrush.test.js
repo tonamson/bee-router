@@ -30,10 +30,18 @@ describe("tryCompactJson", () => {
 });
 
 describe("crushMessages", () => {
-  it("crushes a tool JSON array in place", () => {
+  it("does not crush tool JSON arrays (ListDir-shaped results)", () => {
     const rows = makeRows(20);
     const json = JSON.stringify(rows);
     const body = { messages: [{ role: "tool", content: json }] };
+    expect(crushMessages(body)).toBeNull();
+    expect(body.messages[0].content).toBe(json);
+  });
+
+  it("crushes user-content JSON arrays", () => {
+    const rows = makeRows(20);
+    const json = JSON.stringify(rows);
+    const body = { messages: [{ role: "user", content: json }] };
     const stats = crushMessages(body);
     expect(stats.hits.length).toBeGreaterThan(0);
     expect(body.messages[0].content).toContain("omni-tabular");
@@ -58,14 +66,13 @@ describe("crushMessages", () => {
     expect(body.messages[0].content).toBe(json);
   });
 
-  it("crushes Gemini functionResponse arrays", () => {
+  it("does not crush Gemini functionResponse arrays", () => {
     const json = JSON.stringify(makeRows(20));
     const body = {
-      contents: [{ role: "user", parts: [{ functionResponse: { name: "list", response: json } }] }],
+      contents: [{ role: "user", parts: [{ functionResponse: { name: "list_dir", response: json } }] }],
     };
-    const stats = crushMessages(body);
-    expect(stats.hits.length).toBeGreaterThan(0);
-    expect(body.contents[0].parts[0].functionResponse.response).toContain("omni-tabular");
+    expect(crushMessages(body)).toBeNull();
+    expect(body.contents[0].parts[0].functionResponse.response).toBe(json);
   });
 
   it("does not crush tool-call argument JSON", () => {

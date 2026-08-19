@@ -81,8 +81,8 @@ export function applyLiteCompression(body) {
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
   try {
     forEachTextSlot(body, ({ kind, text, set }) => {
-      // Tool-call args stay exact — minify/CR rewrite breaks Read paths.
-      if (kind === "args") return;
+      // Never rewrite tool args or results — JSON minify still breaks ListDir/agy pairing.
+      if (kind === "args" || kind === "tool") return;
       const { text: next, hits } = applyLosslessText(text);
       if (hits.length === 0 || next === text) return;
       stats.bytesBefore += text.length;

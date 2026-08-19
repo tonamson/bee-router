@@ -3,7 +3,7 @@
 import { RAW_CAP, MIN_COMPRESS_SIZE } from "./constants.js";
 import { autoDetectFilter } from "./autodetect.js";
 import { safeApply } from "./applyFilter.js";
-import { hasCacheControl, shouldApplyRtkFilter, buildToolNameLookup, toolIdOf } from "./cacheGuard.js";
+import { hasCacheControl } from "./cacheGuard.js";
 import { forEachGeminiResponseText } from "./walk.js";
 
 // Compress tool_result content in-place. Returns stats or null if disabled/failed.
@@ -28,18 +28,14 @@ export function compressMessages(body, enabled) {
   if (!items) return null;
 
   const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
-  const toolNames = buildToolNameLookup(items);
   try {
     for (let i = 0; i < items.length; i++) {
       const msg = items[i];
       if (!msg) continue;
       if (hasCacheControl(msg)) continue;
 
-      const applyFor = (id) => shouldApplyRtkFilter(id ? toolNames.get(id) : null);
-
       // Shape 4: OpenAI Responses — top-level { type:"function_call_output", output: string | [{type:"input_text", text}] }
       if (msg.type === "function_call_output") {
-        if (!applyFor(toolIdOf(msg))) continue;
         if (typeof msg.output === "string") {
           msg.output = compressText(msg.output, stats, "openai-responses-string");
         } else if (Array.isArray(msg.output)) {
@@ -56,7 +52,7 @@ export function compressMessages(body, enabled) {
 
       // Shape 1: OpenAI tool message — { role:"tool", content: "string" }
       if (msg.role === "tool" && typeof msg.content === "string") {
-        if (applyFor(toolIdOf(msg))) msg.content = compressText(msg.content, stats, "openai-tool");
+        msg.content = compressText(msg.content, stats, "openai-tool");
         continue;
       }
 
@@ -64,7 +60,6 @@ export function compressMessages(body, enabled) {
 
       // Shape 1b: OpenAI tool message — { role:"tool", content:[{type:"text", text:"..."}] }
       if (msg.role === "tool") {
-        if (!applyFor(toolIdOf(msg))) continue;
         for (let k = 0; k < msg.content.length; k++) {
           const part = msg.content[k];
           if (part && hasCacheControl(part)) continue;
@@ -81,7 +76,6 @@ export function compressMessages(body, enabled) {
         if (!block || block.type !== "tool_result") continue;
         if (block.is_error === true) continue; // preserve error traces
         if (hasCacheControl(block)) continue;
-        if (!applyFor(toolIdOf(msg, block))) continue;
 
         if (typeof block.content === "string") {
           // Shape 2: claude string form
@@ -121,7 +115,6 @@ function compressGeminiFormat(body) {
       for (const part of c.parts) {
         const fr = part?.functionResponse;
         if (!fr) continue;
-        if (!shouldApplyRtkFilter(fr.name)) continue;
         forEachGeminiResponseText(fr, ({ text, set }) => {
           set(compressText(text, stats, "gemini-function-response"));
         });

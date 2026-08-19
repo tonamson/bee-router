@@ -280,8 +280,12 @@ describe("autoDetectFilter", () => {
   it("detects grep", () => {
     expect(autoDetectFilter("a.js:1:hello\nb.js:2:world\nc.js:3:foo").filterName).toBe("grep");
   });
-  it("detects find", () => {
-    expect(autoDetectFilter("./a/b.js\n./a/c.js\n./a/d.js").filterName).toBe("find");
+  it("does not treat path lists as find (agy ListDir)", () => {
+    expect(autoDetectFilter("./a/b.js\n./a/c.js\n./a/d.js")).toBeNull();
+  });
+
+  it("does not treat JSON tool results as dumps", () => {
+    expect(autoDetectFilter('{"entries":[{"name":"a.js"},{"name":"b.js"}]}')).toBeNull();
   });
   it("detects git log via commit header", () => {
     const input = [
@@ -293,9 +297,9 @@ describe("autoDetectFilter", () => {
     ].join("\n");
     expect(autoDetectFilter(input).filterName).toBe("git-log");
   });
-  it("falls back to dedupLog for generic text", () => {
+  it("does not crush generic text", () => {
     const txt = "line1\nline2\nline3\nline4\nline5\nline6\n";
-    expect(autoDetectFilter(txt).filterName).toBe("dedup-log");
+    expect(autoDetectFilter(txt)).toBeNull();
   });
 });
 
@@ -424,43 +428,90 @@ describe("compressMessages (disabled)", () => {
 describe("compressMessages (enabled)", () => {
   it("compresses OpenAI tool message (string content)", () => {
     const big = makeLongDiff();
-    const body = { messages: [{ role: "tool", tool_call_id: "call_1", content: big }] };
+    const body = {
+      messages: [
+        { role: "assistant", tool_calls: [{ id: "call_1", function: { name: "Bash", arguments: "{}" } }] },
+        { role: "tool", tool_call_id: "call_1", content: big },
+      ],
+    };
     const stats = compressMessages(body, true);
     expect(stats.hits.length).toBeGreaterThan(0);
-    expect(body.messages[0].content.length).toBeLessThan(big.length);
+    expect(body.messages[1].content.length).toBeLessThan(big.length);
     expect(stats.bytesBefore).toBeGreaterThan(stats.bytesAfter);
   });
 
   it("compresses Claude string-form tool_result", () => {
     const big = makeLongDiff();
     const body = {
-      messages: [{
-        role: "user",
-        content: [{ type: "tool_result", tool_use_id: "toolu_1", content: big }]
-      }]
+      messages: [
+        { role: "assistant", content: [{ type: "tool_use", id: "toolu_1", name: "Bash", input: {} }] },
+        { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: big }] },
+      ],
     };
     const stats = compressMessages(body, true);
     expect(stats.hits.length).toBeGreaterThan(0);
-    expect(body.messages[0].content[0].content.length).toBeLessThan(big.length);
+    expect(body.messages[1].content[0].content.length).toBeLessThan(big.length);
   });
 
   it("compresses Claude array-form tool_result text parts", () => {
     const big = makeLongDiff();
     const body = {
-      messages: [{
-        role: "user",
-        content: [{
-          type: "tool_result",
-          tool_use_id: "toolu_1",
-          content: [{ type: "text", text: big }, { type: "text", text: "unchanged short" }]
-        }]
-      }]
+      messages: [
+        { role: "assistant", content: [{ type: "tool_use", id: "toolu_1", name: "Bash", input: {} }] },
+        {
+          role: "user",
+          content: [{
+            type: "tool_result",
+            tool_use_id: "toolu_1",
+            content: [{ type: "text", text: big }, { type: "text", text: "unchanged short" }],
+          }],
+        },
+      ],
     };
     const stats = compressMessages(body, true);
     expect(stats.hits.length).toBeGreaterThan(0);
-    expect(body.messages[0].content[0].content[0].text.length).toBeLessThan(big.length);
-    // short part unchanged
-    expect(body.messages[0].content[0].content[1].text).toBe("unchanged short");
+    expect(body.messages[1].content[0].content[0].text.length).toBeLessThan(big.length);
+    expect(body.messages[1].content[0].content[1].text).toBe("unchanged short");
+  });
+
+  it("does not crush unpaired / unnamed tool results (agy ListDir id miss)", () => {
+    const paths = Array.from({ length: 40 }, (_, i) => `/Volumes/Code/repo/src/file-${i}.js`).join("\n");
+    const body = { messages: [{ role: "tool", tool_call_id: "call_1", content: paths }] };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.messages[0].content).toBe(paths);
+  });
+
+  it("crushes git-diff even when the same turn has list_dir", () => {
+    const big = makeLongDiff();
+    const paths = "/tmp/a\n/tmp/b\n/tmp/c";
+    const body = {
+      messages: [
+        { role: "assistant", tool_calls: [
+          { id: "c1", function: { name: "Bash", arguments: "{}" } },
+          { id: "c2", function: { name: "list_dir", arguments: "{}" } },
+        ] },
+        { role: "tool", tool_call_id: "c1", content: big },
+        { role: "tool", tool_call_id: "c2", content: paths },
+      ],
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.messages[1].content.length).toBeLessThan(big.length);
+    expect(body.messages[2].content).toBe(paths);
+  });
+
+  it("does not crush list_dir functionResponse path lists", () => {
+    const paths = Array.from({ length: 40 }, (_, i) => `/Volumes/Code/repo/src/file-${i}.js`).join("\n");
+    const body = {
+      contents: [{
+        role: "user",
+        parts: [{ functionResponse: { name: "list_dir", response: { result: paths } } }],
+      }],
+    };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.contents[0].parts[0].functionResponse.response.result).toBe(paths);
   });
 
   it("skips is_error tool_result", () => {
@@ -486,9 +537,14 @@ describe("compressMessages (enabled)", () => {
 
   it("never produces empty content (R14 guard)", () => {
     const input = "a".repeat(1000);
-    const body = { messages: [{ role: "tool", tool_call_id: "x", content: input }] };
+    const body = {
+      messages: [
+        { role: "assistant", tool_calls: [{ id: "x", function: { name: "Bash", arguments: "{}" } }] },
+        { role: "tool", tool_call_id: "x", content: input },
+      ],
+    };
     compressMessages(body, true);
-    expect(body.messages[0].content.length).toBeGreaterThan(0);
+    expect(body.messages[1].content.length).toBeGreaterThan(0);
   });
 
   it("skips when body has no messages", () => {
@@ -544,17 +600,17 @@ describe("compressMessages (enabled)", () => {
     expect(body.messages[0].content).toBe(big);
   });
 
-  it("skips known non-shell tools (Read) even when output looks like git-diff", () => {
+  it("crushes git-diff by content, even if the tool is named Read", () => {
     const big = makeLongDiff();
     const body = {
       messages: [
-        { role: "assistant", content: [{ type: "tool_use", id: "toolu_1", name: "Read", input: { path: "foo.js" } }] },
+        { role: "assistant", content: [{ type: "tool_use", id: "toolu_1", name: "Read", input: { path: "foo.diff" } }] },
         { role: "user", content: [{ type: "tool_result", tool_use_id: "toolu_1", content: big }] }
       ]
     };
     const stats = compressMessages(body, true);
-    expect(stats.hits.length).toBe(0);
-    expect(body.messages[1].content[0].content).toBe(big);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.messages[1].content[0].content.length).toBeLessThan(big.length);
   });
 
   it("still compresses shell tools (Bash)", () => {
@@ -583,7 +639,7 @@ describe("compressMessages (enabled)", () => {
     expect(body.messages[1].content.length).toBeLessThan(big.length);
   });
 
-  it("skips Grok read_file even when dump looks like git-diff", () => {
+  it("crushes git-diff from read_file by content", () => {
     const big = makeLongDiff();
     const body = {
       messages: [
@@ -592,8 +648,8 @@ describe("compressMessages (enabled)", () => {
       ]
     };
     const stats = compressMessages(body, true);
-    expect(stats.hits.length).toBe(0);
-    expect(body.messages[1].content).toBe(big);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.messages[1].content.length).toBeLessThan(big.length);
   });
 
   it("compresses Gemini functionResponse.result string", () => {
@@ -674,20 +730,20 @@ describe("compressMessages (enabled)", () => {
     expect(slot.length).toBeLessThan(big.length);
   });
 
-  it("skips Antigravity non-shell functionResponse (Read)", () => {
-    const big = makeLongDiff();
+  it("leaves Antigravity Read file text alone (not a dump signature)", () => {
+    const src = "export function foo() {\n  return 1;\n}\n".repeat(40);
     const body = {
       userAgent: "antigravity",
       request: {
         contents: [{
           role: "user",
-          parts: [{ functionResponse: { name: "Read", response: { result: big } } }],
+          parts: [{ functionResponse: { name: "Read", response: { result: src } } }],
         }],
       },
     };
     const stats = compressMessages(body, true);
     expect(stats.hits.length).toBe(0);
-    expect(body.request.contents[0].parts[0].functionResponse.response.result).toBe(big);
+    expect(body.request.contents[0].parts[0].functionResponse.response.result).toBe(src);
   });
 });
 
