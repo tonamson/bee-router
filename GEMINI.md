@@ -18,6 +18,7 @@ or `Write`. Calling those shows empty `ListDir()` / hung `Bash()`.
 | search | `grep_search` | query + path |
 | shell | `run_command` | `command` (string) |
 | edit | `replace_file_content` / `write_to_file` | per schema |
+| subagent | `invoke_subagent` | `Subagents` = `[{ TypeName, Prompt, Role, Workspace }]` (`self` / `research`) |
 
 ### When graph tools exist
 

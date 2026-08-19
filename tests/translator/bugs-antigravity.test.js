@@ -274,6 +274,56 @@ describe("OpenAI → Antigravity tool calls", () => {
     expect(fc.name).toBe("ListDir");
     expect(fc.args.uri).toBe("file:///Volumes/Code/Opensource/mrouter");
   });
+
+  it("wraps invoke_subagent TypeName/Prompt into Subagents[]", () => {
+    const out = openaiToAntigravityResponse({
+      id: "c1",
+      model: "x",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            function: {
+              name: "invoke_subagent",
+              arguments: { TypeName: "self", Prompt: "implement task 1", Role: "Implementer", Workspace: "inherit" },
+            },
+          }],
+        },
+        finish_reason: "tool_calls",
+      }],
+    }, {});
+    const fc = out.response.candidates[0].content.parts.find((p) => p.functionCall)?.functionCall;
+    expect(fc.name).toBe("invoke_subagent");
+    expect(fc.args.Subagents).toEqual([{
+      TypeName: "self",
+      Prompt: "implement task 1",
+      Role: "Implementer",
+      Workspace: "inherit",
+    }]);
+  });
+
+  it("parses invoke_subagent Subagents JSON string into an array", () => {
+    const out = openaiToAntigravityResponse({
+      id: "c1",
+      model: "x",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            function: {
+              name: "invoke_subagent",
+              arguments: {
+                Subagents: JSON.stringify([{ TypeName: "research", Prompt: "find callers" }]),
+              },
+            },
+          }],
+        },
+        finish_reason: "tool_calls",
+      }],
+    }, {});
+    const fc = out.response.candidates[0].content.parts.find((p) => p.functionCall)?.functionCall;
+    expect(fc.args.Subagents).toEqual([{ TypeName: "research", Prompt: "find callers" }]);
+  });
 });
 
 describe("Antigravity executor", () => {
@@ -347,5 +397,29 @@ describe("Antigravity executor", () => {
     expect(system).toContain("USER_SYSTEM_PROMPT");
     expect(system).not.toContain(ANTIGRAVITY_DEFAULT_SYSTEM);
     expect(system).not.toContain("Please ignore the following [ignore]");
+  });
+
+  it("keeps invoke_subagent name so CloudCode does not see invoke_subagent_ide", () => {
+    const { cloakedBody, toolNameMap } = AntigravityExecutor.cloakTools({
+      request: {
+        tools: [{
+          functionDeclarations: [{
+            name: "invoke_subagent",
+            description: "Launch a subagent",
+            parameters: {
+              type: "object",
+              properties: {
+                Subagents: { type: "array", items: { type: "object" } },
+              },
+              required: ["Subagents"],
+            },
+          }],
+        }],
+      },
+    });
+    const names = cloakedBody.request.tools[0].functionDeclarations.map((fn) => fn.name);
+    expect(names).toContain("invoke_subagent");
+    expect(names).not.toContain("invoke_subagent_ide");
+    expect(toolNameMap?.get("invoke_subagent_ide")).toBeUndefined();
   });
 });

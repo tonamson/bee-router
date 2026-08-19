@@ -14,6 +14,14 @@ function parseToolCallArgs(raw) {
 
 const LIST_DIR_RE = /^(list_dir|listdir|list_directory)$/i;
 const BASH_RE = /^(bash|run_command|runcommand|shell)$/i;
+const INVOKE_SUBAGENT_RE = /^(invoke_subagent|invoke-subagent)$/i;
+const SUBAGENT_SPEC_KEYS = [
+  ["TypeName", ["TypeName", "typeName", "type"]],
+  ["Prompt", ["Prompt", "prompt", "InitialPrompt", "initial_prompt"]],
+  ["Role", ["Role", "role"]],
+  ["Workspace", ["Workspace", "workspace"]],
+  ["Model", ["Model", "model"]],
+];
 const DIR_KEYS = ["uri", "DirectoryPath", "directoryPath", "directory_path", "path", "Path", "AbsolutePath", "absolutePath"];
 const CMD_KEYS = ["command", "Command", "cmd", "Cmd", "script", "ShellCommand", "commandLine"];
 
@@ -70,8 +78,38 @@ function normalizeAgBashArgs(name, args) {
   return next;
 }
 
+/** AGY invoke_subagent requires Subagents[]. Skills/models often send TypeName+Prompt at the root. */
+function normalizeAgInvokeSubagentArgs(name, args) {
+  if (!INVOKE_SUBAGENT_RE.test(name || "") || !args || typeof args !== "object") return args;
+  const inner = args.parameters && typeof args.parameters === "object" ? args.parameters : null;
+  const source = { ...args, ...(inner || {}) };
+
+  let specs = source.Subagents;
+  if (typeof specs === "string") {
+    try { specs = JSON.parse(specs); } catch { specs = null; }
+  }
+  if (specs && typeof specs === "object" && !Array.isArray(specs)) specs = [specs];
+  if (!Array.isArray(specs) || specs.length === 0) {
+    const spec = {};
+    for (const [out, keys] of SUBAGENT_SPEC_KEYS) {
+      const value = pickString(source, keys);
+      if (value) spec[out] = value;
+    }
+    if (!spec.TypeName && !spec.Prompt) return args;
+    if (!spec.TypeName) spec.TypeName = "self";
+    specs = [spec];
+  }
+
+  const next = { ...args, Subagents: specs };
+  if (inner) next.parameters = { ...inner, Subagents: specs };
+  return next;
+}
+
 function normalizeAgToolArgs(name, args) {
-  return normalizeAgBashArgs(name, normalizeAgListDirArgs(name, args));
+  return normalizeAgInvokeSubagentArgs(
+    name,
+    normalizeAgBashArgs(name, normalizeAgListDirArgs(name, args)),
+  );
 }
 
 // Convert OpenAI SSE chunk to Antigravity SSE format

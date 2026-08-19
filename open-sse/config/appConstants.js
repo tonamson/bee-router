@@ -112,6 +112,7 @@ export const AG_DEFAULT_TOOLS = new Set([
   "find_by_name",
   "generate_image",
   "grep_search",
+  "invoke_subagent",
   "list_dir",
   "list_resources",
   "multi_replace_file_content",
