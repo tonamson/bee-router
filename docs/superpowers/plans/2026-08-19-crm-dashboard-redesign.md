@@ -23,9 +23,9 @@
 **Interfaces:**
 - Produces: CSS variables for surfaces (`--bg-surface`, `--bg-elevated`, `--border-subtle`, `--accent-primary`, `--accent-hover`)
 
-- [ ] **Step 1: Check existing CSS variables and themes**
-- [ ] **Step 2: Update `src/app/globals.css` with Linear-inspired Obsidian & Amber color tokens**
-- [ ] **Step 3: Verify CSS builds cleanly without errors**
+- [x] **Step 1: Check existing CSS variables and themes**
+- [x] **Step 2: Update `src/app/globals.css` with Linear-inspired Obsidian & Amber color tokens**
+- [x] **Step 3: Verify CSS builds cleanly without errors**
 
 ---
 
@@ -39,10 +39,10 @@
 - Consumes: Navigation config and update status
 - Produces: Grouped sidebar navigation with modern icons, active pill indicators, and header breadcrumbs
 
-- [ ] **Step 1: Update `Sidebar.js` to group links into Gateway, Analytics & Usage, Routing, and System**
-- [ ] **Step 2: Modernize update banner and version info in Sidebar**
-- [ ] **Step 3: Update `DashboardLayout.js` header with clean breadcrumb and status indicators**
-- [ ] **Step 4: Verify navigation links and mobile drawer behavior**
+- [x] **Step 1: Update `Sidebar.js` to group links into Gateway, Analytics & Usage, Routing, and System**
+- [x] **Step 2: Modernize update banner and version info in Sidebar**
+- [x] **Step 3: Update `DashboardLayout.js` header with clean breadcrumb and status indicators**
+- [x] **Step 4: Verify navigation links and mobile drawer behavior**
 
 ---
 
@@ -57,9 +57,9 @@
 - Consumes: `/api/usage` & `/api/analytics` data
 - Produces: Polished metric cards (with % delta, formatted numbers) and clean gradient charts
 
-- [ ] **Step 1: Refactor KPI metrics cards with crisp borders and delta badge formatting**
-- [ ] **Step 2: Streamline `UsageChart.js` with smooth amber/obsidian styling and tooltips**
-- [ ] **Step 3: Verify data loading, empty states, and timeframe filtering**
+- [x] **Step 1: Refactor KPI metrics cards with crisp borders and delta badge formatting**
+- [x] **Step 2: Streamline `UsageChart.js` with smooth amber/obsidian styling and tooltips**
+- [x] **Step 3: Verify data loading, empty states, and timeframe filtering**
 
 ---
 
@@ -73,6 +73,6 @@
 - Consumes: Providers and quota config APIs
 - Produces: Enterprise data-dense cards with status indicators and action buttons
 
-- [ ] **Step 1: Update Quotas view with clean progress indicators and usage bars**
-- [ ] **Step 2: Refactor Providers cards with latency indicators, model tags, and action menus**
-- [ ] **Step 3: End-to-end visual review of dashboard views**
+- [x] **Step 1: Update Quotas view with clean progress indicators and usage bars**
+- [x] **Step 2: Refactor Providers cards with latency indicators, model tags, and action menus**
+- [x] **Step 3: End-to-end visual review of dashboard views**
