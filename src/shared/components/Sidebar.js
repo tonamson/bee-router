@@ -142,10 +142,6 @@ export default function Sidebar({ onClose }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-medium text-text-muted">v{APP_CONFIG.version}</span>
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Online
-                  </span>
                 </div>
               </div>
             </Link>

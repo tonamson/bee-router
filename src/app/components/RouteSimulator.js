@@ -181,9 +181,6 @@ export default function RouteSimulator() {
               <span className="bg-[#0D0E12] px-2.5 py-1 rounded border border-[#282B37]">
                 Overhead: <strong className="text-[#FFC700]">&lt;0.6ms</strong>
               </span>
-              <span className="bg-[#0D0E12] px-2.5 py-1 rounded border border-[#282B37]">
-                Status: <strong className="text-emerald-400">Online</strong>
-              </span>
             </div>
           </div>
 
