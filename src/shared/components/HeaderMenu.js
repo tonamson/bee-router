@@ -38,6 +38,7 @@ export default function HeaderMenu({ onLogout }) {
   const [isShuttingDown, setIsShuttingDown] = useState(false);
   const { toggleTheme, isDark } = useTheme();
   const menuRef = useRef(null);
+  const triggerRef = useRef(null);
 
   const handleShutdown = async () => {
     setIsShuttingDown(true);
@@ -51,15 +52,25 @@ export default function HeaderMenu({ onLogout }) {
   };
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setIsOpen(false);
       }
     };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
+    const handleKey = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [isOpen]);
 
   const close = () => setIsOpen(false);
@@ -68,6 +79,7 @@ export default function HeaderMenu({ onLogout }) {
     <>
       <div className="relative" ref={menuRef}>
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setIsOpen((v) => !v)}
           className="flex items-center justify-center p-2 rounded-lg text-text-muted hover:text-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-all"

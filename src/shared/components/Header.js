@@ -168,12 +168,23 @@ function visibleItems(group, enableTranslator) {
   return group.items.filter((item) => item.flag !== "translator" || enableTranslator);
 }
 
+function menuItemsOf(root) {
+  return root ? Array.from(root.querySelectorAll('[role="menuitem"]')) : [];
+}
+
 function GroupMenu({ group, pathname, enableTranslator }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
   const timerRef = useRef(null);
   const active = getActiveGroupId(pathname) === group.id;
   const items = visibleItems(group, enableTranslator);
+
+  function closeMenu({ restore = false } = {}) {
+    setOpen(false);
+    if (restore) triggerRef.current?.focus();
+  }
 
   useEffect(() => {
     setOpen(false);
@@ -187,12 +198,62 @@ function GroupMenu({ group, pathname, enableTranslator }) {
 
   useEffect(() => {
     if (!open) return;
+    if (document.activeElement === triggerRef.current) {
+      menuItemsOf(menuRef.current)[0]?.focus();
+    }
+
     function onKey(e) {
-      if (e.key === "Escape") setOpen(false);
+      const menuitems = menuItemsOf(menuRef.current);
+      const inside = wrapRef.current?.contains(document.activeElement);
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMenu({ restore: inside });
+        return;
+      }
+
+      if (!inside) return;
+
+      if (e.key === "Tab") {
+        if (!menuitems.length) return;
+        e.preventDefault();
+        const i = menuitems.indexOf(document.activeElement);
+        const next = e.shiftKey
+          ? (i <= 0 ? menuitems.length - 1 : i - 1)
+          : (i === -1 || i === menuitems.length - 1 ? 0 : i + 1);
+        menuitems[next].focus();
+        return;
+      }
+
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!menuitems.length) return;
+        const i = menuitems.indexOf(document.activeElement);
+        const next = e.key === "ArrowDown"
+          ? (i === -1 || i === menuitems.length - 1 ? 0 : i + 1)
+          : (i <= 0 ? menuitems.length - 1 : i - 1);
+        menuitems[next].focus();
+        return;
+      }
+
+      if (e.key === "Home") {
+        e.preventDefault();
+        menuitems[0]?.focus();
+        return;
+      }
+
+      if (e.key === "End") {
+        e.preventDefault();
+        menuitems[menuitems.length - 1]?.focus();
+      }
     }
+
     function onDown(e) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        closeMenu();
+      }
     }
+
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onDown);
     return () => {
@@ -218,15 +279,23 @@ function GroupMenu({ group, pathname, enableTranslator }) {
       }}
       onPointerLeave={() => {
         clearTimer();
-        setOpen(false);
+        const restore = wrapRef.current?.contains(document.activeElement);
+        closeMenu({ restore });
       }}
     >
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-current={active ? "true" : undefined}
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
         className={`flex items-center gap-1 self-stretch px-2 text-sm ${
           active
             ? "border-b-2 border-brand-500 text-text-main"
@@ -238,6 +307,7 @@ function GroupMenu({ group, pathname, enableTranslator }) {
       </button>
       {open && (
         <div
+          ref={menuRef}
           role="menu"
           className="absolute left-0 top-full z-50 min-w-[200px] rounded-[8px] border border-border bg-surface py-1 shadow-lg"
         >
@@ -249,7 +319,7 @@ function GroupMenu({ group, pathname, enableTranslator }) {
                 href={item.href}
                 role="menuitem"
                 aria-current={current ? "page" : undefined}
-                onClick={() => setOpen(false)}
+                onClick={() => closeMenu()}
                 className={`block px-3 py-2 text-sm ${
                   current
                     ? "bg-surface-2 text-text-main"
@@ -397,36 +467,38 @@ export default function Header({ updateInfo, onRequestUpdate }) {
           Search
           <kbd className="ml-auto font-mono text-[11px]">⌘K</kbd>
         </button>
-        {updateInfo ? (
-          <button
-            type="button"
-            onClick={onRequestUpdate}
-            className="flex items-center gap-1.5 shrink-0 text-sm text-text-main"
-          >
-            <span className="size-2 rounded-full bg-amber-500" />
-            update
-          </button>
-        ) : (
-          <span className="flex items-center gap-1.5 shrink-0 text-sm text-text-muted">
-            <span className="size-2 rounded-full bg-green-500" />
-            online
-          </span>
-        )}
-        {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
-          <div
-            className="hidden sm:flex items-center max-w-[220px] px-2.5 py-1 rounded-full border border-border bg-surface text-xs text-text-muted truncate shadow-xs"
-            title={displayName}
-          >
-            <User size={14} className="mr-1.5 text-primary shrink-0" />
-            <span className="truncate font-medium">{displayName}</span>
-            <span className="ml-2 shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/30">
-              {loginMethod}
+        <div className="hidden lg:flex items-center gap-1.5 shrink-0">
+          {updateInfo ? (
+            <button
+              type="button"
+              onClick={onRequestUpdate}
+              className="flex items-center gap-1.5 shrink-0 text-sm text-text-main"
+            >
+              <span className="size-2 rounded-full bg-amber-500" />
+              update
+            </button>
+          ) : (
+            <span className="flex items-center gap-1.5 shrink-0 text-sm text-text-muted">
+              <span className="size-2 rounded-full bg-green-500" />
+              online
             </span>
-          </div>
-        )}
-        <ThemeToggle />
-        <HeaderLanguage />
-        <HeaderMenu onLogout={handleLogout} />
+          )}
+          {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
+            <div
+              className="flex items-center max-w-[220px] px-2.5 py-1 rounded-full border border-border bg-surface text-xs text-text-muted truncate shadow-xs"
+              title={displayName}
+            >
+              <User size={14} className="mr-1.5 text-primary shrink-0" />
+              <span className="truncate font-medium">{displayName}</span>
+              <span className="ml-2 shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/30">
+                {loginMethod}
+              </span>
+            </div>
+          )}
+          <ThemeToggle />
+          <HeaderLanguage />
+          <HeaderMenu onLogout={handleLogout} />
+        </div>
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
