@@ -79,7 +79,14 @@ function normalizeAgToolArgs(name, args) {
 //   data: {"response":{"candidates":[{"content":{"role":"model","parts":[...]}, "finishReason":"STOP"}], "usageMetadata":{...}, "modelVersion":"...", "responseId":"..."}}
 // Tool calls: OpenAI sends incremental args across chunks → accumulate and emit ONCE at finish
 export function openaiToAntigravityResponse(chunk, state) {
-  if (!chunk) return null;
+  if (!chunk) {
+    if (state._toolCallAccum && Object.keys(state._toolCallAccum).length > 0) {
+      return openaiToAntigravityResponse({
+        choices: [{ delta: {}, finish_reason: "tool_calls" }],
+      }, state);
+    }
+    return null;
+  }
 
   const choice = chunk.choices?.[0];
   if (!choice) {

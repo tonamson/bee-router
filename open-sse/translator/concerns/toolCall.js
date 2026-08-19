@@ -8,6 +8,22 @@ export function fallbackToolCallId(index) {
   return index === undefined ? `call_${Date.now()}` : `call_${index}_${Date.now()}`;
 }
 
+/** Stream tool_call.arguments may be a JSON string or a parsed object. */
+export function appendToolArgBuffer(state, idx, piece) {
+  if (!state.toolArgBuffers) state.toolArgBuffers = new Map();
+  if (piece && typeof piece === "object") {
+    const json = JSON.stringify(piece);
+    state.toolArgBuffers.set(idx, json);
+    return json;
+  }
+  if (typeof piece !== "string" || !piece) {
+    return state.toolArgBuffers.get(idx) || "";
+  }
+  const buf = (state.toolArgBuffers.get(idx) || "") + piece;
+  state.toolArgBuffers.set(idx, buf);
+  return buf;
+}
+
 // Generate deterministic tool call ID from position + tool name (cache-friendly)
 export function generateToolCallId(msgIndex = 0, tcIndex = 0, toolName = "") {
   const name = toolName ? `_${toolName.replace(/[^a-zA-Z0-9_-]/g, "")}` : "";

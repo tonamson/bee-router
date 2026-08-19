@@ -59,6 +59,58 @@ describe("Antigravity → OpenAI", () => {
 });
 
 describe("Gemini → OpenAI (v1beta)", () => {
+  it("reads AGY parametersJsonSchema so list_dir keeps DirectoryPath instead of reason", () => {
+    const out = geminiToOpenAIRequest("gemini-3.1-pro-preview", {
+      contents: [{ role: "user", parts: [{ text: "xem repo" }] }],
+      tools: [{
+        functionDeclarations: [{
+          name: "list_dir",
+          description: "List the contents of a directory",
+          parametersJsonSchema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              DirectoryPath: { type: "string", description: "Path to list contents of" },
+              toolAction: { type: "string" },
+              toolSummary: { type: "string" },
+            },
+            required: ["DirectoryPath", "toolSummary", "toolAction"],
+          },
+        }],
+      }],
+    }, true);
+    const params = out.tools[0].function.parameters;
+    expect(params.properties.DirectoryPath).toEqual({
+      type: "string",
+      description: "Path to list contents of",
+    });
+    expect(params.properties.reason).toBeUndefined();
+    expect(params.required).toContain("DirectoryPath");
+  });
+
+  it("AGY list_dir parametersJsonSchema survives OpenAI→Antigravity pivot without reason", () => {
+    const openai = geminiToOpenAIRequest("gemini-3.1-pro-preview", {
+      contents: [{ role: "user", parts: [{ text: "xem repo" }] }],
+      tools: [{
+        functionDeclarations: [{
+          name: "list_dir",
+          parametersJsonSchema: {
+            type: "object",
+            properties: { DirectoryPath: { type: "string" } },
+            required: ["DirectoryPath"],
+          },
+        }],
+      }],
+    }, true);
+    const ag = translateRequest(FORMATS.OPENAI, FORMATS.ANTIGRAVITY, "ag/gemini-3.7-flash-medium", openai, true);
+    const decls = ag.request?.tools?.[0]?.functionDeclarations
+      || ag.tools?.[0]?.functionDeclarations
+      || [];
+    const fn = decls.find((d) => d.name === "list_dir");
+    expect(fn?.parameters?.properties?.DirectoryPath).toBeTruthy();
+    expect(fn?.parameters?.properties?.reason).toBeUndefined();
+  });
+
   it("keeps user role when functionResponse shares a turn with text", () => {
     const out = geminiToOpenAIRequest("m", {
       contents: [{
@@ -100,6 +152,32 @@ describe("Antigravity → Claude", () => {
     );
     expect(jsonDelta).toMatchObject({ index: expect.any(Number) });
     expect(JSON.parse(jsonDelta.delta.partial_json)).toEqual({ command: "git status" });
+  });
+
+  it("flushes ListDir args to Claude when Gemini omits finishReason", () => {
+    const state = initState(FORMATS.CLAUDE);
+    const mid = translateResponse(FORMATS.ANTIGRAVITY, FORMATS.CLAUDE, {
+      response: {
+        responseId: "resp-listdir",
+        modelVersion: "gemini-pro-agent",
+        candidates: [{
+          content: {
+            role: "model",
+            parts: [{ functionCall: { name: "ListDir", args: { path: "/Volumes/Code/Opensource/mrouter" } } }],
+          },
+          index: 0,
+        }],
+      },
+    }, state);
+    const flushed = translateResponse(FORMATS.ANTIGRAVITY, FORMATS.CLAUDE, null, state);
+    const events = [...(mid || []), ...(flushed || [])];
+    const jsonDelta = events.find(
+      (event) => event.type === "content_block_delta" && event.delta?.type === "input_json_delta"
+    );
+    expect(JSON.parse(jsonDelta?.delta?.partial_json || "null")).toEqual({
+      path: "/Volumes/Code/Opensource/mrouter",
+    });
+    expect(events.some((event) => event.delta?.stop_reason === "tool_use")).toBe(true);
   });
 });
 
@@ -171,6 +249,30 @@ describe("OpenAI → Antigravity tool calls", () => {
     }, {});
     const fc = out.response.candidates[0].content.parts.find((p) => p.functionCall)?.functionCall;
     expect(fc.args.command).toBe("git status");
+  });
+
+  it("emits ListDir functionCall on null flush when finish_reason is missing", () => {
+    const state = {};
+    openaiToAntigravityResponse({
+      id: "c1",
+      model: "x",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            id: "call_1",
+            function: {
+              name: "ListDir",
+              arguments: { DirectoryPath: "/Volumes/Code/Opensource/mrouter" },
+            },
+          }],
+        },
+      }],
+    }, state);
+    const out = openaiToAntigravityResponse(null, state);
+    const fc = out.response.candidates[0].content.parts.find((p) => p.functionCall)?.functionCall;
+    expect(fc.name).toBe("ListDir");
+    expect(fc.args.uri).toBe("file:///Volumes/Code/Opensource/mrouter");
   });
 });
 

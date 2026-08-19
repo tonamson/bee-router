@@ -3,6 +3,7 @@ import { FORMATS } from "../formats.js";
 import { ROLE, CLAUDE_BLOCK, MODEL_FALLBACK } from "../schema/index.js";
 import { fromOpenAIFinish } from "../concerns/finishReason.js";
 import { extractReasoningText } from "../concerns/reasoning.js";
+import { appendToolArgBuffer, fallbackToolCallId } from "../concerns/toolCall.js";
 
 // Legacy "proxy_" prefix used by older request translators. Response strips it
 // defensively so tool names from such turns resolve back (e.g. proxy_Read → Read
@@ -10,18 +11,101 @@ import { extractReasoningText } from "../concerns/reasoning.js";
 // is then a no-op. Kept intentionally; do NOT couple to request's empty prefix.
 const CLAUDE_OAUTH_TOOL_PREFIX = "proxy_";
 
-// Sanitize tool call arguments to fix bad params from non-Anthropic models
+function stripProxyPrefix(name = "") {
+  return name.startsWith(CLAUDE_OAUTH_TOOL_PREFIX)
+    ? name.slice(CLAUDE_OAUTH_TOOL_PREFIX.length)
+    : name;
+}
+
+// Sanitize tool call arguments to fix bad params from non-Anthropic models.
+// Returns null when JSON is still incomplete (incremental stream).
 function sanitizeToolArgs(toolName, argsJson) {
   try {
     const args = JSON.parse(argsJson);
-    const name = toolName.startsWith(CLAUDE_OAUTH_TOOL_PREFIX)
-      ? toolName.slice(CLAUDE_OAUTH_TOOL_PREFIX.length)
-      : toolName;
-    if (name === "Read") sanitizeReadArgs(args);
+    if (stripProxyPrefix(toolName) === "Read") sanitizeReadArgs(args);
     return JSON.stringify(args);
   } catch {
-    return argsJson;
+    return null;
   }
+}
+
+function ensureToolBlock(state, results, idx, tc) {
+  if (!state.toolCalls) state.toolCalls = new Map();
+  if (state.toolCalls.has(idx)) {
+    const info = state.toolCalls.get(idx);
+    if (tc.function?.name && !info.name) info.name = stripProxyPrefix(tc.function.name);
+    if (tc.id && !info.id) info.id = tc.id;
+    return info;
+  }
+
+  stopThinkingBlock(state, results);
+  stopTextBlock(state, results);
+
+  const toolBlockIndex = state.nextBlockIndex ?? 0;
+  state.nextBlockIndex = toolBlockIndex + 1;
+  const name = stripProxyPrefix(tc.function?.name || "");
+  const id = tc.id || fallbackToolCallId(idx);
+  const info = { id, name, blockIndex: toolBlockIndex, argsEmitted: false };
+  state.toolCalls.set(idx, info);
+  results.push({
+    type: "content_block_start",
+    index: toolBlockIndex,
+    content_block: {
+      type: CLAUDE_BLOCK.TOOL_USE,
+      id,
+      name,
+      input: {}
+    }
+  });
+  return info;
+}
+
+function emitToolArgsIfReady(state, results, idx, force) {
+  const info = state.toolCalls?.get(idx);
+  if (!info || info.argsEmitted) return;
+  const buffered = state.toolArgBuffers?.get(idx);
+  if (!buffered) return;
+  const sanitized = sanitizeToolArgs(info.name, buffered);
+  if (!sanitized && !force) return;
+  results.push({
+    type: "content_block_delta",
+    index: info.blockIndex,
+    delta: { type: "input_json_delta", partial_json: sanitized || buffered }
+  });
+  info.argsEmitted = true;
+}
+
+function finishClaudeMessage(state, results, finishReason) {
+  if (state.claudeMessageStopped) return;
+  stopThinkingBlock(state, results);
+  stopTextBlock(state, results);
+
+  if (state.toolArgBuffers) {
+    for (const idx of state.toolArgBuffers.keys()) {
+      if (!state.toolCalls?.has(idx)) ensureToolBlock(state, results, idx, {});
+    }
+  }
+
+  if (state.toolCalls) {
+    for (const [idx, toolInfo] of state.toolCalls) {
+      emitToolArgsIfReady(state, results, idx, true);
+      results.push({
+        type: "content_block_stop",
+        index: toolInfo.blockIndex
+      });
+    }
+  }
+
+  const reason = finishReason || (state.toolCalls?.size ? "tool_calls" : "stop");
+  state.claudeMessageStopped = true;
+  state.finishReason = reason;
+  const finalUsage = state.usage || { input_tokens: 0, output_tokens: 0 };
+  results.push({
+    type: "message_delta",
+    delta: { stop_reason: fromOpenAIFinish(reason, "claude") },
+    usage: finalUsage
+  });
+  results.push({ type: "message_stop" });
 }
 
 function sanitizeReadArgs(args) {
@@ -69,7 +153,14 @@ function stopTextBlock(state, results) {
 
 // Convert OpenAI stream chunk to Claude format
 export function openaiToClaudeResponse(chunk, state) {
-  if (!chunk || !chunk.choices?.[0]) return null;
+  if (!chunk) {
+    if (state.claudeMessageStopped) return null;
+    if (!state.toolCalls?.size && !state.toolArgBuffers?.size) return null;
+    const results = [];
+    finishClaudeMessage(state, results, null);
+    return results.length > 0 ? results : null;
+  }
+  if (!chunk.choices?.[0]) return null;
 
   const results = [];
   const choice = chunk.choices[0];
@@ -184,82 +275,25 @@ export function openaiToClaudeResponse(chunk, state) {
     for (const tc of delta.tool_calls) {
       const idx = tc.index ?? 0;
 
-      // GLM/fireworks repeats id+null-name on every arg chunk; open block once per idx
-      if (tc.id && !state.toolCalls.has(idx)) {
-        stopThinkingBlock(state, results);
-        stopTextBlock(state, results);
-
-        const toolBlockIndex = state.nextBlockIndex++;
-        state.toolCalls.set(idx, { id: tc.id, name: tc.function?.name || "", blockIndex: toolBlockIndex });
-
-        // Strip prefix from tool name for response
-        let toolName = tc.function?.name || "";
-        if (toolName.startsWith(CLAUDE_OAUTH_TOOL_PREFIX)) {
-          toolName = toolName.slice(CLAUDE_OAUTH_TOOL_PREFIX.length);
-        }
-
-        results.push({
-          type: "content_block_start",
-          index: toolBlockIndex,
-          content_block: {
-            type: CLAUDE_BLOCK.TOOL_USE,
-            id: tc.id,
-            name: toolName,
-            input: {}
-          }
-        });
+      if (tc.id || tc.function?.name) {
+        ensureToolBlock(state, results, idx, tc);
       }
 
       if (tc.function?.arguments) {
-        const toolInfo = state.toolCalls.get(idx);
-        if (toolInfo) {
-          // Buffer args instead of streaming — sanitize at finish to fix bad params
-          if (!state.toolArgBuffers) state.toolArgBuffers = new Map();
-          state.toolArgBuffers.set(idx, (state.toolArgBuffers.get(idx) || "") + tc.function.arguments);
+        appendToolArgBuffer(state, idx, tc.function.arguments);
+        if (state.toolCalls?.has(idx)) {
+          emitToolArgsIfReady(state, results, idx, false);
         }
       }
     }
   }
 
-  // Finish
   if (choice.finish_reason) {
-    stopThinkingBlock(state, results);
-    stopTextBlock(state, results);
-
-    for (const [idx, toolInfo] of state.toolCalls) {
-      // Emit buffered + sanitized args as single delta before stop
-      const buffered = state.toolArgBuffers?.get(idx);
-      if (buffered) {
-        const sanitized = sanitizeToolArgs(toolInfo.name, buffered);
-        results.push({
-          type: "content_block_delta",
-          index: toolInfo.blockIndex,
-          delta: { type: "input_json_delta", partial_json: sanitized }
-        });
-      }
-      results.push({
-        type: "content_block_stop",
-        index: toolInfo.blockIndex
-      });
-    }
-
-    // Mark finish for later usage injection in stream.js
-    state.finishReason = choice.finish_reason;
-
-    // Use tracked usage (will be estimated in stream.js if not valid)
-    const finalUsage = state.usage || { input_tokens: 0, output_tokens: 0 };
-    results.push({
-      type: "message_delta",
-      delta: { stop_reason: convertFinishReason(choice.finish_reason) },
-      usage: finalUsage
-    });
-    results.push({ type: "message_stop" });
+    finishClaudeMessage(state, results, choice.finish_reason);
   }
 
   return results.length > 0 ? results : null;
 }
-
-const convertFinishReason = (reason) => fromOpenAIFinish(reason, "claude");
 
 // Register
 register(FORMATS.OPENAI, FORMATS.CLAUDE, null, openaiToClaudeResponse);

@@ -59,3 +59,123 @@ describe("openaiToClaudeResponse tool argument sanitization", () => {
     });
   });
 });
+
+function collect(...batches) {
+  return batches.flatMap((events) => events || []);
+}
+
+describe("openaiToClaudeResponse ListDir / empty tool_use.input", () => {
+  it("emits ListDir path when arguments are complete JSON without finish_reason", () => {
+    const state = createState();
+    const events = openaiToClaudeResponse({
+      id: "chatcmpl-listdir",
+      model: "test-model",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            id: "call_ld",
+            function: {
+              name: "ListDir",
+              arguments: JSON.stringify({ path: "/Volumes/Code/Opensource/mrouter" }),
+            },
+          }],
+        },
+      }],
+    }, state);
+
+    expect(JSON.parse(getInputJsonDelta(events))).toEqual({
+      path: "/Volumes/Code/Opensource/mrouter",
+    });
+  });
+
+  it("stringifies object ListDir arguments instead of [object Object]", () => {
+    const state = createState();
+    const events = openaiToClaudeResponse({
+      id: "chatcmpl-listdir-obj",
+      model: "test-model",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            id: "call_ld",
+            function: {
+              name: "ListDir",
+              arguments: { path: "/Volumes/Code/Opensource/mrouter" },
+            },
+          }],
+        },
+        finish_reason: "tool_calls",
+      }],
+    }, state);
+
+    const raw = getInputJsonDelta(events);
+    expect(raw).not.toContain("[object Object]");
+    expect(JSON.parse(raw)).toEqual({ path: "/Volumes/Code/Opensource/mrouter" });
+  });
+
+  it("keeps arguments that arrive before the tool id", () => {
+    const state = createState();
+    openaiToClaudeResponse({
+      id: "chatcmpl-listdir-late-id",
+      model: "test-model",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            function: { arguments: JSON.stringify({ path: "/tmp/repo" }) },
+          }],
+        },
+      }],
+    }, state);
+
+    const events = openaiToClaudeResponse({
+      id: "chatcmpl-listdir-late-id",
+      model: "test-model",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            id: "call_late",
+            function: { name: "ListDir" },
+          }],
+        },
+        finish_reason: "tool_calls",
+      }],
+    }, state);
+
+    expect(JSON.parse(getInputJsonDelta(events))).toEqual({ path: "/tmp/repo" });
+  });
+
+  it("flushes leftover ListDir args and message_stop when stream ends without finish_reason", () => {
+    const state = createState();
+    const start = openaiToClaudeResponse({
+      id: "chatcmpl-listdir-flush",
+      model: "test-model",
+      choices: [{
+        delta: {
+          tool_calls: [{
+            index: 0,
+            id: "call_ld",
+            function: { name: "ListDir", arguments: '{"path":' },
+          }],
+        },
+      }],
+    }, state);
+    const mid = openaiToClaudeResponse({
+      id: "chatcmpl-listdir-flush",
+      model: "test-model",
+      choices: [{
+        delta: {
+          tool_calls: [{ index: 0, function: { arguments: '"/repo"}' } }],
+        },
+      }],
+    }, state);
+    const flushed = openaiToClaudeResponse(null, state);
+    const events = collect(start, mid, flushed);
+
+    expect(JSON.parse(getInputJsonDelta(events))).toEqual({ path: "/repo" });
+    expect(events.some((event) => event.type === "message_stop")).toBe(true);
+    expect(events.some((event) => event.delta?.stop_reason === "tool_use")).toBe(true);
+  });
+});

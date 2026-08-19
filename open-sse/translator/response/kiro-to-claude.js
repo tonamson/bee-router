@@ -15,6 +15,7 @@
  */
 import { register } from "../index.js";
 import { FORMATS } from "../formats.js";
+import { appendToolArgBuffer } from "../concerns/toolCall.js";
 
 function stopThinkingBlock(state, results) {
   if (!state.thinkingBlockStarted) return;
@@ -47,6 +48,14 @@ function convertFinishReason(reason) {
  * Returns an array of Claude events, or null when the chunk yields nothing.
  */
 export function kiroToClaudeResponse(chunk, state) {
+  if (!chunk) {
+    if (state.finishReason) return null;
+    if (!state.toolCalls?.size && !state.toolArgBuffers?.size) return null;
+    return kiroToClaudeResponse({
+      choices: [{ delta: {}, finish_reason: "tool_calls" }],
+    }, state);
+  }
+
   // KiroExecutor emits chat.completion.chunk objects; tolerate string chunks
   // by attempting a parse (defensive — the direct path is always objects).
   let data = chunk;
@@ -176,13 +185,7 @@ export function kiroToClaudeResponse(chunk, state) {
         });
       }
       if (tc.function?.arguments) {
-        const toolInfo = state.toolCalls.get(idx);
-        if (toolInfo) {
-          state.toolArgBuffers.set(
-            idx,
-            (state.toolArgBuffers.get(idx) || "") + tc.function.arguments
-          );
-        }
+        appendToolArgBuffer(state, idx, tc.function.arguments);
       }
     }
   }

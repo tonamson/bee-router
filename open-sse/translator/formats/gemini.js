@@ -331,6 +331,11 @@ function resolveLocalRefs(root) {
 }
 
 // Clean JSON Schema for Antigravity API compatibility - removes unsupported keywords recursively
+/** Gemini 3 / AGY CLI send JSON Schema on `parametersJsonSchema`, not `parameters`. */
+export function geminiFunctionParameters(func) {
+  return func?.parameters || func?.parametersJsonSchema || { type: "object", properties: {} };
+}
+
 export function cleanJSONSchemaForAntigravity(schema) {
   if (!schema || typeof schema !== "object") return schema;
 
