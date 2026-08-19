@@ -17,23 +17,27 @@ const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
 // Combined entry: webSearch + webFetch share one page at /dashboard/media-providers/web
 const COMBINED_WEB_ITEM = { id: "web", label: "Web Fetch & Search", icon: "travel_explore", href: "/dashboard/media-providers/web" };
 
-const navItems = [
+const gatewayItems = [
   { href: "/dashboard/endpoint", label: "Endpoint & Keys", icon: "key" },
   { href: "/dashboard/providers", label: "Providers", icon: "dns" },
   { href: "/dashboard/combos", label: "Combos & Routing", icon: "layers" },
+];
+
+const analyticsItems = [
   { href: "/dashboard/usage", label: "Usage & Stats", icon: "bar_chart" },
   { href: "/dashboard/quota", label: "Quota Tracker", icon: "data_usage" },
   { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
-  { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
 ];
 
-const debugItems = [
-  { href: "/dashboard/console-log", label: "Console Log", icon: "dvr" },
-  { href: "/dashboard/translator", label: "Translator", icon: "translate" },
+const extensionItems = [
+  { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
+  { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
 ];
 
 const systemItems = [
-  { href: "/dashboard/proxy-pools", label: "Proxy Pools", icon: "lan" },
+  { href: "/dashboard/console-log", label: "Console Log", icon: "dvr" },
+  { href: "/dashboard/translator", label: "Translator", icon: "translate" },
+  { href: "/dashboard/profile", label: "Settings", icon: "settings" },
 ];
 
 export default function Sidebar({ onClose }) {
@@ -174,231 +178,14 @@ export default function Sidebar({ onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
-                isActive(item.href)
-                  ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
-                  : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-              )}
-            >
-              <span
-                className={cn(
-                  "material-symbols-outlined text-[18px]",
-                  isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                )}
-              >
-                {item.icon}
-              </span>
-              <span className="text-[13px]">{item.label}</span>
-            </Link>
-          ))}
-
-          <button
-            type="button"
-            onClick={() => setAnalyticsOpen((v) => !v)}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
-              pathname.startsWith("/dashboard/analytics")
-                ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
-                : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-            )}
-          >
-            <span
-              className={cn(
-                "material-symbols-outlined text-[18px]",
-                pathname.startsWith("/dashboard/analytics") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-              )}
-            >
-              insights
-            </span>
-            <span className="text-[13px] flex-1 text-left">Analytics</span>
-            <span
-              className="material-symbols-outlined text-[14px] transition-transform"
-              style={{ transform: analyticsOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-            >
-              expand_more
-            </span>
-          </button>
-          {analyticsOpen && (
-            <div className="pl-4 space-y-0.5 mt-0.5">
-              <Link
-                href="/dashboard/analytics/keys"
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
-                  pathname.startsWith("/dashboard/analytics/keys")
-                    ? "bg-primary/10 text-primary border-primary font-medium"
-                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-                )}
-              >
-                <span
-                  className={cn(
-                    "material-symbols-outlined text-[16px]",
-                    pathname.startsWith("/dashboard/analytics/keys") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                  )}
-                >
-                  key
-                </span>
-                <span className="text-xs">API Keys</span>
-              </Link>
-              <Link
-                href="/dashboard/analytics/token-save"
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
-                  pathname.startsWith("/dashboard/analytics/token-save")
-                    ? "bg-primary/10 text-primary border-primary font-medium"
-                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-                )}
-              >
-                <span
-                  className={cn(
-                    "material-symbols-outlined text-[16px]",
-                    pathname.startsWith("/dashboard/analytics/token-save") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                  )}
-                >
-                  savings
-                </span>
-                <span className="text-xs">Token Save</span>
-              </Link>
-              <Link
-                href="/dashboard/analytics/pricing"
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
-                  pathname.startsWith("/dashboard/analytics/pricing")
-                    ? "bg-primary/10 text-primary border-primary font-medium"
-                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-                )}
-              >
-                <span
-                  className={cn(
-                    "material-symbols-outlined text-[16px]",
-                    pathname.startsWith("/dashboard/analytics/pricing") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                  )}
-                >
-                  attach_money
-                </span>
-                <span className="text-xs">Pricing</span>
-              </Link>
-            </div>
-          )}
-
-          {/* System section */}
-          <div className="pt-3 mt-2 space-y-0.5">
-            <p className="px-3 text-[11px] font-bold text-text-muted/60 uppercase tracking-wider mb-2">
-              System
+        <nav className="flex-1 px-3 py-2 space-y-3 overflow-y-auto custom-scrollbar">
+          {/* 1. GATEWAY */}
+          <div>
+            <p className="px-3 text-[10px] font-bold text-text-muted/60 uppercase tracking-wider mb-1">
+              Gateway
             </p>
-
-            {/* Media Providers accordion */}
-            <button
-              onClick={() => setMediaOpen((v) => !v)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
-                pathname.startsWith("/dashboard/media-providers")
-                  ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
-                  : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-              )}
-            >
-              <span
-                className={cn(
-                  "material-symbols-outlined text-[18px]",
-                  pathname.startsWith("/dashboard/media-providers") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                )}
-              >
-                perm_media
-              </span>
-              <span className="text-[13px] flex-1 text-left">Media Providers</span>
-              <span
-                className="material-symbols-outlined text-[14px] transition-transform"
-                style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-              >
-                expand_more
-              </span>
-            </button>
-            {mediaOpen && (
-              <div className="pl-4 space-y-0.5 mt-0.5">
-                {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
-                  <Link
-                    key={kind.id}
-                    href={`/dashboard/media-providers/${kind.id}`}
-                    onClick={onClose}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
-                      pathname.startsWith(`/dashboard/media-providers/${kind.id}`)
-                        ? "bg-primary/10 text-primary border-primary font-medium"
-                        : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "material-symbols-outlined text-[16px]",
-                        pathname.startsWith(`/dashboard/media-providers/${kind.id}`) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                      )}
-                    >
-                      {kind.icon}
-                    </span>
-                    <span className="text-xs">{kind.label}</span>
-                  </Link>
-                ))}
-                <Link
-                  key={COMBINED_WEB_ITEM.id}
-                  href={COMBINED_WEB_ITEM.href}
-                  onClick={onClose}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
-                    pathname.startsWith(COMBINED_WEB_ITEM.href)
-                      ? "bg-primary/10 text-primary border-primary font-medium"
-                      : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "material-symbols-outlined text-[16px]",
-                      pathname.startsWith(COMBINED_WEB_ITEM.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                    )}
-                  >
-                    {COMBINED_WEB_ITEM.icon}
-                  </span>
-                  <span className="text-xs">{COMBINED_WEB_ITEM.label}</span>
-                </Link>
-              </div>
-            )}
-
-            {systemItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
-                  isActive(item.href)
-                    ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
-                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-                )}
-              >
-                <span
-                  className={cn(
-                    "material-symbols-outlined text-[18px]",
-                    isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
-                  )}
-                >
-                  {item.icon}
-                </span>
-                <span className="text-[13px]">{item.label}</span>
-              </Link>
-            ))}
-
-            {/* Debug items (inside System section, before Settings) */}
-            {debugItems.map((item) => {
-              const show = item.href !== "/dashboard/translator" || enableTranslator;
-              return show ? (
+            <div className="space-y-0.5">
+              {gatewayItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -420,30 +207,273 @@ export default function Sidebar({ onClose }) {
                   </span>
                   <span className="text-[13px]">{item.label}</span>
                 </Link>
-              ) : null;
-            })}
+              ))}
+            </div>
+          </div>
 
-            {/* Settings */}
-            <Link
-              href="/dashboard/profile"
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
-                isActive("/dashboard/profile")
-                  ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
-                  : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
-              )}
-            >
-              <span
+          {/* 2. ANALYTICS & USAGE */}
+          <div>
+            <p className="px-3 text-[10px] font-bold text-text-muted/60 uppercase tracking-wider mb-1">
+              Analytics & Usage
+            </p>
+            <div className="space-y-0.5">
+              {analyticsItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
+                    isActive(item.href)
+                      ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                      : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "material-symbols-outlined text-[18px]",
+                      isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                    )}
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="text-[13px]">{item.label}</span>
+                </Link>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setAnalyticsOpen((v) => !v)}
                 className={cn(
-                  "material-symbols-outlined text-[18px]",
-                  isActive("/dashboard/profile") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
+                  pathname.startsWith("/dashboard/analytics")
+                    ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
                 )}
               >
-                settings
-              </span>
-              <span className="text-[13px]">Settings</span>
-            </Link>
+                <span
+                  className={cn(
+                    "material-symbols-outlined text-[18px]",
+                    pathname.startsWith("/dashboard/analytics") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                  )}
+                >
+                  insights
+                </span>
+                <span className="text-[13px] flex-1 text-left">Analytics</span>
+                <span
+                  className="material-symbols-outlined text-[14px] transition-transform"
+                  style={{ transform: analyticsOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                >
+                  expand_more
+                </span>
+              </button>
+              {analyticsOpen && (
+                <div className="pl-4 space-y-0.5 mt-0.5">
+                  <Link
+                    href="/dashboard/analytics/keys"
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
+                      pathname.startsWith("/dashboard/analytics/keys")
+                        ? "bg-primary/10 text-primary border-primary font-medium"
+                        : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "material-symbols-outlined text-[16px]",
+                        pathname.startsWith("/dashboard/analytics/keys") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                      )}
+                    >
+                      key
+                    </span>
+                    <span className="text-xs">API Keys</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/analytics/token-save"
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
+                      pathname.startsWith("/dashboard/analytics/token-save")
+                        ? "bg-primary/10 text-primary border-primary font-medium"
+                        : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "material-symbols-outlined text-[16px]",
+                        pathname.startsWith("/dashboard/analytics/token-save") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                      )}
+                    >
+                      savings
+                    </span>
+                    <span className="text-xs">Token Save</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/analytics/pricing"
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
+                      pathname.startsWith("/dashboard/analytics/pricing")
+                        ? "bg-primary/10 text-primary border-primary font-medium"
+                        : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "material-symbols-outlined text-[16px]",
+                        pathname.startsWith("/dashboard/analytics/pricing") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                      )}
+                    >
+                      attach_money
+                    </span>
+                    <span className="text-xs">Pricing</span>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 3. ROUTING & EXTENSIONS */}
+          <div>
+            <p className="px-3 text-[10px] font-bold text-text-muted/60 uppercase tracking-wider mb-1">
+              Routing & Extensions
+            </p>
+            <div className="space-y-0.5">
+              {/* Media Providers accordion */}
+              <button
+                onClick={() => setMediaOpen((v) => !v)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
+                  pathname.startsWith("/dashboard/media-providers")
+                    ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                    : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                )}
+              >
+                <span
+                  className={cn(
+                    "material-symbols-outlined text-[18px]",
+                    pathname.startsWith("/dashboard/media-providers") ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                  )}
+                >
+                  perm_media
+                </span>
+                <span className="text-[13px] flex-1 text-left">Media Providers</span>
+                <span
+                  className="material-symbols-outlined text-[14px] transition-transform"
+                  style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                >
+                  expand_more
+                </span>
+              </button>
+              {mediaOpen && (
+                <div className="pl-4 space-y-0.5 mt-0.5">
+                  {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
+                    <Link
+                      key={kind.id}
+                      href={`/dashboard/media-providers/${kind.id}`}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
+                        pathname.startsWith(`/dashboard/media-providers/${kind.id}`)
+                          ? "bg-primary/10 text-primary border-primary font-medium"
+                          : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "material-symbols-outlined text-[16px]",
+                          pathname.startsWith(`/dashboard/media-providers/${kind.id}`) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                        )}
+                      >
+                        {kind.icon}
+                      </span>
+                      <span className="text-xs">{kind.label}</span>
+                    </Link>
+                  ))}
+                  <Link
+                    key={COMBINED_WEB_ITEM.id}
+                    href={COMBINED_WEB_ITEM.href}
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-1.5 rounded-r-lg transition-all group border-l-2",
+                      pathname.startsWith(COMBINED_WEB_ITEM.href)
+                        ? "bg-primary/10 text-primary border-primary font-medium"
+                        : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "material-symbols-outlined text-[16px]",
+                        pathname.startsWith(COMBINED_WEB_ITEM.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                      )}
+                    >
+                      {COMBINED_WEB_ITEM.icon}
+                    </span>
+                    <span className="text-xs">{COMBINED_WEB_ITEM.label}</span>
+                  </Link>
+                </div>
+              )}
+
+              {extensionItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
+                    isActive(item.href)
+                      ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                      : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "material-symbols-outlined text-[18px]",
+                      isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                    )}
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="text-[13px]">{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. SYSTEM & TOOLS */}
+          <div>
+            <p className="px-3 text-[10px] font-bold text-text-muted/60 uppercase tracking-wider mb-1">
+              System & Tools
+            </p>
+            <div className="space-y-0.5">
+              {systemItems.map((item) => {
+                const show = item.href !== "/dashboard/translator" || enableTranslator;
+                return show ? (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-r-lg transition-all group border-l-2",
+                      isActive(item.href)
+                        ? "bg-primary/10 text-primary border-primary font-medium shadow-[inset_2px_0_8px_rgba(255,199,0,0.12)]"
+                        : "border-transparent text-text-muted hover:bg-surface-2 hover:text-text-main"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "material-symbols-outlined text-[18px]",
+                        isActive(item.href) ? "fill-1 text-primary" : "group-hover:text-primary transition-colors"
+                      )}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="text-[13px]">{item.label}</span>
+                  </Link>
+                ) : null;
+              })}
+            </div>
           </div>
         </nav>
       </aside>
