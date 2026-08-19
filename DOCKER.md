@@ -122,8 +122,9 @@ Push a git tag `v*` → GitHub Actions builds multi-platform (amd64+arm64) and p
 - `tonamson/bee-router:v{version}` + `:latest`
 
 ```bash
-# Use scripts/release.js (recommended)
-node scripts/release.js "Release title" "Notes"
+# Bump, commit, annotated tag vX.Y.Z (default patch)
+yarn bump
+yarn bump minor --push   # also push branch + tag (triggers this workflow)
 
 # Or manually
 git tag v0.4.x && git push origin v0.4.x
