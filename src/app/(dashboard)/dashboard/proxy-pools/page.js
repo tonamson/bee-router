@@ -565,7 +565,7 @@ export default function ProxyPoolsPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:gap-6 sm:px-0">
+      <div className="flex w-full flex-col gap-4 px-1 sm:gap-6 sm:px-0">
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -573,7 +573,7 @@ export default function ProxyPoolsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
+    <div className="flex w-full flex-col gap-6 px-1 sm:px-0">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/80 bg-surface/80 backdrop-blur-md">
         <div className="flex items-start gap-3">

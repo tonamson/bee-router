@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }) {
       />
       <main id="main" className="flex min-h-0 flex-1 flex-col">
         <div className={`flex-1 overflow-y-auto custom-scrollbar ${pathname === "/dashboard/basic-chat" ? "" : "p-6 lg:p-10"}`}>
-          <div className={pathname === "/dashboard/basic-chat" ? "flex-1 w-full h-full flex flex-col" : "max-w-7xl mx-auto"}>
+          <div className={pathname === "/dashboard/basic-chat" ? "flex-1 w-full h-full flex flex-col" : "w-full"}>
             {children}
           </div>
         </div>

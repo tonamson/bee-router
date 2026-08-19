@@ -24,7 +24,7 @@ const ITEMS = [
 
 export default function AnalyticsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
+    <div className="flex w-full flex-col gap-6 px-1 sm:px-0">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-bold tracking-tight text-text-main">Analytics & Insights Hub</h2>
         <p className="text-xs text-text-muted">

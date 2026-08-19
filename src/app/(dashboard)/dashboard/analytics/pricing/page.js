@@ -68,7 +68,7 @@ export default function PricingSettingsPage() {
   const modelCount = Object.keys(canonical).length;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:px-0">
+    <div className="flex w-full flex-col gap-4 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-text-muted">
           Same model, one id across providers. Prefixes, 3.5 vs 3-5, and dated snapshots collapse.
