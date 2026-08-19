@@ -24,19 +24,35 @@ const ITEMS = [
 
 export default function AnalyticsPage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:px-0">
-      <p className="text-sm text-text-muted">
-        Cost and compression analytics. Settings stay on Token Saver.
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-bold tracking-tight text-text-main">Analytics & Insights Hub</h2>
+        <p className="text-xs text-text-muted">
+          Deep-dive into API key consumption, token compression savings, and provider pricing models.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {ITEMS.map((item) => (
-          <Link key={item.href} href={item.href} className="block">
-            <Card padding="sm" className="hover:border-primary/50 transition-colors">
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary text-[22px]">{item.icon}</span>
+          <Link key={item.href} href={item.href} className="group block">
+            <Card
+              padding="md"
+              className="h-full flex flex-col justify-between border-border/80 hover:border-brand-500/40 hover:shadow-[0_0_20px_rgba(255,199,0,0.12)] transition-all duration-200"
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="size-9 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-400 group-hover:scale-105 transition-transform">
+                    <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  </div>
+                  <span className="material-symbols-outlined text-[18px] text-text-subtle group-hover:text-brand-400 group-hover:translate-x-0.5 transition-all">
+                    arrow_forward
+                  </span>
+                </div>
                 <div>
-                  <h2 className="text-sm font-semibold">{item.title}</h2>
-                  <p className="text-xs text-text-muted mt-0.5">{item.desc}</p>
+                  <h3 className="text-sm font-semibold text-text-main group-hover:text-brand-400 transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-text-muted mt-1 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             </Card>
