@@ -1,7 +1,6 @@
 import https from "https";
-import pkg from "../../../../package.json" with { type: "json" };
+import { APP_VERSION, NPM_PACKAGE_NAME } from "@/shared/constants/version.js";
 
-const NPM_PACKAGE_NAME = "@tonamson2/bee-router";
 const VERSION_CACHE_TTL_MS = 3600000; // cache npm latest lookup for 1h
 
 // Survive hot reload; one cache per process
@@ -54,7 +53,7 @@ async function getLatestVersionCached() {
 
 export async function GET() {
   const latestVersion = await getLatestVersionCached();
-  const currentVersion = pkg.version;
+  const currentVersion = APP_VERSION;
   const hasUpdate = latestVersion ? compareVersions(latestVersion, currentVersion) > 0 : false;
 
   return Response.json({ currentVersion, latestVersion, hasUpdate });

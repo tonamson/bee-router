@@ -1,10 +1,10 @@
-import pkg from "../../../package.json" with { type: "json" };
+import { APP_VERSION, APP_NAME, NPM_PACKAGE_NAME } from "./version.js";
 
 // App configuration
 export const APP_CONFIG = {
   name: "BeeRouter",
   description: "The Smartest AI Hive — Fast AI Routing & Unified Proxy",
-  version: pkg.version,
+  version: APP_VERSION,
 };
 
 // GitHub configuration
@@ -14,7 +14,7 @@ export const GITHUB_CONFIG = {
 
 // Updater configuration
 export const UPDATER_CONFIG = {
-  npmPackageName: "@tonamson2/bee-router",
+  npmPackageName: NPM_PACKAGE_NAME,
   installCmd: "npm i -g @tonamson2/bee-router",
   installCmdLatest: "npm i -g @tonamson2/bee-router@latest --prefer-online",
   shutdownCountdownSec: 3,
