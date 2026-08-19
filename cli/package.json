@@ -1,6 +1,6 @@
 {
   "name": "@tonamson2/bee-router",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "BeeRouter CLI - Start and manage BeeRouter server",
   "bin": {
     "bee-router": "./cli.js"

@@ -51,9 +51,10 @@ function main() {
 
   let targetVersion = currentVersion;
   const isSyncOnly = args.includes("--sync-only");
+  const bumpArg = args.find((a) => a !== "--sync-only");
 
-  if (!isSyncOnly && args[0]) {
-    targetVersion = bumpSemver(currentVersion, args[0]);
+  if (!isSyncOnly) {
+    targetVersion = bumpSemver(currentVersion, bumpArg || "patch");
     updateJsonVersion(rootPkgPath, targetVersion);
     console.log(`🚀 Bumped root version: ${currentVersion} → ${targetVersion}`);
   } else {
