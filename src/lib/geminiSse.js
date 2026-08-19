@@ -108,6 +108,7 @@ export async function convertOpenAIResponseToGemini(response, model) {
   }
 
   const message = choice.message || {};
+  const hasTools = Array.isArray(message.tool_calls) && message.tool_calls.length > 0;
   const geminiResponse = openaiChunkToGemini({
     id: body.id,
     model: body.model || model,
@@ -117,7 +118,7 @@ export async function convertOpenAIResponseToGemini(response, model) {
         reasoning_content: message.reasoning_content,
         tool_calls: message.tool_calls,
       },
-      finish_reason: choice.finish_reason,
+      finish_reason: choice.finish_reason || (hasTools ? "tool_calls" : undefined),
     }],
     usage: body.usage,
   }, {}, model) || { candidates: [] };

@@ -83,7 +83,7 @@ function convertGeminiContent(content) {
   const toolResults = [];
 
   for (const part of content.parts) {
-    if (part.text !== undefined) {
+    if (part.text !== undefined && part.thought !== true) {
       parts.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
     }
 
@@ -119,15 +119,21 @@ function convertGeminiContent(content) {
   }
 
   if (toolResults.length > 0) {
-    if (toolCalls.length > 0 || parts.length > 0) {
-      const assistantMsg = { role: ROLE.ASSISTANT };
-      if (parts.length > 0) {
+    const extra = [];
+    if (toolCalls.length > 0) {
+      const assistantMsg = { role: ROLE.ASSISTANT, tool_calls: toolCalls };
+      if (role === ROLE.ASSISTANT && parts.length > 0) {
         assistantMsg.content = parts.length === 1 ? parts[0].text : parts;
       }
-      if (toolCalls.length > 0) assistantMsg.tool_calls = toolCalls;
-      return [...toolResults, assistantMsg];
+      extra.push(assistantMsg);
+    } else if (parts.length > 0) {
+      extra.push({
+        role,
+        content: parts.length === 1 ? parts[0].text : parts,
+      });
     }
-    return toolResults.length === 1 ? toolResults[0] : toolResults;
+    const out = [...toolResults, ...extra];
+    return out.length === 1 ? out[0] : out;
   }
 
   if (toolCalls.length > 0) {

@@ -137,4 +137,26 @@ describe("v1beta Gemini SSE — agy tool calls", () => {
       .find((part) => part.functionCall);
     expect(fn?.functionCall).toEqual({ name: "list_dir", args: { uri: "file:///tmp" }, id: "call_1" });
   });
+
+  it("maps non-stream tool_calls when finish_reason is missing", async () => {
+    const response = await convertOpenAIResponseToGemini(
+      Response.json({
+        model: "x",
+        choices: [{
+          message: {
+            role: "assistant",
+            tool_calls: [{
+              id: "call_1",
+              type: "function",
+              function: { name: "list_dir", arguments: '{"uri":"file:///tmp"}' },
+            }],
+          },
+        }],
+      }),
+      "gemini-3.1-pro",
+    );
+    const body = await response.json();
+    const fn = (body.candidates?.[0]?.content?.parts || []).find((part) => part.functionCall);
+    expect(fn?.functionCall).toEqual({ name: "list_dir", args: { uri: "file:///tmp" }, id: "call_1" });
+  });
 });

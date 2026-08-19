@@ -5,6 +5,7 @@ import { translateRequest, translateResponse, initState } from "../../open-sse/t
 import { FORMATS } from "../../open-sse/translator/formats.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
 import { openaiToAntigravityRequest } from "../../open-sse/translator/request/openai-to-gemini.js";
+import { geminiToOpenAIRequest } from "../../open-sse/translator/request/gemini-to-openai.js";
 import { openaiToAntigravityResponse } from "../../open-sse/translator/response/openai-to-antigravity.js";
 import { cleanJSONSchemaForAntigravity } from "../../open-sse/translator/formats/gemini.js";
 import { ANTIGRAVITY_DEFAULT_SYSTEM } from "../../open-sse/config/appConstants.js";
@@ -54,6 +55,25 @@ describe("Antigravity → OpenAI", () => {
       ? content.some((c) => c.type === "text" && c.text === "")
       : content === "";
     expect(hasEmpty, "empty text part emitted").toBe(false);
+  });
+});
+
+describe("Gemini → OpenAI (v1beta)", () => {
+  it("keeps user role when functionResponse shares a turn with text", () => {
+    const out = geminiToOpenAIRequest("m", {
+      contents: [{
+        role: "user",
+        parts: [
+          { functionResponse: { id: "c1", name: "list_dir", response: { result: "ok" } } },
+          { text: "what is in src?" },
+        ],
+      }],
+    }, true);
+    const tool = out.messages.find((m) => m.role === "tool");
+    const user = out.messages.find((m) => m.role === "user");
+    expect(tool?.tool_call_id).toBe("c1");
+    expect(user?.content).toBe("what is in src?");
+    expect(out.messages.some((m) => m.role === "assistant")).toBe(false);
   });
 });
 
