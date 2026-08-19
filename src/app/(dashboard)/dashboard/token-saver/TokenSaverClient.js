@@ -469,37 +469,57 @@ export default function TokenSaverClient() {
       : "bg-warning/15 text-warning";
 
   return (
-    <div className="space-y-6 p-6">
-      <Card id="rtk">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
+    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/80 bg-surface/80 backdrop-blur-md">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0 shadow-[0_0_15px_rgba(255,199,0,0.15)]">
+            <span className="material-symbols-outlined text-[22px]">savings</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-text-main">Token Saver & Compression Engine</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+                Real-time Optimization
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Cuts payload bytes before sending to upstream providers to reduce latency and token bills.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/dashboard/analytics/token-save"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 hover:bg-surface-3 border border-border/80 text-xs font-semibold text-text-main hover:text-brand-400 transition-all self-start sm:self-auto shrink-0"
+        >
+          <span className="material-symbols-outlined text-[16px] text-brand-400">bar_chart</span>
+          <span>View Savings Analytics</span>
+        </a>
+      </div>
+
+      <Card id="rtk" className="border-border/80 hover:border-brand-500/20 transition-all duration-200">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold flex items-center gap-2 text-text-main">
+            <span className="material-symbols-outlined text-primary text-[20px]">
               bolt
             </span>
-            Token Saver
+            Compression Algorithms & Heuristics
           </h2>
         </div>
-        <p className="text-sm text-text-muted mb-3">
-          Cuts bytes before send. Does not create provider cache-read tokens —
-          those are a separate discount the provider reports.{" "}
-          <a href="/dashboard/analytics/token-save" className="text-primary underline">
-            See both meters
-          </a>
-        </p>
-        <div className="flex items-center justify-between pt-2 pb-4 border-b border-border gap-4">
+        <div className="flex items-center justify-between p-3.5 rounded-xl bg-surface-2/30 border border-border/60 mb-3 gap-4">
           <div className="min-w-0 flex-1">
-            <p className="font-medium">
+            <p className="text-sm font-semibold text-text-main">
               Compress tool output{" "}
               <a
                 href="https://github.com/rtk-ai/rtk"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-normal text-primary underline hover:opacity-80"
+                className="text-xs font-normal text-brand-400 underline hover:opacity-80"
               >
                 (RTK)
               </a>
             </p>
-            <p className="text-sm text-text-muted">
+            <p className="text-xs text-text-muted mt-0.5">
               git/grep/ls/tree/logs → 20–40% typical, 60–90% on dirty tool dumps
             </p>
           </div>
@@ -508,10 +528,10 @@ export default function TokenSaverClient() {
             onChange={() => handleRtkEnabled(!rtkEnabled)}
           />
         </div>
-        <div className="flex items-center justify-between py-4 border-b border-border gap-4">
+        <div className="flex items-center justify-between p-3.5 rounded-xl bg-surface-2/30 border border-border/60 mb-3 gap-4">
           <div className="min-w-0 flex-1">
-            <p className="font-medium">Clean whitespace (Lite)</p>
-            <p className="text-sm text-text-muted">
+            <p className="text-sm font-semibold text-text-main">Clean whitespace (Lite)</p>
+            <p className="text-xs text-text-muted mt-0.5">
               Collapse blank lines, minify pretty JSON, strip ANSI, drop back-to-back duplicate messages. Safe, lossless.
             </p>
           </div>

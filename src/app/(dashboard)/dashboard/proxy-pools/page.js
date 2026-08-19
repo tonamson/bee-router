@@ -573,13 +573,27 @@ export default function ProxyPoolsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:gap-6 sm:px-0">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold sm:text-2xl">Proxy Pools</h1>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/80 bg-surface/80 backdrop-blur-md">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0 shadow-[0_0_15px_rgba(255,199,0,0.15)]">
+            <span className="material-symbols-outlined text-[22px]">public</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-text-main">Outbound Proxy Pools & Relays</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+                {activeCount} / {proxyPools.length} Active
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Distribute outbound requests across rotating proxies or serverless edge relays (Cloudflare, Vercel, Deno).
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:flex sm:items-center">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto shrink-0">
           <div className="relative" ref={relayMenuRef}>
             <Button
               size="sm"
@@ -594,36 +608,36 @@ export default function ProxyPoolsPage() {
             </Button>
 
             {showRelayMenu && (
-              <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-black/10 bg-white p-1 shadow-xl dark:border-white/10 dark:bg-zinc-900 sm:left-auto sm:right-0">
+              <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-border/80 bg-surface-2 p-1.5 shadow-2xl backdrop-blur-xl sm:left-auto sm:right-0">
                 <button
                   onClick={() => {
                     openCloudflareModal();
                     setShowRelayMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-main transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-text-main transition-colors hover:bg-surface-3"
                 >
-                  <span className="material-symbols-outlined text-[20px] text-orange-500">cloud</span>
-                  Cloudflare Relay
+                  <span className="material-symbols-outlined text-[18px] text-amber-500">cloud</span>
+                  Cloudflare Worker Relay
                 </button>
                 <button
                   onClick={() => {
                     openVercelModal();
                     setShowRelayMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-main transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-text-main transition-colors hover:bg-surface-3"
                 >
-                  <span className="material-symbols-outlined text-[20px] text-blue-500">cloud_upload</span>
-                  Vercel Relay
+                  <span className="material-symbols-outlined text-[18px] text-blue-500">cloud_upload</span>
+                  Vercel Edge Relay
                 </button>
                 <button
                   onClick={() => {
                     openDenoModal();
                     setShowRelayMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-text-main transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-text-main transition-colors hover:bg-surface-3"
                 >
-                  <span className="material-symbols-outlined text-[20px] text-green-500">terminal</span>
-                  Deno Relay
+                  <span className="material-symbols-outlined text-[18px] text-emerald-500">terminal</span>
+                  Deno Subhosting Relay
                 </button>
               </div>
             )}
@@ -632,11 +646,11 @@ export default function ProxyPoolsPage() {
           <Button size="sm" variant="secondary" icon="upload" onClick={openBatchImportModal}>
             Batch Import
           </Button>
-          <Button size="sm" icon="add" onClick={openCreateModal}>Add Proxy Pool</Button>
+          <Button size="sm" icon="add" onClick={openCreateModal}>Add Proxy</Button>
         </div>
       </div>
 
-      <Card>
+      <Card className="border-border/80">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {proxyPools.length > 0 && (
             <label className="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer">

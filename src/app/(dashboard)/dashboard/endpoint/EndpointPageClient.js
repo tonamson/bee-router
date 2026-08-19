@@ -858,18 +858,51 @@ export default function APIPageClient({ machineId }) {
   }
 
   const currentEndpoint = baseUrl;
+  const activeKeysCount = keys.filter(k => k.isActive !== false).length;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
+      {/* Top Gateway Status & Quick Info */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-border/80 bg-surface/80 backdrop-blur-md shadow-[var(--shadow-soft)]">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shadow-[0_0_15px_rgba(255,199,0,0.15)]">
+            <span className="material-symbols-outlined text-[22px]">router</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-text-main">BeeRouter Gateway</h2>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)] animate-pulse" />
+                Active
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Unified OpenAI/Anthropic/Gemini proxy endpoint & key management
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto font-mono text-xs">
+          <div className="px-2.5 py-1 rounded-lg bg-surface-2 border border-border/60 text-text-muted flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[15px] text-brand-400">key</span>
+            <span>{activeKeysCount} / {keys.length} Keys Active</span>
+          </div>
+        </div>
+      </div>
+
       {/* Endpoint Card */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">api</span>
-          API Endpoint
-        </h2>
+      <Card className="border-border/80 hover:border-brand-500/20 transition-all duration-200">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold flex items-center gap-2 text-text-main">
+            <span className="material-symbols-outlined text-primary text-[20px]">api</span>
+            API Endpoints & Remote Access
+          </h2>
+          <span className="text-[11px] font-mono text-text-muted bg-surface-2 px-2 py-0.5 rounded border border-border/60">
+            OpenAI & Anthropic Compatible
+          </span>
+        </div>
 
         {/* Endpoint rows */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {/* Local */}
           <EndpointRow
             label="Local"
@@ -1135,22 +1168,32 @@ export default function APIPageClient({ machineId }) {
       </Card>
 
       {/* API Keys */}
-      <Card id="require-api-key">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">vpn_key</span>
-            API Keys
-          </h2>
-          <Button icon="add" onClick={() => setShowAddModal(true)}>
-            Create Key
+      <Card id="require-api-key" className="border-border/80 hover:border-brand-500/20 transition-all duration-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-lg bg-brand-500/10 flex items-center justify-center text-brand-400">
+              <span className="material-symbols-outlined text-[18px]">vpn_key</span>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-text-main flex items-center gap-2">
+                Gateway API Keys
+                <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 text-text-muted border border-border/60 font-mono">
+                  {keys.length}
+                </span>
+              </h2>
+              <p className="text-xs text-text-muted">Manage access keys and granular rate/token limits</p>
+            </div>
+          </div>
+          <Button icon="add" onClick={() => setShowAddModal(true)} className="self-start sm:self-auto">
+            Create API Key
           </Button>
         </div>
 
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-surface-2/40 border border-border/60 mb-5">
           <div>
-            <p className="font-medium">Require API key</p>
-            <p className="text-sm text-text-muted">
-              Requests without a valid key will be rejected
+            <p className="text-xs font-semibold text-text-main">Require API key</p>
+            <p className="text-[11px] text-text-muted">
+              Reject incoming requests that lack a valid Authorization Bearer header
             </p>
           </div>
           <Toggle
@@ -1160,43 +1203,43 @@ export default function APIPageClient({ machineId }) {
         </div>
 
         {isRemoteHost && !requireApiKey && (
-          <div className="mb-4 -mt-2">
+          <div className="mb-4">
             <SecurityWarning message="Endpoint is exposed without an API key." />
           </div>
         )}
 
         {keys.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-              <span className="material-symbols-outlined text-[32px]">vpn_key</span>
+          <div className="text-center py-12 border border-dashed border-border/80 rounded-xl">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500/10 text-brand-400 mb-3 shadow-[0_0_20px_rgba(255,199,0,0.15)]">
+              <span className="material-symbols-outlined text-[28px]">vpn_key</span>
             </div>
-            <p className="text-text-main font-medium mb-1">No API keys yet</p>
-            <p className="text-sm text-text-muted mb-4">Create your first API key to get started</p>
+            <p className="text-text-main font-semibold text-sm mb-1">No API keys configured yet</p>
+            <p className="text-xs text-text-muted mb-4 max-w-sm mx-auto">Create a secret key to authenticate your LLM client applications and CLI tools.</p>
             <Button icon="add" onClick={() => setShowAddModal(true)}>
               Create Key
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-2.5">
             {keys.map((key) => (
               <div
                 key={key.id}
-                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 border-b border-border/60 last:border-b-0 ${key.isActive === false ? "opacity-60" : ""}`}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border/70 bg-surface-2/30 hover:bg-surface-2/60 hover:border-brand-500/30 transition-all ${key.isActive === false ? "opacity-60" : ""}`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-text-main">{key.name}</p>
+                    <p className="text-sm font-bold text-text-main">{key.name}</p>
                     {key.isActive === false && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">Paused</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <code className="text-xs text-text-muted font-mono bg-surface-2 px-2 py-0.5 rounded border border-border/50">
+                    <code className="text-xs text-text-main font-mono bg-bg/80 px-2 py-0.5 rounded border border-border/60 select-all">
                       {visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
                     </code>
                     <button
                       onClick={() => toggleKeyVisibility(key.id)}
-                      className="p-1 hover:bg-brand-500/10 rounded text-text-muted hover:text-brand-400 transition-all"
+                      className="p-1 hover:bg-brand-500/15 rounded text-text-muted hover:text-brand-400 transition-all cursor-pointer"
                       title={visibleKeys.has(key.id) ? "Hide key" : "Show key"}
                     >
                       <span className="material-symbols-outlined text-[15px]">
@@ -1205,7 +1248,7 @@ export default function APIPageClient({ machineId }) {
                     </button>
                     <button
                       onClick={() => copy(key.key, key.id)}
-                      className="p-1 hover:bg-brand-500/10 rounded text-text-muted hover:text-brand-400 transition-all"
+                      className="p-1 hover:bg-brand-500/15 rounded text-text-muted hover:text-brand-400 transition-all cursor-pointer"
                       title="Copy API key"
                     >
                       <span className="material-symbols-outlined text-[15px]">
@@ -1221,7 +1264,7 @@ export default function APIPageClient({ machineId }) {
                     <RateLimitPills keyItem={key} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 self-end sm:self-center">
+                <div className="flex items-center gap-1.5 self-end sm:self-center bg-surface-2/80 px-2 py-1 rounded-lg border border-border/40">
                   <Toggle
                     size="sm"
                     checked={key.isActive ?? true}
@@ -1244,31 +1287,31 @@ export default function APIPageClient({ machineId }) {
                   <button
                     type="button"
                     onClick={() => setLimitsKey(key)}
-                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 transition-all"
+                    className="p-1.5 hover:bg-brand-500/15 rounded-md text-text-muted hover:text-brand-400 transition-all cursor-pointer"
                     title="Usage limits"
                   >
-                    <span className="material-symbols-outlined text-[18px]">tune</span>
+                    <span className="material-symbols-outlined text-[17px]">tune</span>
                   </button>
                   <Link
                     href={`/dashboard/analytics/keys/${key.id}`}
-                    className="p-2 hover:bg-brand-500/15 rounded-lg text-text-muted hover:text-brand-400 transition-all"
+                    className="p-1.5 hover:bg-brand-500/15 rounded-md text-text-muted hover:text-brand-400 transition-all"
                     title="Key analytics"
                   >
-                    <span className="material-symbols-outlined text-[18px]">bar_chart</span>
+                    <span className="material-symbols-outlined text-[17px]">bar_chart</span>
                   </Link>
                   <button
                     onClick={() => handleClearKeyUsage(key.id)}
-                    className="p-2 hover:bg-amber-500/15 rounded-lg text-text-muted hover:text-amber-500 transition-all"
+                    className="p-1.5 hover:bg-amber-500/15 rounded-md text-text-muted hover:text-amber-500 transition-all cursor-pointer"
                     title="Clear usage for this key"
                   >
-                    <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+                    <span className="material-symbols-outlined text-[17px]">restart_alt</span>
                   </button>
                   <button
                     onClick={() => handleDeleteKey(key.id)}
-                    className="p-2 hover:bg-red-500/15 rounded-lg text-text-muted hover:text-red-500 transition-all"
+                    className="p-1.5 hover:bg-red-500/15 rounded-md text-text-muted hover:text-red-500 transition-all cursor-pointer"
                     title="Delete key"
                   >
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                    <span className="material-symbols-outlined text-[17px]">delete</span>
                   </button>
                 </div>
               </div>

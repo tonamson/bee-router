@@ -54,7 +54,7 @@ export default function ProviderLimitCard({
   const planVariant = planVariants[plan?.toLowerCase()] || "default";
 
   return (
-    <Card padding="md" className="flex flex-col gap-4">
+    <Card padding="md" className="flex flex-col gap-4 border-border/80 hover:border-brand-500/30 hover:shadow-[0_0_16px_rgba(255,199,0,0.06)] transition-all duration-200">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

@@ -155,18 +155,21 @@ export default function UsageTable({
   const totalColSpan = columns.length + valueColumns.length;
 
   return (
-    <Card className="overflow-hidden">
-      <div className="p-4 border-b border-border bg-bg-subtle/50">
-        <h3 className="font-semibold">{title}</h3>
+    <Card className="overflow-hidden border-border/80 p-0">
+      <div className="px-5 py-3.5 border-b border-border/80 bg-surface-2/40 flex items-center justify-between">
+        <h3 className="font-bold text-sm text-text-main flex items-center gap-2">
+          <span className="material-symbols-outlined text-brand-400 text-[18px]">table_chart</span>
+          {title}
+        </h3>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-bg-subtle/30 text-text-muted uppercase text-xs">
+        <table className="w-full text-xs text-left">
+          <thead className="bg-surface-2/60 text-text-muted font-mono uppercase text-[10px] tracking-wider border-b border-border/80">
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.field}
-                  className={`px-6 py-3 cursor-pointer hover:bg-bg-subtle/50 ${col.align === "right" ? "text-right" : ""}`}
+                  className={`px-5 py-3 cursor-pointer hover:text-text-main transition-colors ${col.align === "right" ? "text-right" : ""}`}
                   onClick={() => onToggleSort(tableType, col.field)}
                 >
                   {col.label}{" "}
@@ -176,7 +179,7 @@ export default function UsageTable({
               {valueColumns.map((col) => (
                 <th
                   key={col.field}
-                  className="px-6 py-3 text-right cursor-pointer hover:bg-bg-subtle/50"
+                  className="px-5 py-3 text-right cursor-pointer hover:text-text-main transition-colors"
                   onClick={() => onToggleSort(tableType, col.field)}
                 >
                   {col.label}{" "}
@@ -185,20 +188,20 @@ export default function UsageTable({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border/60 font-mono">
             {groupedData.map((group) => (
               <Fragment key={group.groupKey}>
                 {/* Group summary row */}
                 <tr
-                  className="group-summary cursor-pointer hover:bg-bg-subtle/50 transition-colors"
+                  className="group-summary cursor-pointer hover:bg-surface-2/50 transition-colors bg-surface-2/20"
                   onClick={() => toggleGroup(group.groupKey)}
                 >
-                  <td className="px-6 py-3">
+                  <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
-                      <span className={`material-symbols-outlined text-[18px] text-text-muted transition-transform ${expanded.has(group.groupKey) ? "rotate-90" : ""}`}>
+                      <span className={`material-symbols-outlined text-[16px] text-brand-400 transition-transform ${expanded.has(group.groupKey) ? "rotate-90" : ""}`}>
                         chevron_right
                       </span>
-                      <span className={`font-medium transition-colors ${group.summary.pending > 0 ? "text-brand-400 font-semibold" : ""}`}>
+                      <span className={`font-semibold font-sans text-xs text-text-main ${group.summary.pending > 0 ? "text-brand-400" : ""}`}>
                         {group.groupKey}
                       </span>
                     </div>
@@ -210,7 +213,7 @@ export default function UsageTable({
                 {expanded.has(group.groupKey) && group.items.map((item) => (
                   <tr
                     key={`detail-${item.key}`}
-                    className="group-detail hover:bg-bg-subtle/20 transition-colors"
+                    className="group-detail hover:bg-surface-2/30 transition-colors text-text-muted"
                   >
                     {renderDetailCells(item)}
                     <ValueCells item={item} viewMode={viewMode} />

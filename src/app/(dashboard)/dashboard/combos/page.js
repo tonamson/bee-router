@@ -196,33 +196,39 @@ export default function CombosPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm text-text-muted mt-1">
-            Group models under one name, then pick a strategy per combo:
-          </p>
-          <ul className="text-sm text-text-muted mt-2 flex flex-col gap-1">
-            <li><span className="font-medium text-text-main">Fallback</span> — tries models in order (next on failure)</li>
-            <li><span className="font-medium text-text-main">Round Robin</span> — rotates models across requests to spread load</li>
-            <li><span className="font-medium text-text-main">Fusion</span> — queries all models in parallel, then a judge synthesizes one answer. Best quality, but costs the most: every request bills all panel models + the judge (N+1 calls)</li>
-          </ul>
+      {/* Header & Strategy Info Card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/80 bg-surface/80 backdrop-blur-md">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0 shadow-[0_0_15px_rgba(255,199,0,0.15)]">
+            <span className="material-symbols-outlined text-[22px]">layers</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-text-main">Smart Model Combos</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+                {combos.length} Combos
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Multi-model routing with automatic Fallback, Round-Robin load spreading, or Fusion judge consensus.
+            </p>
+          </div>
         </div>
-        <Button icon="add" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto whitespace-nowrap">
+        <Button icon="add" onClick={() => setShowCreateModal(true)} className="self-start sm:self-auto shrink-0">
           Create Combo
         </Button>
       </div>
 
       {/* Combos List */}
       {combos.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-              <span className="material-symbols-outlined text-[32px]">layers</span>
+        <Card className="border-border/80">
+          <div className="text-center py-12 border border-dashed border-border/80 rounded-xl">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-500/10 text-brand-400 mb-3 shadow-[0_0_20px_rgba(255,199,0,0.15)]">
+              <span className="material-symbols-outlined text-[28px]">layers</span>
             </div>
-            <p className="text-text-main font-medium mb-1">No combos yet</p>
-            <p className="text-sm text-text-muted mb-4">Create model combos with fallback support</p>
-            <Button icon="add" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto">
+            <p className="text-text-main font-semibold text-sm mb-1">No model combos created yet</p>
+            <p className="text-xs text-text-muted mb-4 max-w-sm mx-auto">Create a virtual model alias that automatically falls back across multiple AI providers.</p>
+            <Button icon="add" onClick={() => setShowCreateModal(true)}>
               Create Combo
             </Button>
           </div>

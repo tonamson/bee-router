@@ -55,20 +55,14 @@ function RecentRequests({ requests = [] }) {
           <table className="w-full min-w-[300px] border-collapse text-xs">
             <thead className="sticky top-0 bg-surface z-10">
               <tr className="border-b border-border">
-                <th className="py-2 text-left font-semibold text-text-muted w-2"></th>
                 <th className="py-2 text-left font-semibold text-text-muted">Model</th>
                 <th className="py-2 text-right font-semibold text-text-muted whitespace-nowrap">In / Out</th>
                 <th className="py-2 text-right font-semibold text-text-muted">When</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {requests.map((r, i) => {
-                const ok = !r.status || r.status === "ok" || r.status === "success";
-                return (
+              {requests.map((r, i) => (
                   <tr key={i} className="hover:bg-surface-2/60 transition-colors">
-                    <td className="py-2">
-                      <span className={`block size-2 rounded-full ${ok ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]" : "bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]"}`} />
-                    </td>
                     <td className="py-2 font-mono truncate max-w-[120px]" title={r.model}>{r.model}</td>
                     <td className="py-2 text-right whitespace-nowrap font-mono text-[11px]">
                       <span className="text-brand-400 font-semibold">{fmt(r.promptTokens)}↑</span>
@@ -77,8 +71,7 @@ function RecentRequests({ requests = [] }) {
                     </td>
                     <td className="py-2 text-right text-text-muted whitespace-nowrap"><TimeAgo timestamp={r.timestamp} /></td>
                   </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>

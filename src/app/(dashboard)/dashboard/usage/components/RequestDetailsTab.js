@@ -247,35 +247,35 @@ export default function RequestDetailsTab() {
         </div>
       </Card>
 
-      <Card padding="none">
+      <Card padding="none" className="overflow-hidden border-border/80">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px]">
+          <table className="w-full min-w-[880px] text-xs">
             <thead>
-              <tr className="border-b border-black/5 dark:border-white/5">
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Timestamp</th>
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Model</th>
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Provider</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Input Tokens</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Cached</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Cache Creation</th>
-                <th className="text-right p-4 text-sm font-semibold text-text-main">Output Tokens</th>
-                <th className="text-left p-4 text-sm font-semibold text-text-main">Latency</th>
-                <th className="text-center p-4 text-sm font-semibold text-text-main">Action</th>
+              <tr className="bg-surface-2/60 text-text-muted font-mono uppercase text-[10px] tracking-wider border-b border-border/80">
+                <th className="text-left p-3.5 font-semibold text-text-muted">Timestamp</th>
+                <th className="text-left p-3.5 font-semibold text-text-muted">Model</th>
+                <th className="text-left p-3.5 font-semibold text-text-muted">Provider</th>
+                <th className="text-right p-3.5 font-semibold text-text-muted">Input Tokens</th>
+                <th className="text-right p-3.5 font-semibold text-text-muted">Cached</th>
+                <th className="text-right p-3.5 font-semibold text-text-muted">Cache Creation</th>
+                <th className="text-right p-3.5 font-semibold text-text-muted">Output Tokens</th>
+                <th className="text-left p-3.5 font-semibold text-text-muted">Latency</th>
+                <th className="text-center p-3.5 font-semibold text-text-muted">Action</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/60">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-text-muted">
+                  <td colSpan="9" className="p-8 text-center text-text-muted">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
-                      Loading...
+                      <span className="material-symbols-outlined animate-spin text-[18px] text-brand-400">progress_activity</span>
+                      Loading request details...
                     </div>
                   </td>
                 </tr>
               ) : details.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-text-muted">
+                  <td colSpan="9" className="p-8 text-center text-text-muted">
                     No request details found
                   </td>
                 </tr>
@@ -283,44 +283,44 @@ export default function RequestDetailsTab() {
                 details.map((detail, index) => (
                   <tr
                     key={`${detail.id}-${index}`}
-                    className="border-b border-black/5 dark:border-white/5 last:border-b-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors"
+                    className="hover:bg-surface-2/40 transition-colors"
                   >
-                    <td className="whitespace-nowrap p-4 text-sm text-text-main">
+                    <td className="whitespace-nowrap p-3.5 text-xs text-text-main font-mono">
                       {new Date(detail.timestamp).toLocaleString()}
                     </td>
-                    <td className="max-w-[260px] truncate p-4 font-mono text-sm text-text-main">
-                      {detail.model}
+                    <td className="max-w-[260px] truncate p-3.5 font-mono text-xs text-text-main">
+                      <span className="bg-surface-2 px-1.5 py-0.5 rounded border border-border/50 font-bold">{detail.model}</span>
                     </td>
-                    <td className="max-w-[180px] truncate p-4 text-sm text-text-main">
-                       <span className="font-medium">
-                         {getProviderName(detail.provider, providerNameCache)}
-                       </span>
-                     </td>
-                    <td className="p-4 text-sm text-text-main text-right font-mono">
+                    <td className="max-w-[180px] truncate p-3.5 text-xs text-text-main">
+                      <span className="font-semibold text-text-main">
+                        {getProviderName(detail.provider, providerNameCache)}
+                      </span>
+                    </td>
+                    <td className="p-3.5 text-xs text-text-main text-right font-mono">
                       {getInputTokens(detail.tokens).toLocaleString()}
                     </td>
-                    <td className="p-4 text-sm text-text-main text-right font-mono">
+                    <td className="p-3.5 text-xs text-text-muted text-right font-mono">
                       {getCachedTokens(detail.tokens) > 0 ? getCachedTokens(detail.tokens).toLocaleString() : "—"}
                     </td>
-                    <td className="p-4 text-sm text-text-main text-right font-mono">
+                    <td className="p-3.5 text-xs text-text-muted text-right font-mono">
                       {getCacheCreationTokens(detail.tokens) > 0 ? getCacheCreationTokens(detail.tokens).toLocaleString() : "—"}
                     </td>
-                    <td className="p-4 text-sm text-text-main text-right font-mono">
+                    <td className="p-3.5 text-xs text-text-main text-right font-mono">
                       {detail.tokens?.completion_tokens?.toLocaleString() || 0}
                     </td>
-                    <td className="p-4 text-sm text-text-muted">
+                    <td className="p-3.5 text-xs text-text-muted font-mono">
                       <div className="flex flex-col gap-0.5">
-                        <div>TTFT: <span className="font-mono">{detail.latency?.ttft || 0}ms</span></div>
-                        <div>Total: <span className="font-mono">{detail.latency?.total || 0}ms</span></div>
+                        <div>TTFT: <span className="text-text-main font-semibold">{detail.latency?.ttft || 0}ms</span></div>
+                        <div>Total: <span className="text-text-main">{detail.latency?.total || 0}ms</span></div>
                       </div>
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-3.5 text-center">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleViewDetail(detail)}
                       >
-                        Detail
+                        Inspect
                       </Button>
                     </td>
                   </tr>

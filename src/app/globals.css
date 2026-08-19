@@ -35,6 +35,13 @@
   --color-surface-3: #e8e5da;
   --color-sidebar: rgba(247, 245, 238, 0.90);
 
+  /* Enterprise CRM Aliases */
+  --bg-surface: var(--color-surface);
+  --bg-elevated: var(--color-surface-2);
+  --border-subtle: var(--color-border-subtle);
+  --accent-primary: var(--color-brand-500);
+  --accent-hover: var(--color-brand-600);
+
   /* Borders */
   --color-border: #eae6dc;
   --color-border-subtle: #f2efe8;
@@ -87,6 +94,13 @@
   --color-surface-2: #1F222B;
   --color-surface-3: #2A2D39;
   --color-sidebar: rgba(18, 20, 26, 0.90);
+
+  /* Enterprise CRM Aliases */
+  --bg-surface: var(--color-surface);
+  --bg-elevated: var(--color-surface-2);
+  --border-subtle: var(--color-border-subtle);
+  --accent-primary: var(--color-brand-500);
+  --accent-hover: var(--color-brand-600);
 
   --color-border: #282B37;
   --color-border-subtle: #1E202A;
