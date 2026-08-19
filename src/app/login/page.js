@@ -161,7 +161,7 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-[radial-gradient(#282B37_1px,transparent_1px)] [background-size:24px_24px] opacity-35 pointer-events-none" />
 
       {/* Top Header Bar */}
-      <header className="relative z-10 w-full max-w-2xl mx-auto flex items-center justify-between py-2">
+      <header className="relative z-10 w-full max-w-xl mx-auto flex items-center justify-between py-2">
         <Link
           href="/"
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#16181F] border border-[#282B37] hover:border-[#FFC700]/40 text-xs font-semibold text-gray-300 hover:text-white transition-all group"
@@ -171,11 +171,6 @@ export default function LoginPage() {
           </span>
           Back to Home
         </Link>
-
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#16181F] border border-[#282B37] text-[11px] font-mono text-gray-400">
-          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>local:20128</span>
-        </div>
       </header>
 
       {/* Main Terminal Window */}
@@ -196,42 +191,29 @@ export default function LoginPage() {
               <span>bash — bee-router auth v{APP_CONFIG?.version || "1.0"}</span>
             </div>
 
-            {/* Status */}
-            <div className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-              READY
-            </div>
+            <div className="w-12" />
           </div>
 
           {/* Terminal Body */}
           <div className="p-6 sm:p-8 font-mono text-xs leading-relaxed flex flex-col gap-6">
-            {/* Brand Intro & Stream Lines */}
+            {/* Brand Intro Header */}
             <div className="flex items-center gap-4 pb-5 border-b border-[#282B37]">
-              <div className="size-14 relative flex-none flex items-center justify-center p-2 rounded-2xl bg-[#16181F] border border-[#282B37] shadow-[0_0_20px_rgba(255,199,0,0.2)]">
+              <div className="size-12 relative flex-none flex items-center justify-center p-1.5 rounded-2xl bg-[#16181F] border border-[#282B37] shadow-[0_0_20px_rgba(255,199,0,0.2)]">
                 <Image
                   src="/logo.png?v=2"
                   alt="BeeRouter Logo"
-                  width={44}
-                  height={44}
+                  width={38}
+                  height={38}
                   className="object-contain"
                   priority
                   unoptimized
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base font-bold text-white font-sans tracking-tight">BeeRouter</h1>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#FFC700]/10 text-[#FFC700] border border-[#FFC700]/30 font-mono">
-                    AI GATEWAY
-                  </span>
-                </div>
-                <p className="text-gray-400 text-[11px] font-sans">
+              <div className="flex flex-col">
+                <h1 className="text-base font-bold text-white font-sans tracking-tight">BeeRouter</h1>
+                <p className="text-gray-400 text-xs font-sans">
                   Unified AI Proxy &amp; Routing Engine
                 </p>
-                <div className="text-[10px] text-gray-500 flex items-center gap-2">
-                  <span>&gt; Sub-millisecond routing</span>
-                  <span>•</span>
-                  <span>&gt; SQLite Vault</span>
-                </div>
               </div>
             </div>
 
