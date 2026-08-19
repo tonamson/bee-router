@@ -98,7 +98,7 @@ export const CLI_TOOLS = {
     id: "claude",
     name: "Claude Code",
     image: "/providers/claude.png",
-    color: "#D97757",
+    color: "var(--color-brand-500)",
     description: "Anthropic Claude Code CLI",
     configType: "env",
     envVars: {
@@ -146,7 +146,7 @@ export const CLI_TOOLS = {
     id: "cowork",
     name: "Claude Cowork",
     image: "/providers/claude.png",
-    color: "#D97757",
+    color: "var(--color-brand-500)",
     description: "Claude Desktop Cowork (third-party inference)",
     configType: "custom",
   },
