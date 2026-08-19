@@ -768,13 +768,19 @@ function historyChartSql(apiKey) {
 
 function sumDayForApiKey(dayData, apiKey) {
   let tokens = 0;
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let requests = 0;
   let cost = 0;
   for (const [akKey, ak] of Object.entries(dayData.byApiKey || {})) {
     if (!dailyEntryMatchesApiKey(akKey, ak, apiKey)) continue;
+    promptTokens += ak.promptTokens || 0;
+    completionTokens += ak.completionTokens || 0;
     tokens += (ak.promptTokens || 0) + (ak.completionTokens || 0);
+    requests += ak.requests || 0;
     cost += ak.cost || 0;
   }
-  return { tokens, cost };
+  return { tokens, promptTokens, completionTokens, requests, cost };
 }
 
 export async function getChartData(period = "7d", opts = {}) {
@@ -792,7 +798,14 @@ export async function getChartData(period = "7d", opts = {}) {
     const startTime = startOfDay.getTime();
     const endTime = startTime + bucketCount * bucketMs;
     const labelFn = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: labelFn(startTime + i * bucketMs), tokens: 0, cost: 0 }));
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({
+      label: labelFn(startTime + i * bucketMs),
+      tokens: 0,
+      promptTokens: 0,
+      completionTokens: 0,
+      requests: 0,
+      cost: 0,
+    }));
 
     const rows = db.all(chartSql, chartParams(new Date(startTime).toISOString()));
     for (const r of rows) {
@@ -800,7 +813,12 @@ export async function getChartData(period = "7d", opts = {}) {
       if (t < startTime || t >= endTime) continue;
       const idx = Math.floor((t - startTime) / bucketMs);
       if (idx >= 0 && idx < bucketCount) {
-        buckets[idx].tokens += (r.promptTokens || 0) + (r.completionTokens || 0);
+        const pTokens = r.promptTokens || 0;
+        const cTokens = r.completionTokens || 0;
+        buckets[idx].tokens += pTokens + cTokens;
+        buckets[idx].promptTokens += pTokens;
+        buckets[idx].completionTokens += cTokens;
+        buckets[idx].requests += 1;
         buckets[idx].cost += r.cost || 0;
       }
     }
@@ -812,14 +830,26 @@ export async function getChartData(period = "7d", opts = {}) {
     const bucketMs = 3600000;
     const labelFn = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
     const startTime = now - bucketCount * bucketMs;
-    const buckets = Array.from({ length: bucketCount }, (_, i) => ({ label: labelFn(startTime + i * bucketMs), tokens: 0, cost: 0 }));
+    const buckets = Array.from({ length: bucketCount }, (_, i) => ({
+      label: labelFn(startTime + i * bucketMs),
+      tokens: 0,
+      promptTokens: 0,
+      completionTokens: 0,
+      requests: 0,
+      cost: 0,
+    }));
 
     const rows = db.all(chartSql, chartParams(new Date(startTime).toISOString()));
     for (const r of rows) {
       const t = new Date(r.timestamp).getTime();
       if (t < startTime || t > now) continue;
       const idx = Math.min(Math.floor((t - startTime) / bucketMs), bucketCount - 1);
-      buckets[idx].tokens += (r.promptTokens || 0) + (r.completionTokens || 0);
+      const pTokens = r.promptTokens || 0;
+      const cTokens = r.completionTokens || 0;
+      buckets[idx].tokens += pTokens + cTokens;
+      buckets[idx].promptTokens += pTokens;
+      buckets[idx].completionTokens += cTokens;
+      buckets[idx].requests += 1;
       buckets[idx].cost += r.cost || 0;
     }
     return buckets;
@@ -839,14 +869,33 @@ export async function getChartData(period = "7d", opts = {}) {
     d.setDate(d.getDate() - (bucketCount - 1 - i));
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const dayData = dayMap[dateKey];
-    if (!dayData) return { label: labelFn(d), tokens: 0, cost: 0 };
+    if (!dayData) {
+      return {
+        label: labelFn(d),
+        tokens: 0,
+        promptTokens: 0,
+        completionTokens: 0,
+        requests: 0,
+        cost: 0,
+      };
+    }
     if (apiKey) {
       const sliced = sumDayForApiKey(dayData, apiKey);
-      return { label: labelFn(d), tokens: sliced.tokens, cost: sliced.cost };
+      return {
+        label: labelFn(d),
+        tokens: sliced.tokens,
+        promptTokens: sliced.promptTokens,
+        completionTokens: sliced.completionTokens,
+        requests: sliced.requests,
+        cost: sliced.cost,
+      };
     }
     return {
       label: labelFn(d),
       tokens: (dayData.promptTokens || 0) + (dayData.completionTokens || 0),
+      promptTokens: dayData.promptTokens || 0,
+      completionTokens: dayData.completionTokens || 0,
+      requests: dayData.requests || 0,
       cost: dayData.cost || 0,
     };
   });
