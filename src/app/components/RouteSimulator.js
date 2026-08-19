@@ -221,13 +221,13 @@ export default function RouteSimulator() {
 
             {/* Middle: BeeRouter Decision Engine (2 cols) */}
             <div className="lg:col-span-2 flex flex-col items-center justify-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-[#16181F] border-2 border-[#FFC700] flex items-center justify-center shadow-[0_0_25px_rgba(255,199,0,0.3)] relative group">
-                <span className="material-symbols-outlined text-2xl text-[#FFC700] animate-[spin_10s_linear_infinite]">
-                  hub
-                </span>
-                <div className="absolute -top-2 px-1.5 py-0.2 rounded bg-[#FFC700] text-[9px] font-black text-black uppercase">
-                  BEE
-                </div>
+              <div className="w-16 h-16 rounded-2xl bg-[#16181F] border-2 border-[#FFC700] flex items-center justify-center shadow-[0_0_25px_rgba(255,199,0,0.3)] relative group overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.png?v=2"
+                  alt="BeeRouter"
+                  className="w-10 h-10 object-contain"
+                />
               </div>
               <div className="text-center font-mono text-[10px] text-gray-400">
                 <div className="text-white font-bold">SMART ROUTER</div>
