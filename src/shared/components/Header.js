@@ -1,41 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import PropTypes from "prop-types";
-import ProviderIcon from "@/shared/components/ProviderIcon";
+import { CaretDown, List, MagnifyingGlass, User } from "@phosphor-icons/react";
 import HeaderMenu from "@/shared/components/HeaderMenu";
 import HeaderLanguage from "@/shared/components/HeaderLanguage";
 import ThemeToggle from "@/shared/components/ThemeToggle";
-import { useHeaderSearchStore } from "@/store/headerSearchStore";
+import CommandPalette from "@/shared/components/CommandPalette";
+import ChangelogModal from "@/shared/components/ChangelogModal";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, APP_CONFIG } from "@/shared/constants/config";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS } from "@/shared/constants/providers";
-import { getProviderIconSrc } from "@/shared/utils/providerIcon";
+import { ADMIN_NAV_GROUPS, getActiveGroupId } from "@/shared/constants/adminNav";
 import { translate } from "@/i18n/runtime";
 
 const getPageInfo = (pathname) => {
-  if (!pathname) return { title: "", description: "", breadcrumbs: [] };
+  if (!pathname) return { title: "", description: "" };
 
-  // Media provider detail: /dashboard/media-providers/[kind]/[id]
   const mediaDetailMatch = pathname.match(/\/media-providers\/([^/]+)\/([^/]+)$/);
   if (mediaDetailMatch) {
-    const kindId = mediaDetailMatch[1];
     const providerId = mediaDetailMatch[2];
-    const kindConfig = MEDIA_PROVIDER_KINDS.find((k) => k.id === kindId);
     const provider = AI_PROVIDERS[providerId];
     return {
       title: provider?.name || providerId,
       description: "",
-      breadcrumbs: [
-        { label: "Media Providers", href: `/dashboard/media-providers/${kindId}` },
-        { label: kindConfig?.label || kindId, href: `/dashboard/media-providers/${kindId}` },
-        { label: provider?.name || providerId, image: getProviderIconSrc(providerId) },
-      ],
     };
   }
 
-  // Media provider kind: /dashboard/media-providers/[kind]
   const mediaKindMatch = pathname.match(/\/media-providers\/([^/]+)$/);
   if (mediaKindMatch) {
     const kindId = mediaKindMatch[1];
@@ -43,28 +36,17 @@ const getPageInfo = (pathname) => {
     return {
       title: kindConfig?.label || kindId,
       description: `Manage your ${kindConfig?.label || kindId} providers`,
-      icon: kindConfig?.icon || "perm_media",
-      breadcrumbs: [],
     };
   }
 
-  // Provider detail page: /dashboard/providers/[id]
   const providerMatch = pathname.match(/\/providers\/([^/]+)$/);
   if (providerMatch) {
     const providerId = providerMatch[1];
-    const providerInfo =
-      OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId];
+    const providerInfo = OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId];
     if (providerInfo) {
       return {
         title: providerInfo.name,
         description: "",
-        breadcrumbs: [
-          { label: "Providers", href: "/dashboard/providers" },
-          {
-            label: providerInfo.name,
-            image: getProviderIconSrc(providerInfo.id),
-          },
-        ],
       };
     }
   }
@@ -73,161 +55,256 @@ const getPageInfo = (pathname) => {
     return {
       title: "Providers",
       description: "Manage your AI provider connections",
-      icon: "dns",
-      breadcrumbs: [],
     };
   if (pathname.includes("/combos"))
     return {
       title: "Combos & Routing",
       description: "Model combos and smart routing fallback",
-      icon: "layers",
-      breadcrumbs: [],
     };
   if (pathname.match(/\/analytics\/keys\/[^/]+/))
     return {
       title: "API Key usage",
       description: "Requests, tokens, cost, and breakdown for one key",
-      icon: "bar_chart",
-      breadcrumbs: [
-        { label: "Analytics", href: "/dashboard/analytics" },
-        { label: "API Keys", href: "/dashboard/analytics/keys" },
-        { label: "Usage" },
-      ],
     };
   if (pathname.includes("/analytics/keys"))
     return {
       title: "API Key analytics",
       description: "Compare usage across gateway API keys",
-      icon: "key",
-      breadcrumbs: [
-        { label: "Analytics", href: "/dashboard/analytics" },
-        { label: "API Keys" },
-      ],
     };
   if (pathname.includes("/analytics/token-save"))
     return {
       title: "Token Save",
       description: "Payload cut vs provider cache-read — two separate meters",
-      icon: "savings",
-      breadcrumbs: [{ label: "Analytics", href: "/dashboard/analytics" }],
     };
   if (pathname.includes("/analytics/pricing"))
     return {
       title: "Pricing",
       description: "Input / output rates for cost estimates",
-      icon: "attach_money",
-      breadcrumbs: [{ label: "Analytics", href: "/dashboard/analytics" }],
     };
   if (pathname.includes("/analytics"))
     return {
       title: "Analytics",
       description: "Compression and cost analytics",
-      icon: "insights",
-      breadcrumbs: [],
     };
   if (pathname.includes("/usage"))
     return {
       title: "Usage & Stats",
-      description:
-        "Monitor your API usage, token consumption, and request logs",
-      icon: "bar_chart",
-      breadcrumbs: [],
+      description: "Monitor your API usage, token consumption, and request logs",
     };
   if (pathname.includes("/auth-files"))
     return {
       title: "Auth Files",
       description: "Map provider credentials stored in the local database",
-      icon: "vpn_key",
-      breadcrumbs: [],
     };
   if (pathname.includes("/quota"))
     return {
       title: "Quota Tracker",
       description: "Track and manage your API quota limits",
-      icon: "data_usage",
-      breadcrumbs: [],
     };
   if (pathname.includes("/mitm"))
     return {
       title: "MITM Proxy",
       description: `Intercept CLI tool traffic and route through ${APP_CONFIG.name}`,
-      icon: "security",
-      breadcrumbs: [],
     };
   if (pathname.includes("/token-saver"))
     return {
       title: "Token Saver",
       description: "Compress prompts and outputs to save tokens",
-      icon: "savings",
-      breadcrumbs: [],
     };
   if (pathname.includes("/cli-tools"))
     return {
       title: "CLI Tools",
       description: "Configure CLI tools",
-      icon: "terminal",
-      breadcrumbs: [],
     };
   if (pathname.includes("/proxy-pools"))
     return {
       title: "Proxy Pools",
       description: "Manage your proxy pool configurations",
-      icon: "lan",
-      breadcrumbs: [],
     };
   if (pathname.includes("/skills"))
     return {
       title: "Agent Skills",
       description: `Copy a link and paste to your AI to use ${APP_CONFIG.name} — no install needed`,
-      icon: "extension",
-      breadcrumbs: [],
     };
   if (pathname.includes("/endpoint"))
     return {
       title: "Endpoint & Keys",
       description: "API endpoint and gateway keys configuration",
-      icon: "key",
-      breadcrumbs: [],
     };
   if (pathname.includes("/profile"))
     return {
       title: "Settings",
       description: "Manage your preferences",
-      icon: "settings",
-      breadcrumbs: [],
     };
   if (pathname.includes("/translator"))
     return {
       title: "Translator",
       description: "Debug translation flow between formats",
-      icon: "translate",
-      breadcrumbs: [],
     };
   if (pathname.includes("/console-log"))
     return {
       title: "Console Log",
       description: "Live server console output",
-      icon: "dvr",
-      breadcrumbs: [],
     };
   if (pathname === "/dashboard")
     return {
       title: "Endpoint & Keys",
       description: "API endpoint and gateway keys configuration",
-      icon: "key",
-      breadcrumbs: [],
     };
-  return { title: "", description: "", breadcrumbs: [] };
+  return { title: "", description: "" };
 };
 
-export default function Header({ onMenuClick, showMenuButton = true }) {
+function isNavCurrent(pathname, href) {
+  if (href === "/dashboard/endpoint" && pathname === "/dashboard") return true;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function hoverOpenDelayMs() {
+  if (typeof window === "undefined") return 120;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 120;
+}
+
+function visibleItems(group, enableTranslator) {
+  return group.items.filter((item) => item.flag !== "translator" || enableTranslator);
+}
+
+function GroupMenu({ group, pathname, enableTranslator }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const timerRef = useRef(null);
+  const active = getActiveGroupId(pathname) === group.id;
+  const items = visibleItems(group, enableTranslator);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    function onDown(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [open]);
+
+  function clearTimer() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  return (
+    <div
+      ref={wrapRef}
+      className="relative"
+      onPointerEnter={() => {
+        clearTimer();
+        timerRef.current = setTimeout(() => setOpen(true), hoverOpenDelayMs());
+      }}
+      onPointerLeave={() => {
+        clearTimer();
+        setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-current={active ? "true" : undefined}
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1 self-stretch px-2 text-sm ${
+          active
+            ? "border-b-2 border-brand-500 text-text-main"
+            : "border-b-2 border-transparent text-text-muted hover:text-text-main"
+        }`}
+      >
+        {group.label}
+        <CaretDown size={14} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute left-0 top-full z-50 min-w-[200px] rounded-[8px] border border-border bg-surface py-1 shadow-lg"
+        >
+          {items.map((item) => {
+            const current = isNavCurrent(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                role="menuitem"
+                aria-current={current ? "page" : undefined}
+                onClick={() => setOpen(false)}
+                className={`block px-3 py-2 text-sm ${
+                  current
+                    ? "bg-surface-2 text-text-main"
+                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+GroupMenu.propTypes = {
+  group: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    label: PropTypes.string.isRequired,
+    items: PropTypes.arrayOf(
+      PropTypes.shape({
+        href: PropTypes.string.isRequired,
+        label: PropTypes.string.isRequired,
+        flag: PropTypes.string,
+      })
+    ).isRequired,
+  }).isRequired,
+  pathname: PropTypes.string,
+  enableTranslator: PropTypes.bool,
+};
+
+export default function Header({ updateInfo, onRequestUpdate }) {
   const pathname = usePathname();
   const [displayName, setDisplayName] = useState("");
   const [loginMethod, setLoginMethod] = useState("");
+  const [enableTranslator, setEnableTranslator] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  // Memoize page info to prevent unnecessary recalculations
   const pageInfo = useMemo(() => getPageInfo(pathname), [pathname]);
-  const { title, description, icon, breadcrumbs } = pageInfo;
+
+  useEffect(() => {
+    setSheetOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.enableTranslator) setEnableTranslator(true);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,6 +332,26 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
     };
   }, []);
 
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen(true);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    if (!sheetOpen) return;
+    function onKey(e) {
+      if (e.key === "Escape") setSheetOpen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [sheetOpen]);
+
   const handleLogout = async () => {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
@@ -267,139 +364,150 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
   };
 
   return (
-    <header className="shrink-0 flex items-center justify-between gap-3 px-4 lg:px-8 pt-3 pb-2 border-b border-border-subtle bg-surface/60 backdrop-blur-xl lg:bg-transparent lg:backdrop-blur-none z-20">
-      {/* Mobile menu button */}
-      <div className="flex items-center gap-3 lg:hidden shrink-0">
-        {showMenuButton && (
-          <button
-            onClick={onMenuClick}
-            className="text-text-main hover:text-primary transition-colors"
-          >
-            <span className="material-symbols-outlined">menu</span>
-          </button>
+    <>
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border-subtle bg-surface px-4">
+        <a href="#main" className="sr-only focus:not-sr-only">Skip to content</a>
+        <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+          <Image src="/logo.png?v=2" alt="" width={20} height={20} unoptimized />
+          <span className="font-semibold text-text-main hidden lg:inline">{APP_CONFIG.name}</span>
+        </Link>
+        <nav className="hidden lg:flex items-center gap-1 self-stretch" aria-label="Primary">
+          {ADMIN_NAV_GROUPS.map((group) => (
+            <GroupMenu
+              key={group.id}
+              group={group}
+              pathname={pathname}
+              enableTranslator={enableTranslator}
+            />
+          ))}
+        </nav>
+        {pageInfo.title ? (
+          <h1 className="lg:hidden min-w-0 flex-1 text-sm font-semibold text-text-main truncate">
+            {translate(pageInfo.title)}
+          </h1>
+        ) : (
+          <div className="lg:hidden min-w-0 flex-1" />
         )}
-      </div>
-
-      {/* Page title with breadcrumbs */}
-      <div className="flex flex-col min-w-0 flex-1">
-        {breadcrumbs.length > 0 ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            {breadcrumbs.map((crumb, index) => (
-              <div
-                key={`${crumb.label}-${crumb.href || "current"}`}
-                className="flex items-center gap-2"
-              >
-                {index > 0 && (
-                  <span className="text-brand-500/60 text-xs select-none font-mono">
-                    ⬡
-                  </span>
-                )}
-                {crumb.href ? (
-                  <Link
-                    href={crumb.href}
-                    className="text-text-muted hover:text-primary transition-colors text-xs font-medium"
-                  >
-                    {crumb.label}
-                  </Link>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    {crumb.image && (
-                      <ProviderIcon
-                        src={crumb.image}
-                        alt={crumb.label}
-                        size={28}
-                        className="object-contain rounded max-w-[28px] max-h-[28px]"
-                        fallbackText={crumb.label.slice(0, 2).toUpperCase()}
-                      />
-                    )}
-                    <h1 className="text-base lg:text-xl font-bold text-text-main tracking-tight truncate">
-                      {translate(crumb.label)}
-                    </h1>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : title ? (
-          <div>
-            <div className="flex items-center gap-2">
-              {icon && (
-                <span className="material-symbols-outlined text-primary text-xl lg:text-2xl">
-                  {icon}
-                </span>
-              )}
-              <h1 className="text-base lg:text-xl font-bold tracking-tight truncate text-text-main">
-                {translate(title)}
-              </h1>
-            </div>
-            {description && (
-              <p className="hidden lg:block text-xs text-text-muted truncate mt-0.5">
-                {translate(description)}
-              </p>
-            )}
-          </div>
-        ) : null}
-      </div>
-
-      {/* Right actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="ml-auto hidden lg:flex h-9 min-w-[200px] items-center gap-2 rounded-[8px] border border-border bg-bg px-3 text-sm text-text-muted"
+        >
+          <MagnifyingGlass size={16} />
+          Search
+          <kbd className="ml-auto font-mono text-[11px]">⌘K</kbd>
+        </button>
+        {updateInfo ? (
+          <button
+            type="button"
+            onClick={onRequestUpdate}
+            className="flex items-center gap-1.5 shrink-0 text-sm text-text-main"
+          >
+            <span className="size-2 rounded-full bg-amber-500" />
+            update
+          </button>
+        ) : (
+          <span className="flex items-center gap-1.5 shrink-0 text-sm text-text-muted">
+            <span className="size-2 rounded-full bg-green-500" />
+            online
+          </span>
+        )}
         {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
           <div
             className="hidden sm:flex items-center max-w-[220px] px-2.5 py-1 rounded-full border border-border bg-surface text-xs text-text-muted truncate shadow-xs"
             title={displayName}
           >
-            <span className="material-symbols-outlined text-[14px] mr-1.5 text-primary">person</span>
+            <User size={14} className="mr-1.5 text-primary shrink-0" />
             <span className="truncate font-medium">{displayName}</span>
             <span className="ml-2 shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/30">
               {loginMethod}
             </span>
           </div>
         )}
-        <HeaderSearch />
         <ThemeToggle />
         <HeaderLanguage />
         <HeaderMenu onLogout={handleLogout} />
-      </div>
-    </header>
-  );
-}
-
-function HeaderSearch() {
-  const visible = useHeaderSearchStore((s) => s.visible);
-  const query = useHeaderSearchStore((s) => s.query);
-  const placeholder = useHeaderSearchStore((s) => s.placeholder);
-  const setQuery = useHeaderSearchStore((s) => s.setQuery);
-
-  if (!visible) return null;
-
-  return (
-    <div className="relative w-[160px] sm:w-[220px]">
-      <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted text-[16px] pointer-events-none">
-        search
-      </span>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={placeholder}
-        className="w-full h-8 pl-8 pr-7 rounded-lg border border-border bg-surface text-xs text-text-main placeholder:text-text-muted/60 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/30 transition-all"
-      />
-      {query && (
         <button
           type="button"
-          onClick={() => setQuery("")}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main p-0.5 rounded transition-colors"
-          aria-label="Clear search"
+          onClick={() => setPaletteOpen(true)}
+          className="lg:hidden flex items-center justify-center p-2 rounded-lg text-text-muted hover:text-text-main"
+          aria-label="Search"
         >
-          <span className="material-symbols-outlined text-[16px]">close</span>
+          <MagnifyingGlass size={20} />
         </button>
+        <button
+          type="button"
+          onClick={() => setSheetOpen((v) => !v)}
+          className="lg:hidden flex items-center justify-center p-2 rounded-lg text-text-muted hover:text-text-main"
+          aria-expanded={sheetOpen}
+          aria-label="Open navigation"
+        >
+          <List size={20} />
+        </button>
+      </header>
+
+      {sheetOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            onClick={() => setSheetOpen(false)}
+          />
+          <nav
+            className="fixed inset-x-0 bottom-0 z-50 lg:hidden max-h-[80dvh] overflow-y-auto rounded-t-[10px] border-t border-border bg-surface p-4 pb-8"
+            aria-label="Primary"
+          >
+            {ADMIN_NAV_GROUPS.map((group) => (
+              <details
+                key={group.id}
+                className="border-b border-border-subtle py-1"
+                open={getActiveGroupId(pathname) === group.id}
+              >
+                <summary className="cursor-pointer list-none flex items-center justify-between py-2 text-sm font-medium text-text-main">
+                  {group.label}
+                  <CaretDown size={14} className="text-text-muted" />
+                </summary>
+                <div className="pb-2">
+                  {visibleItems(group, enableTranslator).map((item) => {
+                    const current = isNavCurrent(pathname, item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        aria-current={current ? "page" : undefined}
+                        onClick={() => setSheetOpen(false)}
+                        className={`block rounded-[8px] px-3 py-2 text-sm ${
+                          current
+                            ? "bg-surface-2 text-text-main"
+                            : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </details>
+            ))}
+          </nav>
+        </>
       )}
-    </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        enableTranslator={enableTranslator}
+        onLogout={handleLogout}
+        onOpenChangelog={() => setChangelogOpen(true)}
+      />
+      <ChangelogModal isOpen={changelogOpen} onClose={() => setChangelogOpen(false)} />
+    </>
   );
 }
 
 Header.propTypes = {
-  onMenuClick: PropTypes.func,
-  showMenuButton: PropTypes.bool,
+  updateInfo: PropTypes.shape({
+    hasUpdate: PropTypes.bool,
+    latestVersion: PropTypes.string,
+  }),
+  onRequestUpdate: PropTypes.func,
 };
-

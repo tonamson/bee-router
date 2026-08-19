@@ -11,7 +11,6 @@ export { default as Badge } from "./Badge";
 export { default as Toggle } from "./Toggle";
 export { default as ThemeToggle } from "./ThemeToggle";
 export { ThemeProvider } from "./ThemeProvider";
-export { default as Sidebar } from "./Sidebar";
 export { default as Header } from "./Header";
 export { default as Footer } from "./Footer";
 export { default as OAuthModal } from "./OAuthModal";
