@@ -24,7 +24,9 @@
     "cli:pack": "npm --prefix cli run pack:cli",
     "cli:publish": "npm --prefix cli run publish:cli",
     "publish": "bash scripts/publish-cli.sh",
-    "sync:upstream": "bash scripts/sync-upstream.sh"
+    "sync:upstream": "bash scripts/sync-upstream.sh",
+    "bump": "node scripts/bump-version.mjs",
+    "version": "node scripts/bump-version.mjs --sync-only"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
