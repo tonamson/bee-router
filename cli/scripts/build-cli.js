@@ -6,7 +6,7 @@ const { execSync } = require("child_process");
 
 const cliDir = path.resolve(__dirname, "..");
 const appDir = path.resolve(cliDir, "..");
-const rootDir = path.resolve(appDir, "..");
+const rootDir = appDir;
 const cliAppDir = process.env.BEE_ROUTER_CLI_APP_DIR || path.join(cliDir, "app");
 const buildHomeDir = path.join(cliDir, ".build-home");
 const buildDistDirName = ".next-cli-build";
@@ -155,17 +155,12 @@ function buildCliPackage() {
   fs.mkdirSync(path.join(buildHomeDir, "AppData", "Roaming"), { recursive: true });
   fs.mkdirSync(path.join(buildHomeDir, "AppData", "Local"), { recursive: true });
 
-  // Step 0: Sync version from app/cli/package.json to app/package.json
-  console.log("0️⃣  Syncing version to app/package.json...");
-  const cliPkg = JSON.parse(fs.readFileSync(path.join(cliDir, "package.json"), "utf8"));
-  const appPkgPath = path.join(appDir, "package.json");
-  const appPkg = JSON.parse(fs.readFileSync(appPkgPath, "utf8"));
-  if (appPkg.version !== cliPkg.version) {
-    appPkg.version = cliPkg.version;
-    fs.writeFileSync(appPkgPath, JSON.stringify(appPkg, null, 2) + "\n");
-    console.log(`✅ Version synced: ${cliPkg.version}\n`);
-  } else {
-    console.log(`✅ Version already synced: ${cliPkg.version}\n`);
+  // Step 0: Ensure version is synchronized from root package.json to cli/package.json
+  console.log("0️⃣  Validating version sync from root package.json...");
+  try {
+    execSync("node scripts/bump-version.mjs --sync-only", { stdio: "inherit", cwd: rootDir });
+  } catch (err) {
+    console.warn("⚠️  Version sync check warning:", err.message);
   }
 
   // Step 1: Build app with Next.js (workspace tracing root → traced node_modules in standalone).

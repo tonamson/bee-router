@@ -15,10 +15,8 @@ else
 fi
 
 echo "→ bump $BUMP"
-npm --prefix "$ROOT" version "$BUMP" --no-git-tag-version >/dev/null
+node "$ROOT/scripts/bump-version.mjs" "$BUMP"
 VER="$(node -p "require('$ROOT/package.json').version")"
-npm --prefix "$CLI" version "$VER" --no-git-tag-version --allow-same-version >/dev/null
-echo "   $VER"
 
 if [[ ! -d "$CLI/node_modules/esbuild" ]]; then
   echo "→ npm install (cli, esbuild)"
