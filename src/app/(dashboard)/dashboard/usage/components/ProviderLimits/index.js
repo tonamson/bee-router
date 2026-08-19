@@ -795,7 +795,41 @@ export default function ProviderLimits() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/80 bg-surface/80 backdrop-blur-md">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0 shadow-[0_0_15px_rgba(255,199,0,0.15)]">
+            <span className="material-symbols-outlined text-[22px]">speed</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-text-main">Provider Quotas & Rate Limits</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
+                {totals.eligibleConnections || sortedConnections.length} Accounts
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Live remaining quota windows, token resets, and automatic window reactivation (Claude / Codex).
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => refreshAll(true)}
+            disabled={refreshingAll}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-black text-xs font-bold shadow-[0_2px_10px_rgba(255,199,0,0.25)] transition-all cursor-pointer disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-[16px] ${refreshingAll ? "animate-spin" : ""}`}>
+              refresh
+            </span>
+            <span>{refreshingAll ? "Refreshing..." : "Refresh Quotas"}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Header Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
         <div className="flex flex-wrap items-center gap-1.5">

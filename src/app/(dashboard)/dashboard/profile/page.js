@@ -776,49 +776,71 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-0">
+    <div className="max-w-3xl mx-auto px-4 sm:px-0 flex flex-col gap-6">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/80 bg-surface/80 backdrop-blur-md">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0 shadow-[0_0_15px_rgba(255,199,0,0.15)]">
+            <span className="material-symbols-outlined text-[22px]">settings</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-text-main">System & Profile Settings</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Local Instance
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Configure database backup, authentication security, theme preferences, and global proxy defaults.
+            </p>
+          </div>
+        </div>
+
+        <div className="inline-flex p-1 rounded-xl bg-surface-2 border border-border/60 shrink-0 self-start sm:self-auto">
+          {["light", "dark", "system"].map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setTheme(option)}
+              className={cn(
+                "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                theme === option
+                  ? "bg-brand-500 text-black shadow-[0_2px_8px_rgba(255,199,0,0.25)] font-bold"
+                  : "text-text-muted hover:text-text-main hover:bg-surface-3"
+              )}
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {option === "light" ? "light_mode" : option === "dark" ? "dark_mode" : "contrast"}
+              </span>
+              <span className="capitalize">{option}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-6">
-        {/* Local Mode Info */}
-        <Card>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="size-10 sm:size-12 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-xl sm:text-2xl">computer</span>
+        {/* Local Mode & Database Card */}
+        <Card className="border-border/80 hover:border-brand-500/20 transition-all duration-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">database</span>
               </div>
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold">Local Mode</h2>
-                <p className="text-sm text-text-muted">Running on your machine</p>
+                <h3 className="text-base font-semibold text-text-main">Database & Backups</h3>
+                <p className="text-xs text-text-muted">Manage persistent SQLite storage and export data backups</p>
               </div>
-            </div>
-            <div className="inline-flex p-1 rounded-lg bg-black/5 dark:bg-white/5 w-full sm:w-auto">
-              {["light", "dark", "system"].map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setTheme(option)}
-                  className={cn(
-                    "flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md font-medium transition-all flex-1 sm:flex-initial",
-                    theme === option
-                      ? "bg-white dark:bg-white/10 text-text-main shadow-sm"
-                      : "text-text-muted hover:text-text-main"
-                  )}
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {option === "light" ? "light_mode" : option === "dark" ? "dark_mode" : "contrast"}
-                  </span>
-                  <span className="capitalize text-xs sm:text-sm">{option}</span>
-                </button>
-              ))}
             </div>
           </div>
-          <div className="flex flex-col gap-3 pt-4 border-t border-border">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg bg-bg border border-border gap-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg bg-surface-2/40 border border-border/60 gap-2">
               <div>
-                <p className="font-medium text-sm sm:text-base">Database Location</p>
-                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">~/.bee-router/db/data.sqlite</p>
+                <p className="font-semibold text-xs text-text-main">SQLite Database Location</p>
+                <p className="text-xs text-text-muted font-mono break-all mt-0.5">~/.bee-router/db/data.sqlite</p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 icon="download"
