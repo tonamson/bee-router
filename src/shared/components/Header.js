@@ -477,12 +477,7 @@ export default function Header({ updateInfo, onRequestUpdate }) {
               <span className="size-2 rounded-full bg-amber-500" />
               update
             </button>
-          ) : (
-            <span className="flex items-center gap-1.5 shrink-0 text-sm text-text-muted">
-              <span className="size-2 rounded-full bg-green-500" />
-              online
-            </span>
-          )}
+          ) : null}
           {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
             <div
               className="flex items-center max-w-[220px] px-2.5 py-1 rounded-full border border-border bg-surface text-xs text-text-muted truncate shadow-xs"
@@ -584,12 +579,7 @@ export default function Header({ updateInfo, onRequestUpdate }) {
                   <span className="size-2 rounded-full bg-amber-500" />
                   update
                 </button>
-              ) : (
-                <span className="flex items-center gap-1.5 shrink-0 text-sm text-text-muted">
-                  <span className="size-2 rounded-full bg-green-500" />
-                  online
-                </span>
-              )}
+              ) : null}
               {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
                 <div
                   className="flex items-center max-w-[180px] px-2.5 py-1 rounded-full border border-border bg-surface text-xs text-text-muted truncate shadow-xs"
