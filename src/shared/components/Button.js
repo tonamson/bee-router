@@ -4,7 +4,7 @@ import { cn } from "@/shared/utils/cn";
 
 const variants = {
   primary:
-    "bg-brand-500 hover:bg-brand-400 text-black font-bold shadow-[0_2px_14px_rgba(255,199,0,0.28)] hover:shadow-[0_4px_20px_rgba(255,199,0,0.38)] active:scale-[0.98] disabled:bg-surface-3 disabled:text-text-muted disabled:shadow-none transition-all",
+    "bg-brand-500 hover:bg-brand-600 text-black font-bold motion-safe:active:scale-[0.98] disabled:bg-surface-3 disabled:text-text-muted transition-all",
   secondary:
     "bg-surface-2 hover:bg-surface-3 text-text-main border border-border/80 hover:border-brand-500/30 shadow-sm disabled:opacity-50 transition-all",
   outline:
@@ -16,7 +16,7 @@ const variants = {
   success:
     "bg-green-600 hover:bg-green-700 text-white font-medium shadow-sm disabled:bg-surface-3 disabled:text-text-muted transition-all",
   cta:
-    "btn-cta bg-brand-500 hover:bg-brand-400 text-black font-bold shadow-[0_2px_14px_rgba(255,199,0,0.28)] active:scale-[0.98] transition-all",
+    "btn-cta bg-brand-500 hover:bg-brand-600 text-black font-bold motion-safe:active:scale-[0.98] transition-all",
 };
 
 const sizes = {
@@ -41,7 +41,7 @@ export default function Button({
     <button
       className={cn(
         "inline-flex items-center justify-center gap-2 font-semibold transition-all duration-150 ease-out cursor-pointer",
-        "active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
+        "motion-safe:active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
         variants[variant] || variants.primary,
         sizes[size] || sizes.md,
         fullWidth && "w-full",
