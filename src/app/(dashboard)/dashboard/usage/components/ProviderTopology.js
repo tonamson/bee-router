@@ -99,10 +99,10 @@ function RouterNode({ data }) {
   const powering = (data.activeCount || 0) > 0;
   return (
     <div
-      className={`relative z-[1] flex items-center justify-center px-5 py-3 rounded-2xl border-2 min-w-[140px] transition-all duration-300 ${
+      className={`relative z-[1] flex items-center justify-center px-4 py-2.5 rounded-xl border transition-all duration-200 min-w-[130px] bg-surface ${
         powering
-          ? "topology-router-core border-[#FFC700] bg-gradient-to-br from-[#FFC700]/30 via-yellow-400/20 to-amber-500/25 shadow-[0_0_24px_rgba(255,199,0,0.35)]"
-          : "border-[#FFC700]/40 bg-[#16181F] shadow-[0_0_15px_rgba(255,199,0,0.1)] hover:border-[#FFC700]"
+          ? "border-brand-500 bg-brand-500/10 shadow-[0_0_16px_rgba(255,199,0,0.25)]"
+          : "border-border shadow-xs hover:border-brand-500/50"
       }`}
     >
       <Handle type="source" position={Position.Top} id="top" className="!bg-transparent !border-0 !w-0 !h-0" />
@@ -113,15 +113,15 @@ function RouterNode({ data }) {
       <img
         src="/logo.png?v=2"
         alt="BeeRouter"
-        className={`w-7 h-7 mr-2.5 object-contain ${powering ? "topology-router-icon" : ""}`}
+        className="w-6 h-6 mr-2 object-contain"
         loading="lazy"
         decoding="async"
       />
-      <span className={`text-sm font-bold font-mono tracking-tight ${powering ? "topology-router-label text-[#FFC700]" : "text-white"}`}>
+      <span className="text-sm font-semibold text-text-main">
         BeeRouter
       </span>
       {data.activeCount > 0 && (
-        <span className="ml-2.5 px-2 py-0.5 rounded-full bg-[#FFC700] text-black text-xs font-bold font-mono topology-router-badge shadow-[0_0_8px_#FFC700]">
+        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-brand-500 text-black text-[10px] font-bold">
           {data.activeCount}
         </span>
       )}
