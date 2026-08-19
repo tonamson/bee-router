@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MagnifyingGlass, ArrowRight } from "@phosphor-icons/react";
 import { useTheme } from "@/shared/hooks/useTheme";
@@ -39,6 +39,18 @@ export default function CommandPalette({
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef(null);
+  const openerRef = useRef(null);
+
+  const handleClose = useCallback(() => {
+    const opener = openerRef.current;
+    openerRef.current = null;
+    onClose();
+    requestAnimationFrame(() => {
+      if (opener && document.contains(opener) && typeof opener.focus === "function") {
+        opener.focus();
+      }
+    });
+  }, [onClose]);
 
   const items = useMemo(
     () => getPaletteItems({ enableTranslator }),
@@ -70,6 +82,8 @@ export default function CommandPalette({
 
   useEffect(() => {
     if (!open) return;
+    const ae = document.activeElement;
+    openerRef.current = ae instanceof HTMLElement ? ae : null;
     setQuery("");
     setActive(0);
     const t = requestAnimationFrame(() => inputRef.current?.focus());
@@ -81,7 +95,7 @@ export default function CommandPalette({
     function onKey(e) {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        handleClose();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         setActive((i) => Math.min(i + 1, Math.max(list.length - 1, 0)));
@@ -96,7 +110,7 @@ export default function CommandPalette({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, list, active, onClose]);
+  }, [open, list, active, handleClose]);
 
   function choose(row) {
     if (row.kind === "action") {
@@ -104,19 +118,19 @@ export default function CommandPalette({
       if (row.id === "copy-base-url") navigator.clipboard?.writeText(window.location.origin);
       if (row.id === "changelog") onOpenChangelog?.();
       if (row.id === "logout") onLogout?.();
-      onClose();
+      handleClose();
       return;
     }
     pushRecent(row.href);
     router.push(row.href);
-    onClose();
+    handleClose();
   }
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[90] flex items-start justify-center pt-[12vh] px-4">
-      <button type="button" className="absolute inset-0 bg-bg/60" aria-label="Close search" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-bg/60" aria-label="Close search" onClick={handleClose} />
       <div
         role="dialog"
         aria-modal="true"

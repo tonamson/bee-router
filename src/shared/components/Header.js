@@ -437,7 +437,7 @@ export default function Header({ updateInfo, onRequestUpdate }) {
     <>
       <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border-subtle bg-surface px-4">
         <a href="#main" className="sr-only focus:not-sr-only">Skip to content</a>
-        <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+        <Link href="/dashboard" className="flex items-center gap-2 shrink-0" aria-label={APP_CONFIG.name}>
           <Image src="/logo.png?v=2" alt="" width={20} height={20} unoptimized />
           <span className="font-semibold text-text-main hidden lg:inline">{APP_CONFIG.name}</span>
         </Link>
@@ -518,6 +518,15 @@ export default function Header({ updateInfo, onRequestUpdate }) {
         </button>
       </header>
 
+      {pageInfo.title ? (
+        <div className="hidden lg:block border-b border-border-subtle bg-bg px-6 py-4 lg:px-10">
+          <h1 className="text-lg font-semibold text-text-main">{translate(pageInfo.title)}</h1>
+          {pageInfo.description ? (
+            <p className="mt-0.5 text-sm text-text-muted">{translate(pageInfo.description)}</p>
+          ) : null}
+        </div>
+      ) : null}
+
       {sheetOpen && (
         <>
           <div
@@ -525,41 +534,79 @@ export default function Header({ updateInfo, onRequestUpdate }) {
             onClick={() => setSheetOpen(false)}
           />
           <nav
-            className="fixed inset-x-0 bottom-0 z-50 lg:hidden max-h-[80dvh] overflow-y-auto rounded-t-[10px] border-t border-border bg-surface p-4 pb-8"
+            className="fixed inset-x-0 bottom-0 z-50 lg:hidden flex max-h-[80dvh] flex-col rounded-t-[10px] border-t border-border bg-surface"
             aria-label="Primary"
           >
-            {ADMIN_NAV_GROUPS.map((group) => (
-              <details
-                key={group.id}
-                className="border-b border-border-subtle py-1"
-                open={getActiveGroupId(pathname) === group.id}
-              >
-                <summary className="cursor-pointer list-none flex items-center justify-between py-2 text-sm font-medium text-text-main">
-                  {group.label}
-                  <CaretDown size={14} className="text-text-muted" />
-                </summary>
-                <div className="pb-2">
-                  {visibleItems(group, enableTranslator).map((item) => {
-                    const current = isNavCurrent(pathname, item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        aria-current={current ? "page" : undefined}
-                        onClick={() => setSheetOpen(false)}
-                        className={`block rounded-[8px] px-3 py-2 text-sm ${
-                          current
-                            ? "bg-surface-2 text-text-main"
-                            : "text-text-muted hover:bg-surface-2 hover:text-text-main"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {ADMIN_NAV_GROUPS.map((group) => (
+                <details
+                  key={group.id}
+                  className="border-b border-border-subtle py-1"
+                  open={getActiveGroupId(pathname) === group.id}
+                >
+                  <summary className="cursor-pointer list-none flex items-center justify-between py-2 text-sm font-medium text-text-main">
+                    {group.label}
+                    <CaretDown size={14} className="text-text-muted" />
+                  </summary>
+                  <div className="pb-2">
+                    {visibleItems(group, enableTranslator).map((item) => {
+                      const current = isNavCurrent(pathname, item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          aria-current={current ? "page" : undefined}
+                          onClick={() => setSheetOpen(false)}
+                          className={`block rounded-[8px] px-3 py-2 text-sm ${
+                            current
+                              ? "bg-surface-2 text-text-main"
+                              : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </details>
+              ))}
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-border-subtle px-4 py-3">
+              {updateInfo ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSheetOpen(false);
+                    onRequestUpdate?.();
+                  }}
+                  className="flex items-center gap-1.5 shrink-0 text-sm text-text-main"
+                >
+                  <span className="size-2 rounded-full bg-amber-500" />
+                  update
+                </button>
+              ) : (
+                <span className="flex items-center gap-1.5 shrink-0 text-sm text-text-muted">
+                  <span className="size-2 rounded-full bg-green-500" />
+                  online
+                </span>
+              )}
+              {displayName && (loginMethod === "OIDC" || loginMethod === "SAML") && (
+                <div
+                  className="flex items-center max-w-[180px] px-2.5 py-1 rounded-full border border-border bg-surface text-xs text-text-muted truncate shadow-xs"
+                  title={displayName}
+                >
+                  <User size={14} className="mr-1.5 text-primary shrink-0" />
+                  <span className="truncate font-medium">{displayName}</span>
+                  <span className="ml-2 shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary border border-primary/30">
+                    {loginMethod}
+                  </span>
                 </div>
-              </details>
-            ))}
+              )}
+              <div className="ml-auto flex items-center gap-1.5">
+                <HeaderLanguage />
+                <HeaderMenu onLogout={handleLogout} placement="top" />
+              </div>
+            </div>
           </nav>
         </>
       )}
