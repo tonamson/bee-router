@@ -113,6 +113,82 @@ async function getGeminiSubscriptionInfo(accessToken, proxyOptions = null) {
   }
 }
 
+const ANTIGRAVITY_POOL_LABELS = {
+  "gemini-5h": "Gemini 5h",
+  "gemini-weekly": "Gemini weekly",
+  "3p-5h": "Claude + GPT 5h",
+  "3p-weekly": "Claude + GPT weekly",
+};
+
+function antigravityQuotaSummaryUrl() {
+  const modelsUrl = String(ANTIGRAVITY_CONFIG.quotaApiUrl || "");
+  const summaryUrl = modelsUrl.replace(":fetchAvailableModels", ":retrieveUserQuotaSummary");
+  return summaryUrl !== modelsUrl ? summaryUrl : "";
+}
+
+function antigravityQuotaGroups(data) {
+  if (Array.isArray(data?.groups)) return data.groups;
+  if (Array.isArray(data?.response?.groups)) return data.response.groups;
+  return [];
+}
+
+function antigravityPoolWindow(id, bucket) {
+  const raw = String(bucket?.window || "").toLowerCase();
+  if (raw.includes("week") || id.includes("weekly")) return "weekly";
+  if (raw.includes("5h") || raw.includes("five") || raw.includes("hour") || id.includes("5h")) return "5h";
+  return raw || "pool";
+}
+
+function parseAntigravityQuotaSummary(data) {
+  const quotas = {};
+  for (const group of antigravityQuotaGroups(data)) {
+    const buckets = Array.isArray(group?.buckets) ? group.buckets : [];
+    for (const bucket of buckets) {
+      const remainingFraction = bucket.remainingFraction ?? bucket.remaining_fraction;
+      if (remainingFraction == null) continue;
+      const id = String(bucket.bucketId || bucket.bucket_id || "").trim();
+      if (!id) continue;
+      const frac = Number(remainingFraction) || 0;
+      const total = 1000;
+      const remaining = Math.round(total * frac);
+      const window = antigravityPoolWindow(id, bucket);
+      quotas[id] = {
+        used: total - remaining,
+        total,
+        resetAt: parseResetTime(bucket.resetTime || bucket.reset_time),
+        remainingPercentage: frac * 100,
+        unlimited: false,
+        window,
+        displayName: ANTIGRAVITY_POOL_LABELS[id]
+          || `${group.displayName || "Quota"} (${window})`,
+      };
+    }
+  }
+  return quotas;
+}
+
+async function poolQuotasFromSummary(summaryResponse) {
+  if (!summaryResponse?.ok) return {};
+  try {
+    return parseAntigravityQuotaSummary(await summaryResponse.json());
+  } catch {
+    return {};
+  }
+}
+
+function skipAntigravityModel(modelKey, info) {
+  if (!info || info.isInternal) return true;
+  if (/^(tab_|chat_)/i.test(modelKey)) return true;
+  return false;
+}
+
+function cloneQuotaRequest(quotaRequest) {
+  return {
+    ...quotaRequest,
+    headers: { ...quotaRequest.headers },
+  };
+}
+
 /**
  * Antigravity Usage - Fetch quota from Google Cloud Code API
  */
@@ -122,7 +198,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     const subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
     const projectId = subscriptionInfo?.cloudaicompanionProject || null;
 
-    const response = await fetchWithTimeout(ANTIGRAVITY_CONFIG.quotaApiUrl, {
+    const quotaRequest = {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${accessToken}`,
@@ -134,72 +210,56 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       body: JSON.stringify({
         ...(projectId ? { project: projectId } : {})
       }),
-    }, 10000, proxyOptions);
+    };
+    const summaryUrl = antigravityQuotaSummaryUrl();
+    const summaryResponse = projectId && summaryUrl
+      ? await fetchWithTimeout(summaryUrl, cloneQuotaRequest(quotaRequest), 10000, proxyOptions).catch(() => null)
+      : null;
+    const pools = await poolQuotasFromSummary(summaryResponse);
+    const plan = subscriptionInfo?.currentTier?.name || "Unknown";
 
-    if (response.status === 403) {
-      return {
-        message: "Antigravity quota API access forbidden. Chat may still work.",
-        quotas: {}
-      };
+    if (Object.keys(pools).length > 0) {
+      return { plan, quotas: pools, subscriptionInfo };
     }
 
-    if (response.status === 401) {
-      return {
-        message: "Antigravity quota API authentication expired. Chat may still work.",
-        quotas: {}
-      };
+    const response = await fetchWithTimeout(
+      ANTIGRAVITY_CONFIG.quotaApiUrl,
+      cloneQuotaRequest(quotaRequest),
+      10000,
+      proxyOptions,
+    ).catch(() => null);
+
+    if (!response || !response.ok) {
+      if (response?.status === 403) {
+        return {
+          message: "Antigravity quota API access forbidden. Chat may still work.",
+          quotas: {},
+        };
+      }
+      if (response?.status === 401) {
+        return {
+          message: "Antigravity quota API authentication expired. Chat may still work.",
+          quotas: {},
+        };
+      }
+      throw new Error(`Antigravity API error: ${response?.status || "network"}`);
     }
 
-    if (!response.ok) {
-      throw new Error(`Antigravity API error: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     const quotas = {};
 
-    // Parse model quotas (inspired by vscode-antigravity-cockpit)
-    if (data.models) {
-      // Filter only recommended/important models (must match PROVIDER_MODELS ag ids)
-      const importantModels = [
-        'gemini-3.7-flash-high',
-        'gemini-3.7-flash-medium',
-        'gemini-3.7-flash-low',
-        'gemini-3.6-flash-high',
-        'gemini-3.6-flash-medium',
-        'gemini-3.6-flash-low',
-        'gemini-3.5-flash-low',
-        'gemini-3.5-flash-extra-low',
-        'gemini-pro-agent',
-        'gemini-3.1-pro-low',
-        'claude-sonnet-4-6',
-        'claude-opus-4-6-thinking',
-        'gpt-oss-120b-medium',
-        // Image generation models
-        'gemini-3.1-flash-image',
-      ];
-
+    if (data.models && typeof data.models === "object" && !Array.isArray(data.models)) {
       for (const [modelKey, info] of Object.entries(data.models)) {
-        // Skip models without quota info
-        if (!info.quotaInfo) {
-          continue;
-        }
+        if (!info?.quotaInfo || skipAntigravityModel(modelKey, info)) continue;
+        if (quotas[modelKey]) continue;
 
-        // Skip internal models and non-important models
-        if (info.isInternal || !importantModels.includes(modelKey)) {
-          continue;
-        }
-
-        const remainingFraction = info.quotaInfo.remainingFraction || 0;
+        const remainingFraction = Number(info.quotaInfo.remainingFraction) || 0;
         const remainingPercentage = remainingFraction * 100;
-
-        // Convert percentage to used/total for UI compatibility
-        const total = 1000; // Normalized base
+        const total = 1000;
         const remaining = Math.round(total * remainingFraction);
-        const used = total - remaining;
 
-        // Use modelKey as key (matches PROVIDER_MODELS id)
         quotas[modelKey] = {
-          used,
+          used: total - remaining,
           total,
           resetAt: parseResetTime(info.quotaInfo.resetTime),
           remainingPercentage,
@@ -210,7 +270,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     }
 
     return {
-      plan: subscriptionInfo?.currentTier?.name || "Unknown",
+      plan,
       quotas,
       subscriptionInfo,
     };

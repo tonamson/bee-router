@@ -371,6 +371,7 @@ export function parseQuotaData(provider, data) {
               total: quota.total || 0,
               resetAt: quota.resetAt || null,
               remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
             });
           });
         }
@@ -569,6 +570,7 @@ export function parseQuotaData(provider, data) {
 
   // Sort quotas according to PROVIDER_MODELS order
   const modelOrder = getModelsByProviderId(provider);
+  const isAntigravity = String(provider).toLowerCase() === "antigravity";
   if (modelOrder.length > 0) {
     const orderMap = new Map(modelOrder.map((m, i) => [m.id, i]));
     
@@ -576,6 +578,17 @@ export function parseQuotaData(provider, data) {
       // Use modelKey for antigravity, otherwise use name
       const keyA = a.modelKey || a.name;
       const keyB = b.modelKey || b.name;
+      if (isAntigravity) {
+        const poolOrder = ["gemini-5h", "gemini-weekly", "3p-5h", "3p-weekly"];
+        const poolA = poolOrder.indexOf(keyA);
+        const poolB = poolOrder.indexOf(keyB);
+        const rankA = poolA === -1 && (a.window === "weekly" || a.window === "5h") ? 50 : poolA;
+        const rankB = poolB === -1 && (b.window === "weekly" || b.window === "5h") ? 50 : poolB;
+        const inPoolA = rankA !== -1;
+        const inPoolB = rankB !== -1;
+        if (inPoolA && inPoolB) return rankA - rankB;
+        if (inPoolA !== inPoolB) return inPoolA ? -1 : 1;
+      }
       const orderA = orderMap.get(keyA) ?? 999;
       const orderB = orderMap.get(keyB) ?? 999;
       return orderA - orderB;

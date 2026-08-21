@@ -1,3 +1,11 @@
+# v0.1.3 (2026-08-21)
+
+## Fixes
+- **Antigravity**: show Gemini / Claude+GPT 5h and weekly pool quotas from
+  `retrieveUserQuotaSummary` instead of only per-model remaining fractions
+
+---
+
 # v0.1.0 (2026-08-18)
 
 First BeeRouter release. Versioning starts here — not related to 9router.
