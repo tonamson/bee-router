@@ -99,7 +99,14 @@ function tagRelease(version, { push }) {
   const files = [
     path.join(rootDir, "package.json"),
     ...SATELLITE_PKGS.filter((p) => fs.existsSync(p)),
-  ].map((p) => path.relative(rootDir, p));
+  ].filter((p) => {
+    try {
+      execFileSync("git", ["check-ignore", "-q", p], { cwd: rootDir });
+      return false;
+    } catch {
+      return true;
+    }
+  }).map((p) => path.relative(rootDir, p));
 
   git(["add", "--", ...files]);
   const staged = git(["diff", "--cached", "--name-only"], { allowFail: true });
