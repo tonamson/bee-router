@@ -93,3 +93,6 @@ graphify-out/*
 .next-analyze/*
 # Added by code-review-graph
 .code-review-graph/
+
+# Kiro local workspace state
+.kiro/
