@@ -1,3 +1,16 @@
+# v0.3.0 (2026-09-03)
+
+Major release integrating upstream 9router v0.5.59 (`90b52e06`) while preserving the BeeRouter redesign and branding.
+
+## Upstream sync — 9router v0.5.59 (90b52e06)
+- **Engine & Translator**: Claude tool `type` default; source-format-matched transport precedence; MiniMax image preservation on matched OpenAI transport; `zai` `thinkingFormat` sending a `reasoning.effort` object; Claude tool-name decloaking in same-format streaming passthrough; trailing-NDJSON-line parsing on Ollama streams; CommandCode in-stream errors handled for combo and account fallback; RTK system-prompt injection made format-safe and idempotent; RTK Responses-translation diagnostic before a silent null; configurable headroom compression timeout (`headroomTimeoutMs`); nested `cached_tokens` preserved in `canonicalizeUsage`; usage recorded when a client closes on the terminal event; no disconnect log on completed Responses streams.
+- **Search**: `ollama-search`; `zai-search` folded into the `glm` provider; Antigravity as a web-search provider; Xquik as an X-search provider; failure locks scoped so a search failure cannot take chat offline.
+- **Quota & Usage**: Zed plan quota on the dashboard; `CREDIT_LIMIT` and multi-interval GLM quotas; GPT-5.3-Codex-Spark quota windows; Antigravity quota-aware routing with reset-aware fallback.
+- **Models & Catalog**: GLM-5.3-Flash, DeepSeek V4 Vision, Grok 4.5/4.6, Gemini 3.7 Flash tiers in Antigravity MITM `defaultModels`; background capability refresh from models.dev; catalog sync no longer erases its own output and no longer uses a worker thread; Antigravity image size mapped to an aspect-ratio model suffix.
+- **CLI Tools & UI**: Shared endpoint presets across CLI tool cards (`BaseUrlSelect`); Codex config updated with `http_headers.Authorization` and `default_subagent_model`; `better-sqlite3` installed without build tools on Node 22+.
+
+---
+
 # v0.1.3 (2026-08-21)
 
 ## Fixes
@@ -13,21 +26,6 @@ First BeeRouter release. Versioning starts here — not related to 9router.
 - Rebrand fork to **BeeRouter** (`npm i -g @tonamson2/bee-router`)
 - Data dir `~/.bee-router`, env `BEE_ROUTER_*`, bin `bee-router`
 - GitHub: [tonamson/bee-router](https://github.com/tonamson/bee-router)
-
-## Upstream sync — 9router v0.5.59 (90b52e06)
-
-Synchronized with upstream decolua/9router v0.5.59 (`90b52e06`).
-
-### Features Taken
-- **Engine & Translator**: Claude tool `type` default; source-format-matched transport precedence; MiniMax image preservation on matched OpenAI transport; `zai` `thinkingFormat` sending a `reasoning.effort` object; Claude tool-name decloaking in same-format streaming passthrough; trailing-NDJSON-line parsing on Ollama streams; CommandCode in-stream errors handled for combo and account fallback; RTK system-prompt injection made format-safe and idempotent; RTK Responses-translation diagnostic before a silent null; configurable headroom compression timeout (`headroomTimeoutMs`); nested `cached_tokens` preserved in `canonicalizeUsage`; usage recorded when a client closes on the terminal event; no disconnect log on completed Responses streams.
-- **Search**: `ollama-search`; `zai-search` folded into the `glm` provider; Antigravity as a web-search provider; Xquik as an X-search provider; failure locks scoped so a search failure cannot take chat offline.
-- **Quota & Usage**: Zed plan quota on the dashboard; `CREDIT_LIMIT` and multi-interval GLM quotas; GPT-5.3-Codex-Spark quota windows; Antigravity quota-aware routing with reset-aware fallback.
-- **Models & Catalog**: GLM-5.3-Flash, DeepSeek V4 Vision, Grok 4.5/4.6, Gemini 3.7 Flash tiers in Antigravity MITM `defaultModels`; background capability refresh from models.dev; catalog sync no longer erases its own output and no longer uses a worker thread; Antigravity image size mapped to an aspect-ratio model suffix.
-- **Other**: Cline OAuth refresh using the extension JSON contract; Claude Code session id read from its request header; provider connection tests timed out and guarded against undefined names; API key mask clamped for short keys; Material Symbols icon font awaited before reveal; OpenCode Muse Spark routed through the Responses API; shared endpoint presets across CLI tool cards; `better-sqlite3` installed without build tools on Node 22+.
-
-### Deliberately Not Taken
-- **i18n**: pt-BR translation expansion (`e79ae6e7`) — unused locales kept deleted.
-- **Skills**: upstream's `src/shared/constants/skills.js` description change — module stays deleted.
 
 ---
 
