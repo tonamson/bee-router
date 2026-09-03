@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import PropTypes from "prop-types";
 import { marked } from "marked";
-import { GITHUB_CONFIG } from "@/shared/constants/config";
+import { GITHUB_CONFIG, APP_CONFIG } from "@/shared/constants/config";
 
 marked.setOptions({ gfm: true, breaks: true });
 
@@ -57,7 +57,12 @@ export default function ChangelogModal({ isOpen, onClose }) {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-black/5 dark:border-white/5">
-          <h2 className="text-lg font-semibold text-text-main">Change Log</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-text-main">Change Log</h2>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500 font-mono font-medium border border-brand-500/20">
+              v{APP_CONFIG.version}
+            </span>
+          </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-text-muted hover:bg-black/5 dark:hover:bg-white/5 transition-colors"

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { ClockCounterClockwise, Sun, Moon, Power, SignOut, Copy, User } from "@phosphor-icons/react";
 import { useTheme } from "@/shared/hooks/useTheme";
+import { APP_CONFIG } from "@/shared/constants/config";
 import ChangelogModal from "./ChangelogModal";
 import { ConfirmModal } from "./Modal";
 
@@ -93,6 +94,7 @@ export default function HeaderMenu({ onLogout, placement = "bottom" }) {
             <MenuItem
               icon={<ClockCounterClockwise size={18} />}
               label="Change Log"
+              trailing={<span className="text-[11px] font-mono text-text-muted bg-surface-2 px-1.5 py-0.5 rounded border border-border/60">v{APP_CONFIG.version}</span>}
               onClick={() => { close(); setChangelogOpen(true); }}
             />
             <MenuItem
@@ -117,6 +119,9 @@ export default function HeaderMenu({ onLogout, placement = "bottom" }) {
               danger
               onClick={() => { close(); onLogout(); }}
             />
+            <div className="px-4 py-1.5 border-t border-border/40 text-[11px] text-text-muted/60 font-mono text-center select-none">
+              {APP_CONFIG.name} v{APP_CONFIG.version}
+            </div>
           </div>
         )}
       </div>

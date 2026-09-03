@@ -1,3 +1,17 @@
+# v0.3.1 (2026-09-03)
+
+Patch release integrating selective features and security fixes from upstream 9router (v0.5.60 – v0.5.65) and adding Gemini 3.8 Flash support.
+
+## Features & Upstream Sync
+- **Antigravity & Gemini**: Added Gemini 3.8 Flash tiered models (`high`, `medium`, `low`) with full pricing, quota, and streaming capabilities. Bumped Antigravity IDE fingerprint to `2.11.0`. Preserved client identity on model catalog requests and added strike-break quota logic for repeated 429 errors.
+- **Security**: Hardened SSRF guard (`ssrfGuard.js`) against DNS-resolving bypasses and internal IP targets (#3714).
+- **UI & UX**: Fixed flash of light theme on page reload in dark mode. Added connection status filter (Active, Inactive, None) on Providers dashboard. Added max-height scroll to provider connection list. Added provider logos (`fish-audio`, `alims-intl`, `alitp-intl`, `selfhosted-*`).
+- **CLI Tools**: Supported saving and managing custom API key presets across CLI tools (`bee-router.cliToolApiKeyPresets`).
+- **Quota & Providers**: Added usage and rate-limit tracking for Groq via response headers. Added Ollama Cloud web fetch provider.
+- **Claude & Kiro**: Stripped trailing `[1m]` context markers sent by Claude Code 1M beta to prevent invalid model errors. Dropped foreign `server_tool_use` blocks to avoid Anthropic HTTP 400 errors during fallbacks. Preserved inline images in OpenAI MITM for Kiro.
+
+---
+
 # v0.3.0 (2026-09-03)
 
 Major release integrating upstream 9router v0.5.59 (`90b52e06`) while preserving the BeeRouter redesign and branding.
