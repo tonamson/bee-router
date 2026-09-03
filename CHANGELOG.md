@@ -1,3 +1,12 @@
+# v0.3.2 (2026-09-03)
+
+Patch release adding Changelog viewer modal in UI, bumping dependency versions, and syncing upstream fixes.
+
+## UI & UX
+- **Changelog**: Added quick-access Changelog modal to header menu with version badge.
+
+---
+
 # v0.3.1 (2026-09-03)
 
 Patch release integrating selective features and security fixes from upstream 9router (v0.5.60 – v0.5.65) and adding Gemini 3.8 Flash support.
