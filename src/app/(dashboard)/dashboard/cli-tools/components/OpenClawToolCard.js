@@ -38,7 +38,7 @@ export default function OpenClawToolCard({
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const hasInitializedModel = useRef(false);
 
-  const currentBaseUrl = openclawStatus?.settings?.models?.providers?.["9router"]?.baseUrl || "";
+  const currentBaseUrl = openclawStatus?.settings?.models?.providers?.["bee-router"]?.baseUrl || "";
 
   const getConfigStatus = () => {
     if (!openclawStatus?.installed) return null;

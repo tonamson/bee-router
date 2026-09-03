@@ -1,15 +1,15 @@
 import { UPDATER_CONFIG } from "@/shared/constants/config";
 
 // Browser-local endpoint presets shared by every CLI tool card
-const STORAGE_KEY = "9router.cliToolEndpointPresets";
-const CHANGE_EVENT = "9router:endpoint-presets-changed";
+const STORAGE_KEY = "bee-router.cliToolEndpointPresets";
+const CHANGE_EVENT = "bee-router:endpoint-presets-changed";
 
 const stripSlash = (url) => (url || "").replace(/\/+$/, "");
 
 export function readPresets() {
   if (typeof window === "undefined") return [];
   try {
-    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
+    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || window.localStorage.getItem("9router.cliToolEndpointPresets") || "[]");
     if (!Array.isArray(raw)) return [];
     return raw.filter((p) => p?.name && p?.baseUrl);
   } catch {

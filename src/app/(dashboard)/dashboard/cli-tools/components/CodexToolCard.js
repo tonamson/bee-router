@@ -180,7 +180,7 @@ name = "BeeRouter"
 base_url = "${getEffectiveBaseUrl()}"
 wire_api = "responses"
 
-[model_providers.9router.http_headers]
+[model_providers.bee-router.http_headers]
 Authorization = "Bearer ${keyToUse}"
 
 [agents]
