@@ -6,6 +6,8 @@ First BeeRouter release. Versioning starts here — not related to 9router.
 - Data dir `~/.bee-router`, env `BEE_ROUTER_*`, bin `bee-router`
 - GitHub: [tonamson/bee-router](https://github.com/tonamson/bee-router)
 
+## Upstream sync — 9router v0.5.59 (90b52e06)
+
 ---
 
 # v0.5.55 (2026-08-14)
