@@ -123,6 +123,8 @@ import p120 from "./fish-audio.js";
 import p121 from "./alitp-intl.js";
 import p122 from "./deepseek-web.js";
 import p123 from "./qwen-web.js";
+import p124 from "./ollama-search.js";
+import p125 from "./xquik.js";
 
 export default [
   p0,
@@ -247,4 +249,6 @@ export default [
   p121,
   p122,
   p123,
+  p124,
+  p125,
 ];
