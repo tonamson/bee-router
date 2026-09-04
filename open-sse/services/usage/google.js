@@ -260,10 +260,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       : null;
     const pools = await poolQuotasFromSummary(summaryResponse);
     const plan = subscriptionInfo?.currentTier?.name || "Unknown";
-
-    if (Object.keys(pools).length > 0) {
-      return { plan, quotas: pools, subscriptionInfo };
-    }
+    const hasPools = Object.keys(pools).length > 0;
 
     const response = await fetchWithTimeout(
       ANTIGRAVITY_CONFIG.quotaApiUrl,
@@ -273,6 +270,9 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     ).catch(() => null);
 
     if (!response || !response.ok) {
+      // A working pool summary is a complete answer on its own — do not
+      // downgrade it to an error just because the per-model call failed.
+      if (hasPools) return { plan, quotas: pools, subscriptionInfo };
       if (response?.status === 403) {
         return {
           message: "Antigravity quota API access forbidden. Chat may still work.",
@@ -312,9 +312,11 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       }
     }
 
+    // Pools last: a pool id and a model id never collide today, and if that
+    // ever changes the aggregate reading is the authoritative one.
     return {
       plan,
-      quotas,
+      quotas: { ...quotas, ...pools },
       subscriptionInfo,
     };
   } catch (error) {

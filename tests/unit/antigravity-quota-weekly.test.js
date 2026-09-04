@@ -123,7 +123,14 @@ describe("Antigravity weekly quota from retrieveUserQuotaSummary", () => {
       remainingPercentage: 100,
       displayName: "Claude + GPT 5h",
     });
-    expect(usage.quotas["gemini-3.7-flash-high"]).toBeUndefined();
+    // Pools and per-model bars coexist: the dashboard renders both, and the
+    // routing layer needs a per-model fallback when a pool is missing.
+    expect(usage.quotas["gemini-3.7-flash-high"]).toMatchObject({
+      remainingPercentage: 85,
+      displayName: "Gemini 3.7 Flash (High)",
+    });
+    expect(usage.quotas["tab_flash_lite_preview"]).toBeUndefined();
+    expect(usage.quotas["chat_20706"]).toBeUndefined();
     expect(usage.quotas).not.toHaveProperty("undefined");
     expect(usage.message).toBeUndefined();
   });
