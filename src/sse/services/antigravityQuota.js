@@ -5,7 +5,7 @@
  */
 
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
-import { getAntigravityUsage } from "open-sse/services/usage/google.js";
+import { getAntigravityUsage, readModelQuota } from "open-sse/services/usage/google.js";
 import * as log from "../utils/logger.js";
 
 // In-memory cache: connectionId → { [modelId]: { remainingPercentage, resetAt } }
@@ -140,7 +140,13 @@ export async function handleAntigravityQuotaError(connectionId, status, model, a
 
   // Throttle applies to error paths too: one quota request per account/30s.
   // The first 409/429 populates cache; concurrent or repeated errors reuse it.
-  const quota = (await refreshAntigravityQuota(connectionId, accessToken, providerSpecificData))?.[model];
+  // Antigravity quota is pooled: resolve the model to its 5h/weekly pool.
+  // A direct per-model key (strike block, or the fetchAvailableModels
+  // fallback map) still wins — see readModelQuota.
+  const quota = readModelQuota(
+    await refreshAntigravityQuota(connectionId, accessToken, providerSpecificData),
+    model,
+  );
 
   // Strike breaker: count every 429 whose quota reading is either optimistic
   // (remaining > 0) or unavailable (quota API 403/error). 3 within the window

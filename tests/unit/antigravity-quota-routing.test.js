@@ -22,7 +22,8 @@ vi.mock("@/shared/constants/providers.js", () => ({
   FREE_PROVIDERS: {},
   resolveProviderId: (provider) => provider,
 }));
-vi.mock("open-sse/services/usage/google.js", () => ({
+vi.mock("open-sse/services/usage/google.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   getAntigravityUsage: mocks.getAntigravityUsage,
 }));
 vi.mock("@/sse/utils/logger.js", () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn() }));
