@@ -34,7 +34,7 @@ vi.mock("../../open-sse/utils/proxyFetch.js", () => ({
   proxyAwareFetch: mocks.proxyAwareFetch,
 }));
 
-const { getAntigravityQuotaCache, handleAntigravityQuotaError } =
+const { getAntigravityQuotaCache, handleAntigravityQuotaError, resetAntigravityQuotaStateForTests } =
   await import("@/sse/services/antigravityQuota.js");
 const { getProviderCredentials } = await import("@/sse/services/auth.js");
 
@@ -77,6 +77,7 @@ function respond(body) {
 beforeEach(() => {
   vi.clearAllMocks();
   getAntigravityQuotaCache().clear();
+  resetAntigravityQuotaStateForTests();
   mocks.resolveConnectionProxyConfig.mockResolvedValue({});
   mocks.getSettings.mockResolvedValue({});
   mocks.proxyAwareFetch.mockImplementation(async (url) => {
@@ -117,11 +118,8 @@ describe("Antigravity quota producer→consumer contract", () => {
     }
   });
 
-  // Pending Task 5: needs the auth.js pre-filter pool-aware lookup.
-  // Plan-acknowledged fragility (progress.md T4↔T5 row): the T4 cache is
-  // pool-keyed but the pre-filter still does cache.get(id)?.[model].
-  // T5 unskips this after fixing the second read site.
-  it.skip("skips the account whose pool is exhausted and picks the next one", async () => {
+  // Task 5: pre-filter now pool-aware via readModelQuota (was it.skip in Task 4).
+  it("skips the account whose pool is exhausted and picks the next one", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-04T10:00:00.000Z"));
     mocks.getProviderConnections.mockResolvedValue([
@@ -136,6 +134,27 @@ describe("Antigravity quota producer→consumer contract", () => {
         "claude-opus-4-6-thinking",
       );
       expect(creds?.connectionId).toBe("ag-b");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports the pool reset time when every account is exhausted", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-04T10:00:00.000Z"));
+    mocks.getProviderConnections.mockResolvedValue([
+      { id: "ag-a", email: "a@example.com", isActive: true, accessToken: "t-a" },
+    ]);
+    try {
+      await handleAntigravityQuotaError("ag-a", 429, "claude-opus-4-6-thinking", "token", {});
+      const creds = await getProviderCredentials(
+        "antigravity",
+        null,
+        "claude-opus-4-6-thinking",
+      );
+      expect(creds).toEqual(
+        expect.objectContaining({ allRateLimited: true, retryAfter: FIVE_H_RESET }),
+      );
     } finally {
       vi.useRealTimers();
     }

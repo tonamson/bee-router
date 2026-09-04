@@ -75,6 +75,17 @@ export function getAntigravityQuotaCache() {
 }
 
 /**
+ * Test-only reset for the throttle/strike maps so contract tests that pin
+ * the same fake timestamp don't throttle each other. No production use.
+ */
+export function resetAntigravityQuotaStateForTests() {
+  lastRefreshAt.clear();
+  strikeCounts.clear();
+  strikeBlocks.clear();
+  inflightRefresh.clear();
+}
+
+/**
  * Refresh quota for a single antigravity connection from upstream API.
  * Updates in-memory cache only. Cache expiry is the upstream model resetAt.
  * @returns {object|null} quotas map or null on failure
