@@ -1,3 +1,15 @@
+# Unreleased
+
+## Fixes
+- **Antigravity**: 5h/weekly quota is pooled upstream, but the router looked it
+  up by model id and always missed — exhausted accounts were never skipped
+  before the upstream call, and a 409/429 fell back to a flat 15-minute strike
+  block instead of the real reset time. Model ids now resolve to their
+  Gemini / Claude+GPT pool, and `getAntigravityUsage` returns per-model bars
+  alongside the pool summary instead of replacing them.
+
+---
+
 # v0.3.2 (2026-09-03)
 
 Patch release adding Changelog viewer modal in UI, bumping dependency versions, and syncing upstream fixes.
