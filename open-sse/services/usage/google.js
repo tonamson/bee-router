@@ -120,6 +120,49 @@ const ANTIGRAVITY_POOL_LABELS = {
   "3p-weekly": "Claude + GPT weekly",
 };
 
+/**
+ * Antigravity quota is pooled, not per-model: every Gemini model draws from the
+ * Gemini 5h/weekly buckets, every Claude/GPT model from the third-party ones.
+ * The registry only ships gemini-* / claude-* / gpt-* ids
+ * (open-sse/providers/registry/antigravity.js), matching Google's own
+ * "Gemini models" vs "Claude and GPT models" bucket groups.
+ */
+export function antigravityPoolIdsForModel(modelId) {
+  return /^gemini/i.test(String(modelId || ""))
+    ? ["gemini-5h", "gemini-weekly"]
+    : ["3p-5h", "3p-weekly"];
+}
+
+function quotaResetMs(quota) {
+  const parsed = Date.parse(quota?.resetAt || "");
+  return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+}
+
+/**
+ * Resolve one quota entry for a model out of a getAntigravityUsage() quotas map.
+ * Exact key first — that is where the 409/429 strike breaker writes its
+ * synthesized block, and where the per-model fallback map lands. Otherwise the
+ * most constrained pool wins; a tie resolves to the LATEST reset, because when
+ * both 5h and weekly are exhausted the account stays unusable until the later
+ * one refills.
+ */
+export function readModelQuota(quotas, model) {
+  if (!quotas || !model) return null;
+  if (quotas[model]) return quotas[model];
+
+  const pools = antigravityPoolIdsForModel(model)
+    .map((id) => quotas[id])
+    .filter(Boolean);
+  if (pools.length === 0) return null;
+
+  return pools.reduce((worst, quota) => {
+    const delta = (Number(quota.remainingPercentage) || 0)
+      - (Number(worst.remainingPercentage) || 0);
+    if (delta !== 0) return delta < 0 ? quota : worst;
+    return quotaResetMs(quota) > quotaResetMs(worst) ? quota : worst;
+  });
+}
+
 function antigravityQuotaSummaryUrl() {
   const modelsUrl = String(ANTIGRAVITY_CONFIG.quotaApiUrl || "");
   const summaryUrl = modelsUrl.replace(":fetchAvailableModels", ":retrieveUserQuotaSummary");
