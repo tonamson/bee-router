@@ -149,7 +149,7 @@ function quotaResetMs(quota) {
  */
 export function readModelQuota(quotas, model) {
   if (!quotas || !model) return null;
-  if (quotas[model]) return quotas[model];
+  if (Object.hasOwn(quotas, model)) return quotas[model];
 
   const pools = antigravityPoolIdsForModel(model)
     .map((id) => quotas[id])
@@ -333,7 +333,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     // Second pass: aliases never overwrite an exact key, whatever the order.
     for (const modelKey of Object.keys(quotas)) {
       for (const alias of antigravityModelAliases(modelKey)) {
-        if (!quotas[alias]) quotas[alias] = quotas[modelKey];
+        if (!quotas[alias]) quotas[alias] = { ...quotas[modelKey] };
       }
     }
 

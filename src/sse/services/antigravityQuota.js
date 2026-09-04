@@ -8,7 +8,7 @@ import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { getAntigravityUsage, readModelQuota } from "open-sse/services/usage/google.js";
 import * as log from "../utils/logger.js";
 
-// In-memory cache: connectionId → { [modelId]: { remainingPercentage, resetAt } }
+// In-memory cache: connectionId → { [modelId|poolId]: { remainingPercentage, resetAt } }
 const quotaCache = new Map();
 // Track last refresh per connection to avoid hammering
 const lastRefreshAt = new Map();
