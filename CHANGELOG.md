@@ -1,4 +1,6 @@
-# Unreleased
+# v0.3.3 (2026-09-04)
+
+Patch release fixing Antigravity 5h/weekly quota-aware routing so exhausted accounts are skipped before the upstream call.
 
 ## Fixes
 - **Antigravity**: 5h/weekly quota is pooled upstream, but the router looked it
