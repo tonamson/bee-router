@@ -5,6 +5,7 @@
 import { CLIENT_METADATA } from "../../config/appConstants.js";
 import { ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_IDE_VERSION, ANTIGRAVITY_OAUTH_CLIENT } from "../../providers/shared.js";
 import { U, parseResetTime, normalizeCloudCodeProjectId, fetchWithTimeout } from "./shared.js";
+import { getModelsByProviderId } from "../../config/providerModels.js";
 
 // Antigravity API config (from Quotio) — urls from registry, oauth client + dynamic UA kept here
 const ANTIGRAVITY_CONFIG = {
@@ -225,6 +226,23 @@ function skipAntigravityModel(modelKey, info) {
   return false;
 }
 
+const stripTierSuffix = (id) => String(id || "").replace(/\(.*\)$/, "");
+
+/**
+ * fetchAvailableModels keys quotas by upstream id ("gemini-3.6-flash-tiered")
+ * while callers pass registry ids ("gemini-3.6-flash-high"). Return every
+ * registry id that maps onto the same upstream base so the lookup resolves.
+ */
+function antigravityModelAliases(modelKey) {
+  const base = stripTierSuffix(modelKey);
+  const aliases = [];
+  for (const model of getModelsByProviderId("antigravity")) {
+    if (model.id === modelKey) continue;
+    if (stripTierSuffix(model.upstreamModelId || model.id) === base) aliases.push(model.id);
+  }
+  return aliases;
+}
+
 function cloneQuotaRequest(quotaRequest) {
   return {
     ...quotaRequest,
@@ -309,6 +327,13 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
           unlimited: false,
           displayName: info.displayName || modelKey,
         };
+      }
+    }
+
+    // Second pass: aliases never overwrite an exact key, whatever the order.
+    for (const modelKey of Object.keys(quotas)) {
+      for (const alias of antigravityModelAliases(modelKey)) {
+        if (!quotas[alias]) quotas[alias] = quotas[modelKey];
       }
     }
 

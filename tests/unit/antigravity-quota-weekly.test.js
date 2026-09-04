@@ -60,6 +60,10 @@ const MODEL_QUOTAS = {
       displayName: "Gemini 3.7 Flash",
       quotaInfo: { remainingFraction: 0.85, resetTime: "2026-08-21T12:00:00Z" },
     },
+    "gemini-3.6-flash-tiered": {
+      displayName: "Gemini 3.6 Flash",
+      quotaInfo: { remainingFraction: 0.5, resetTime: "2026-08-21T12:00:00Z" },
+    },
     tab_flash_lite_preview: {
       quotaInfo: { remainingFraction: 1 },
     },
@@ -192,6 +196,34 @@ describe("Antigravity weekly quota from retrieveUserQuotaSummary", () => {
     expect(usage.quotas["gemini-weekly"]).toMatchObject({ remainingPercentage: 90 });
     expect(usage.quotas["gemini-3.7-flash-high"]).toBeUndefined();
     expect(usage.message).toBeUndefined();
+  });
+
+  it("indexes upstream-keyed quotas under their registry model ids", async () => {
+    proxyAwareFetch.mockImplementation(async (url) => {
+      const href = String(url || "");
+      if (href.includes(":loadCodeAssist")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ cloudaicompanionProject: "project-1", currentTier: { name: "Pro" } }),
+          text: async () => "{}",
+        };
+      }
+      if (href.includes(":retrieveUserQuotaSummary")) {
+        return { ok: false, status: 404, json: async () => ({}), text: async () => "{}" };
+      }
+      return { ok: true, status: 200, json: async () => MODEL_QUOTAS, text: async () => "{}" };
+    });
+
+    const { getAntigravityUsage } = await import("../../open-sse/services/usage/google.js");
+    const usage = await getAntigravityUsage("access-token", {});
+
+    // gemini-3.6-flash-tiered is the upstream base for the high/medium/low
+    // registry ids, so all three resolve to the same bucket.
+    expect(usage.quotas["gemini-3.6-flash-high"]).toMatchObject({ remainingPercentage: 50 });
+    expect(usage.quotas["gemini-3.6-flash-low"]).toMatchObject({ remainingPercentage: 50 });
+    // An exact upstream match must not be clobbered by an alias.
+    expect(usage.quotas["gemini-3.7-flash-high"]).toMatchObject({ remainingPercentage: 85 });
   });
 
   it("lists weekly pools before per-model 5h bars on dashboard/quota", () => {
