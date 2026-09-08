@@ -1,3 +1,18 @@
+# v0.3.5 (2026-09-08)
+
+Patch release pointing Antigravity quota discovery at the same host the chat traffic uses.
+
+## Fixes
+- **Antigravity quota tracker**: quota still read ~100% for accounts with real
+  usage. Chat runs on `daily-cloudcode-pa.googleapis.com`, but
+  `quotaApiUrl` / `loadProjectApiUrl` pointed at
+  `cloudcode-pa.googleapis.com`, and Google accounts quota per host — the PROD
+  host reports a near-untouched pool. Verified live: one account read
+  100% / 100% on PROD while the daily host reported 5h 96.91% and weekly
+  81.25%. Both discovery endpoints now derive from `ANTIGRAVITY_IDE_BASE_URL`.
+
+---
+
 # v0.3.4 (2026-09-08)
 
 Patch release fixing the Antigravity quota tracker reading 100% for every account.
