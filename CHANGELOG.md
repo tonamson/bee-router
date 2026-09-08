@@ -1,3 +1,19 @@
+# v0.3.4 (2026-09-08)
+
+Patch release fixing the Antigravity quota tracker reading 100% for every account.
+
+## Fixes
+- **Antigravity quota tracker**: every account read 100% in the dashboard and
+  in the routing pre-filter. `:fetchAvailableModels` reports
+  `remainingFraction: 1` for every model regardless of real usage (verified
+  live: `gemini-weekly` at 96.99% while all ~30 per-model entries read 1), and
+  those flat entries also shadowed the real pool in `readModelQuota`'s
+  exact-key branch. When the `:retrieveUserQuotaSummary` pool summary succeeds
+  it is now the only quota answer; per-model bars remain the fallback for
+  accounts where the summary endpoint fails.
+
+---
+
 # v0.3.3 (2026-09-04)
 
 Patch release fixing Antigravity 5h/weekly quota-aware routing so exhausted accounts are skipped before the upstream call.

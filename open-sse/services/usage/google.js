@@ -280,6 +280,13 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     const plan = subscriptionInfo?.currentTier?.name || "Unknown";
     const hasPools = Object.keys(pools).length > 0;
 
+    // :fetchAvailableModels reports remainingFraction:1 for EVERY model even on
+    // a partly-drained account (verified live 2026-09-08: gemini-weekly at
+    // 0.9699 while all ~30 per-model entries read 1). Those flat entries also
+    // shadow the real pool in readModelQuota's exact-key branch, so when the
+    // pool summary works it is the only quota answer.
+    if (hasPools) return { plan, quotas: pools, subscriptionInfo };
+
     const response = await fetchWithTimeout(
       ANTIGRAVITY_CONFIG.quotaApiUrl,
       cloneQuotaRequest(quotaRequest),
@@ -337,13 +344,8 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       }
     }
 
-    // Pools last: a pool id and a model id never collide today, and if that
-    // ever changes the aggregate reading is the authoritative one.
-    return {
-      plan,
-      quotas: { ...quotas, ...pools },
-      subscriptionInfo,
-    };
+    // Pool-summary-less fallback: flat per-model readings are all we have.
+    return { plan, quotas, subscriptionInfo };
   } catch (error) {
     console.error("[Antigravity Usage] Error:", error.message, error.cause);
     return { message: `Antigravity error: ${error.message}` };
