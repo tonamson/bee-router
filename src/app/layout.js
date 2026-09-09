@@ -42,7 +42,7 @@ export default function RootLayout({ children }) {
             zustand-persist "theme" key and the `dark` class applyTheme() sets. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('theme');var t=s?(JSON.parse(s).state||{}).theme:'system';t=t||'system';var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==='system'&&m)){document.documentElement.classList.add('dark')}}catch(e){}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('theme');var t=s;try{var p=JSON.parse(s);t=(p&&p.state&&p.state.theme)?p.state.theme:(p||s)}catch(_){}var d=document.documentElement;var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||((!t||t==='system')&&m)){d.classList.add('dark')}else{d.classList.remove('dark')}}catch(e){}})();`,
           }}
         />
         <script

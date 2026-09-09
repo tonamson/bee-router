@@ -24,7 +24,7 @@ import { getErrorCode, getRelativeTime } from "@/shared/utils";
 import { useNotificationStore } from "@/store/notificationStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
-import { STATUS_FILTER_OPTIONS, matchesStatusFilter } from "./utils";
+import { matchesStatusFilter } from "./utils";
 
 function getStatusDisplay(connected, error, errorCode) {
   const parts = [];
@@ -390,19 +390,21 @@ export default function ProvidersPage() {
           placeholder="Search providers..."
           className="h-9 w-full max-w-sm rounded-[8px] border border-border bg-bg px-3 text-sm text-text-main"
         />
-        <div className="flex items-center justify-end">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 rounded-[8px] border border-border bg-bg px-2 text-xs text-text-main outline-none transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-            aria-label="Filter providers by connection status"
-          >
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-1.5 rounded-xl border border-white/5 bg-black/20 p-1">
+          {["all", "connected", "disconnected"].map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setStatusFilter(status)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                statusFilter === status
+                  ? "bg-bee-gold/15 text-bee-gold border border-bee-gold/30 shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-200 border border-transparent"
+              }`}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 

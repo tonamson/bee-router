@@ -14,6 +14,14 @@ export function getConnectionStatus(stats, isNoAuth = false) {
 }
 
 export function matchesStatusFilter(statusFilter, stats, isNoAuth = false) {
-  if (statusFilter === "all") return true;
-  return getConnectionStatus(stats, isNoAuth) === statusFilter;
+  if (!statusFilter || statusFilter === "all") return true;
+  const status = getConnectionStatus(stats, isNoAuth);
+  if (statusFilter === "connected") return status === "active" || status === "inactive";
+  if (statusFilter === "disconnected") return status === "none";
+  return status === statusFilter;
+}
+
+export function filterProvidersByStatus(providers = [], filter = "all") {
+  if (!filter || filter === "all") return providers;
+  return providers.filter((p) => matchesStatusFilter(filter, p?.stats || p, p?.noAuth));
 }

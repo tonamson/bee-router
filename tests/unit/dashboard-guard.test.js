@@ -57,6 +57,7 @@ describe("dashboard guard public LLM API access", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.BEE_ROUTER_PEER_TOKEN = PEER_TOKEN;
+    process.env.NINEROUTER_PEER_TOKEN = PEER_TOKEN;
     mocks.getSettings.mockResolvedValue({ requireLogin: true });
     mocks.validateApiKey.mockResolvedValue(false);
     mocks.getConsistentMachineId.mockResolvedValue("cli-token");
@@ -123,6 +124,25 @@ describe("dashboard guard public LLM API access", () => {
 
     expect(response.status).toBe(401);
     expect(response.body.error).toBe("API key required for remote API access");
+  });
+
+  it("rejects remote /responses rewrite without API key", async () => {
+    const response = await proxy(request("/responses", { host: "router.example.com" }));
+
+    expect(response.status).toBe(401);
+    expect(response.body.error).toBe("API key required for remote API access");
+  });
+
+  it("allows remote /responses rewrite with a valid API key", async () => {
+    mocks.validateApiKey.mockResolvedValue(true);
+
+    const response = await proxy(request("/responses", {
+      host: "router.example.com",
+      authorization: "Bearer sk-valid",
+    }));
+
+    expect(response).toBe(mocks.nextResponse);
+    expect(mocks.validateApiKey).toHaveBeenCalledWith("sk-valid");
   });
 
   it("allows remote codex rewrite with valid API key", async () => {
@@ -201,6 +221,7 @@ describe("dashboard guard local-only access", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.BEE_ROUTER_PEER_TOKEN = PEER_TOKEN;
+    process.env.NINEROUTER_PEER_TOKEN = PEER_TOKEN;
     mocks.getSettings.mockResolvedValue({ requireLogin: true });
     mocks.validateApiKey.mockResolvedValue(false);
     mocks.getConsistentMachineId.mockResolvedValue("cli-token");
