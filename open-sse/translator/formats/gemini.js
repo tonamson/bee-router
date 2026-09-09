@@ -341,6 +341,11 @@ function ensureArrayItems(obj) {
   for (const v of Object.values(obj)) if (v && typeof v === "object") ensureArrayItems(v);
 }
 
+/** Gemini 3 / AGY CLI send JSON Schema on `parametersJsonSchema`, not `parameters`. */
+export function geminiFunctionParameters(func) {
+  return func?.parameters || func?.parametersJsonSchema || { type: "object", properties: {} };
+}
+
 // Clean JSON Schema for Antigravity API compatibility - removes unsupported keywords recursively
 export function cleanJSONSchemaForAntigravity(schema) {
   if (!schema || typeof schema !== "object") return schema;
