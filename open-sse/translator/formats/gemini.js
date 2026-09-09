@@ -14,6 +14,8 @@ export const UNSUPPORTED_SCHEMA_CONSTRAINTS = [
   "uniqueItems", "contains",
   // 2020-12 keywords with no Gemini equivalent
   "unevaluatedProperties", "unevaluatedItems", "contentSchema",
+  // Tuple-array keywords; converted to items first, leftovers stripped
+  "prefixItems", "additionalItems",
   // Claude rejects these in VALIDATED mode
   "default", "examples",
   // JSON Schema meta keywords
@@ -308,43 +310,43 @@ function ensureObjectType(obj) {
   for (const v of Object.values(obj)) if (v && typeof v === "object") ensureObjectType(v);
 }
 
-function resolveLocalRefs(root) {
-  if (!root || typeof root !== "object") return;
-  const defs = { ...(root.$defs || {}), ...(root.definitions || {}) };
-  const walk = (obj, stack) => {
-    if (!obj || typeof obj !== "object" || stack.includes(obj)) return;
-    if (typeof obj.$ref === "string") {
-      const m = /^#\/(?:\$defs|definitions)\/([^/]+)$/.exec(obj.$ref);
-      const target = m && defs[m[1]];
-      if (target && typeof target === "object") {
-        const rest = { ...obj };
-        delete rest.$ref;
-        for (const k of Object.keys(obj)) delete obj[k];
-        Object.assign(obj, structuredClone(target), rest);
-      }
+// Convert prefixItems (tuple validation) to items — Gemini cannot express tuples,
+// and a type:"array" schema without items is rejected with "missing field"
+function convertPrefixItems(obj) {
+  if (!obj || typeof obj !== "object") return;
+
+  if (Array.isArray(obj.prefixItems) && obj.prefixItems.length > 0) {
+    const variants = obj.prefixItems.filter(s => s && s.type !== "null");
+    if (!obj.items && variants.length === 1) {
+      obj.items = variants[0];
+    } else if (!obj.items && variants.length > 1) {
+      obj.items = { anyOf: variants };
     }
-    stack.push(obj);
-    for (const v of Object.values(obj)) walk(v, stack);
-    stack.pop();
-  };
-  walk(root, []);
+    delete obj.prefixItems;
+  }
+
+  for (const value of Object.values(obj)) {
+    if (value && typeof value === "object") {
+      convertPrefixItems(value);
+    }
+  }
+}
+
+// Gemini requires items on every type:"array" schema — fill a permissive placeholder
+function ensureArrayItems(obj) {
+  if (!obj || typeof obj !== "object") return;
+  if (obj.type === "array" && !obj.items) {
+    obj.items = { type: "string" };
+  }
+  for (const v of Object.values(obj)) if (v && typeof v === "object") ensureArrayItems(v);
 }
 
 // Clean JSON Schema for Antigravity API compatibility - removes unsupported keywords recursively
-/** Gemini 3 / AGY CLI send JSON Schema on `parametersJsonSchema`, not `parameters`. */
-export function geminiFunctionParameters(func) {
-  return func?.parameters || func?.parametersJsonSchema || { type: "object", properties: {} };
-}
-
 export function cleanJSONSchemaForAntigravity(schema) {
   if (!schema || typeof schema !== "object") return schema;
 
   // Mutate directly (schema is only used once per request)
   let cleaned = schema;
-
-  // Resolve local $ref before stripping $defs/$ref — otherwise ListDir.DirectoryPath
-  // becomes {} and addPlaceholders replaces it with { reason }, so AGY shows ListDir().
-  resolveLocalRefs(cleaned);
 
   // Phase 1: Convert and prepare
   convertConstToEnum(cleaned);
@@ -352,11 +354,13 @@ export function cleanJSONSchemaForAntigravity(schema) {
 
   // Phase 2: Flatten complex structures
   mergeAllOf(cleaned);
+  convertPrefixItems(cleaned);
   flattenAnyOfOneOf(cleaned);
   flattenTypeArrays(cleaned);
 
   // Phase 2.5: Infer missing type=object when properties exist (Gemini requirement)
   ensureObjectType(cleaned);
+  ensureArrayItems(cleaned);
 
   // Phase 3: Remove all unsupported keywords at ALL levels (including inside arrays)
   removeUnsupportedKeywords(cleaned, UNSUPPORTED_SCHEMA_CONSTRAINTS);
@@ -386,13 +390,25 @@ export function cleanJSONSchemaForAntigravity(schema) {
 
   cleanupRequired(cleaned);
 
-  // Phase 5: placeholder only on the root schema. Nested {} after a missed $ref
-  // must stay empty — filling them with `reason` makes AGY ListDir() lose DirectoryPath.
+  // Phase 5: Add placeholder for empty object schemas (Antigravity requirement)
   function addPlaceholders(obj) {
     if (!obj || typeof obj !== "object") return;
-    if (Object.keys(obj).length === 0 || obj.type === "object") {
+
+    // Empty schema {} (no type, no properties) after $ref removal — treat as object with placeholder
+    if (Object.keys(obj).length === 0) {
+      obj.type = "object";
+      obj.properties = {
+        reason: {
+          type: "string",
+          description: "Brief explanation of why you are calling this tool"
+        }
+      };
+      obj.required = ["reason"];
+      return;
+    }
+
+    if (obj.type === "object") {
       if (!obj.properties || Object.keys(obj.properties).length === 0) {
-        if (!obj.type) obj.type = "object";
         obj.properties = {
           reason: {
             type: "string",
@@ -400,6 +416,13 @@ export function cleanJSONSchemaForAntigravity(schema) {
           }
         };
         obj.required = ["reason"];
+      }
+    }
+
+    // Recurse into nested objects
+    for (const value of Object.values(obj)) {
+      if (value && typeof value === "object") {
+        addPlaceholders(value);
       }
     }
   }

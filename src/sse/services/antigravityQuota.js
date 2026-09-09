@@ -67,6 +67,39 @@ export function clearAntigravityStrikes(connectionId, model) {
   }
 }
 
+export const clearAntigravityQuotaStrikes = clearAntigravityStrikes;
+
+/**
+ * Record a strike for an optimistic/unavailable 429/409 response.
+ * If threshold reached within window, cache-blocks the pair for STRIKE_BLOCK_MS.
+ * @returns {number|null} blockedUntil timestamp ms or null
+ */
+export function recordAntigravityQuotaStrike(connectionId, model, status = 429, quota = null) {
+  const key = `${connectionId}|${model}`;
+  const now = Date.now();
+  const strike = strikeCounts.get(key);
+  // Fixed window anchored at the FIRST qualifying strike: three 429s must
+  // all land within 60s of that first one, not within 60s of each other.
+  const windowStart = strike && now - strike.windowStart <= STRIKE_WINDOW_MS ? strike.windowStart : now;
+  const count = strike && windowStart === strike.windowStart ? strike.count + 1 : 1;
+  strikeCounts.set(key, { count, windowStart });
+  if (count >= STRIKE_THRESHOLD) {
+    strikeCounts.delete(key);
+    const blockedUntil = now + STRIKE_BLOCK_MS;
+    const reading = quota ? `${Math.round(quota.remainingPercentage)}%` : "unknown";
+    log.warn("AG_QUOTA", `${connectionId.slice(0, 8)} | STRIKE_${status} ${model} — ${count}x 429 (quota ${reading}); CACHE_BLOCK 15m`);
+    // Synthesize a 0% entry in the shared cache so the auth pre-filter skips
+    // this pair on subsequent requests too, not just the current retry loop
+    // (the chat handler does not persist modelLock_* for this path).
+    const cached = quotaCache.get(connectionId) || {};
+    cached[model] = { remainingPercentage: 0, resetAt: new Date(blockedUntil).toISOString() };
+    quotaCache.set(connectionId, cached);
+    strikeBlocks.set(key, blockedUntil);
+    return blockedUntil;
+  }
+  return null;
+}
+
 /**
  * Get the quota cache (read-only reference for auth.js pre-filter).
  */
@@ -167,29 +200,7 @@ export async function handleAntigravityQuotaError(connectionId, status, model, a
   // retry" was motivated by 409/429 pairs), and poisoning by transient 409s
   // requires 3 of them inside 60 seconds on the same pair.
   if (!quota || quota.remainingPercentage > 0) {
-    const key = `${connectionId}|${model}`;
-    const now = Date.now();
-    const strike = strikeCounts.get(key);
-    // Fixed window anchored at the FIRST qualifying strike: three 429s must
-    // all land within 60s of that first one, not within 60s of each other.
-    const windowStart = strike && now - strike.windowStart <= STRIKE_WINDOW_MS ? strike.windowStart : now;
-    const count = strike && windowStart === strike.windowStart ? strike.count + 1 : 1;
-    strikeCounts.set(key, { count, windowStart });
-    if (count >= STRIKE_THRESHOLD) {
-      strikeCounts.delete(key);
-      const blockedUntil = now + STRIKE_BLOCK_MS;
-      const reading = quota ? `${Math.round(quota.remainingPercentage)}%` : "unknown";
-      log.warn("AG_QUOTA", `${connectionId.slice(0, 8)} | STRIKE_${status} ${model} — ${count}x 429 (quota ${reading}); CACHE_BLOCK 15m`);
-      // Synthesize a 0% entry in the shared cache so the auth pre-filter skips
-      // this pair on subsequent requests too, not just the current retry loop
-      // (the chat handler does not persist modelLock_* for this path).
-      const cached = quotaCache.get(connectionId) || {};
-      cached[model] = { remainingPercentage: 0, resetAt: new Date(blockedUntil).toISOString() };
-      quotaCache.set(connectionId, cached);
-      strikeBlocks.set(key, blockedUntil);
-      return blockedUntil;
-    }
-    return null;
+    return recordAntigravityQuotaStrike(connectionId, model, status, quota);
   }
 
   // Healthy-but-exhausted reading: clear strikes and use the exact resetAt.

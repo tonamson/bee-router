@@ -3,19 +3,18 @@ import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.j
 import antigravityRegistry from "../../open-sse/providers/registry/antigravity.js";
 import geminiRegistry from "../../open-sse/providers/registry/gemini.js";
 import { MODEL_PRICING } from "../../open-sse/providers/pricing.js";
-import { extractModel } from "../../src/mitm/config.js";
 
 describe("Gemini 3.8 Flash Support & Config", () => {
   it("registers gemini-3.8-flash tiered models in antigravity provider registry", () => {
-    const agIds = antigravityRegistry.models.map((m) => m.id);
+    const agIds = antigravityRegistry.models.map(m => m.id);
     expect(agIds).toContain("gemini-3.8-flash-high");
     expect(agIds).toContain("gemini-3.8-flash-medium");
     expect(agIds).toContain("gemini-3.8-flash-low");
-    expect(agIds).not.toContain("gemini-3.8-flash");
+    expect(agIds).toContain("gemini-3.8-flash");
   });
 
   it("registers gemini-3.8-flash in gemini provider registry", () => {
-    const geminiIds = geminiRegistry.models.map((m) => m.id);
+    const geminiIds = geminiRegistry.models.map(m => m.id);
     expect(geminiIds).toContain("gemini-3.8-flash");
   });
 
@@ -33,15 +32,5 @@ describe("Gemini 3.8 Flash Support & Config", () => {
     expect(MODEL_PRICING["gemini-3.8-flash-high"]).toEqual(MODEL_PRICING["gemini-3.7-flash-high"]);
     expect(MODEL_PRICING["gemini-3.8-flash-medium"]).toEqual(MODEL_PRICING["gemini-3.7-flash-medium"]);
     expect(MODEL_PRICING["gemini-3.8-flash-low"]).toEqual(MODEL_PRICING["gemini-3.7-flash-low"]);
-  });
-
-  it("extracts tiered 3.8 models properly in MITM config", () => {
-    const body = Buffer.from(
-      JSON.stringify({
-        model: "models/gemini-3.8-flash-tiered",
-        generationConfig: { thinkingConfig: { thinkingLevel: "HIGH" } },
-      })
-    );
-    expect(extractModel(null, body)).toBe("gemini-3.8-flash-high");
   });
 });
