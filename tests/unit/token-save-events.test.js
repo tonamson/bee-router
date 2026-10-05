@@ -1,8 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import vm from "node:vm";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
 describe("token-save events", () => {
   let tmp;
@@ -109,13 +112,58 @@ describe("token-save events", () => {
   });
 });
 
-describe("token-save timeline chart markup", () => {
-  it("gives bar columns a definite height so % bars paint", () => {
-    const src = fs.readFileSync(
-      path.join(path.dirname(fileURLToPath(import.meta.url)), "../../src/app/(dashboard)/dashboard/analytics/token-save/TokenSaveAnalyticsClient.js"),
+describe("token-save timeline chart layout", () => {
+  let SaveTimeline;
+
+  beforeAll(() => {
+    // Compile the actual JSX with Next's existing compiler. Only the shared
+    // wrappers are stubbed; ResponsiveContainer and React are real, so this
+    // checks the height rendered into the DOM rather than old source markup.
+    const require = createRequire(import.meta.url);
+    const { transformSync } = require("next/dist/compiled/babel/core");
+    const source = fs.readFileSync(
+      new URL("../../src/app/(dashboard)/dashboard/analytics/token-save/TokenSaveAnalyticsClient.js", import.meta.url),
       "utf8",
     );
-    // % height on a flex-col wrapper with auto height collapses to 0px.
-    expect(src).toMatch(/className=\{?"[^"]*\bh-full\b[^"]*"\}?\s+title=\{\`\$\{d\.date\}/);
+    const { code } = transformSync(`${source}\nexport { SaveTimeline };`, {
+      babelrc: false,
+      configFile: false,
+      filename: "TokenSaveAnalyticsClient.jsx",
+      presets: [[require.resolve("next/dist/compiled/babel/preset-react"), { runtime: "automatic" }]],
+      plugins: [require.resolve("next/dist/compiled/babel/plugin-transform-modules-commonjs")],
+    });
+    const module = { exports: {} };
+    vm.runInNewContext(code, {
+      module,
+      exports: module.exports,
+      require: (id) => {
+        if (id === "@/shared/components") return {
+          Card: ({ children, ...props }) => React.createElement("div", props, children),
+          Button: () => null,
+        };
+        if (id === "@/shared/components/Pagination") return () => null;
+        return require(id);
+      },
+    });
+    SaveTimeline = module.exports.SaveTimeline;
+  });
+
+  it("renders populated savings inside a container with a definite pixel height", () => {
+    const html = renderToStaticMarkup(React.createElement(SaveTimeline, {
+      timeline: [{ date: "2026-10-05", tokensSavedEst: 500, costSavedEst: 0.002, compressed: 1, requests: 1 }],
+    }));
+    const containerStyle = html.match(/class="recharts-responsive-container" style="([^"]+)"/)?.[1];
+    expect(containerStyle).toBeDefined();
+    const height = containerStyle.match(/(?:^|;)height:([\d.]+)px(?:;|$)/)?.[1];
+    expect(Number(height)).toBeGreaterThan(0);
+    expect(html).toContain("500 tokens not sent");
+  });
+
+  it("renders the empty state when savings are zero", () => {
+    const html = renderToStaticMarkup(React.createElement(SaveTimeline, {
+      timeline: [{ date: "2026-10-05", tokensSavedEst: 0, costSavedEst: 0 }],
+    }));
+    expect(html).toContain("No compression recorded yet.");
+    expect(html).not.toContain("recharts-responsive-container");
   });
 });

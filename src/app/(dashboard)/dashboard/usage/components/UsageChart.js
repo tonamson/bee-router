@@ -127,8 +127,9 @@ export default function UsageChart({ period = "7d", data: externalData }) {
 
   const data = externalData || fetched;
   const hasData = useMemo(() => {
-    return Array.isArray(data) && data.some((d) => d.tokens > 0 || d.cost > 0 || d.requests > 0);
-  }, [data]);
+    const key = viewMode === "tokens" ? "tokens" : viewMode === "cost" ? "cost" : "requests";
+    return Array.isArray(data) && data.some((d) => (d[key] || 0) > 0);
+  }, [data, viewMode]);
 
   return (
     <Card className="flex min-w-0 flex-col gap-4 p-4 sm:p-5">

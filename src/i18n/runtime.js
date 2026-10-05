@@ -82,18 +82,14 @@ function processTextNode(node) {
   if (skipParentTags.includes(tagName)) return;
 
   const current = node.nodeValue;
-  if (!node._originalText) {
+  const isOurTranslation = node._translated != null && current === node._translated;
+  if (!isOurTranslation && current !== node._originalText) {
     node._originalText = current;
-  } else if (current !== node._originalText) {
-    const prevTranslated = currentLocale === "en" ? node._originalText : translate(node._originalText);
-    if (current !== prevTranslated) {
-      // React replaced this text (e.g. "—" → "$0.00"). Stale first-paint cache must not win.
-      node._originalText = current;
-    }
   }
+  if (node._originalText == null) node._originalText = current;
 
-  const original = node._originalText;
-  const translated = currentLocale === "en" ? original : translate(original);
+  const translated = translate(node._originalText);
+  node._translated = translated;
 
   if (translated !== node.nodeValue) {
     node.nodeValue = translated;
@@ -108,19 +104,18 @@ function processElementAttributes(element) {
   for (const attr of attrs) {
     if (element.hasAttribute(attr)) {
       const propKey = `_original_${attr}`;
+      const translatedKey = `_translated_${attr}`;
       const current = element.getAttribute(attr);
-      if (!element[propKey]) {
+      const isOurTranslation = element[translatedKey] != null && current === element[translatedKey];
+      if (!isOurTranslation && current !== element[propKey]) {
         element[propKey] = current;
-      } else if (current !== element[propKey]) {
-        const prevTranslated = currentLocale === "en" ? element[propKey] : translate(element[propKey]);
-        if (current !== prevTranslated) {
-          element[propKey] = current;
-        }
       }
+      if (element[propKey] == null) element[propKey] = current;
       const original = element[propKey];
       if (original && original.trim()) {
-        const translated = currentLocale === "en" ? original : translate(original);
-        if (translated !== element.getAttribute(attr)) {
+        const translated = translate(original);
+        element[translatedKey] = translated;
+        if (translated !== current) {
           element.setAttribute(attr, translated);
         }
       }
@@ -166,7 +161,9 @@ export async function initRuntimeI18n() {
 
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-      if (mutation.type === "childList") {
+      if (mutation.type === "characterData") {
+        processTextNode(mutation.target);
+      } else if (mutation.type === "childList") {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             processElement(node);
@@ -185,6 +182,7 @@ export async function initRuntimeI18n() {
   observer.observe(document.body, {
     childList: true,
     subtree: true,
+    characterData: true,
     attributes: true,
     attributeFilter: ["placeholder", "title", "aria-label"],
   });

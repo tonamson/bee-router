@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -10,6 +10,7 @@ import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/shared/constants/providers";
 import { translate } from "@/i18n/runtime";
+import { aggregateComboCapabilities } from "open-sse/providers/capabilities.js";
 
 // Validate combo name: only a-z, A-Z, 0-9, -, _
 const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
@@ -18,11 +19,11 @@ const VALID_NAME_REGEX = /^[a-zA-Z0-9_.\-]+$/;
 // A request needing a capability the target model/combo lacks switches straight
 // to the first enabled model here instead of erroring or dropping the data.
 const CAPACITY_ADAPTER_CAPS = [
-  { key: "vision", label: "Vision", icon: "visibility", desc: "Images" },
+  { key: "vision", label: "Vision", icon: "visibility", desc: "images (png, jpg, webp, …)" },
   // pdf, videoInput temporarily hidden — no translator support yet for those blocks.
-  { key: "audioInput", label: "Audio", icon: "graphic_eq", desc: "Audio input" },
+  { key: "audioInput", label: "Audio", icon: "graphic_eq", desc: "audio input" },
 ];
-const DEFAULT_FALLBACK_MODEL = "oc/mimo-v2.5-free";
+const DEFAULT_FALLBACK_MODEL = "oc/mimo-v2.6-flash-free";
 const EMPTY_CAP_ENTRY = { enabled: true, roundRobin: false, models: [] };
 const EMPTY_CAPACITY_ADAPTER = {
   vision: { ...EMPTY_CAP_ENTRY },
@@ -30,20 +31,28 @@ const EMPTY_CAPACITY_ADAPTER = {
   audioInput: { ...EMPTY_CAP_ENTRY },
   videoInput: { ...EMPTY_CAP_ENTRY },
 };
+const upgradeLegacyModel = (m) => (m === "oc/mimo-v2.5-free" ? DEFAULT_FALLBACK_MODEL : m);
+
 // Backward-compat: legacy stored form was an array of {model, enabled}.
 function normalizeCapEntry(entry) {
   if (Array.isArray(entry)) {
-    return { enabled: true, roundRobin: false, models: entry.map((e) => e?.model || e).filter(Boolean) };
+    return { enabled: true, roundRobin: false, models: entry.map((e) => upgradeLegacyModel(e?.model || e)).filter(Boolean) };
   }
   if (entry && typeof entry === "object") {
     return {
       enabled: entry.enabled !== false,
       roundRobin: !!entry.roundRobin,
-      models: Array.isArray(entry.models) ? entry.models.filter(Boolean) : [],
+      models: Array.isArray(entry.models) ? entry.models.map(upgradeLegacyModel).filter(Boolean) : [],
     };
   }
   return { ...EMPTY_CAP_ENTRY };
 }
+
+const STRATEGY_OPTIONS = [
+  { value: "fallback", label: "Fallback — try in order" },
+  { value: "round-robin", label: "Round Robin — rotate" },
+  { value: "fusion", label: "Fusion — panel + judge" },
+];
 
 export default function CombosPage() {
   const [combos, setCombos] = useState([]);
@@ -55,11 +64,96 @@ export default function CombosPage() {
   const [capacityAdapter, setCapacityAdapter] = useState(EMPTY_CAPACITY_ADAPTER);
   const { getCaps } = useModelCaps();
   const [confirmState, setConfirmState] = useState(null);
+  const [presetLoading, setPresetLoading] = useState(null); // "cursor" | "claude" | null
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const { copied, copy } = useCopyToClipboard();
 
   useEffect(() => {
     fetchData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Drop stale selection when the combo list changes (delete / refresh).
+  useEffect(() => {
+    const alive = new Set(combos.map((c) => c.id));
+    setSelectedIds((prev) => prev.filter((id) => alive.has(id)));
+  }, [combos]);
+
+  const selectedCombos = combos.filter((c) => selectedIds.includes(c.id));
+  const allSelected = combos.length > 0 && selectedIds.length === combos.length;
+  const someSelected = selectedIds.length > 0;
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => (
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    ));
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? [] : combos.map((c) => c.id));
+  };
+
+  const clearSelection = () => setSelectedIds([]);
+
+  const handleGeneratePresets = async (source) => {
+    const label = source === "cursor" ? "Cursor Default" : "Claude Default";
+    setPresetLoading(source);
+    try {
+      const previewRes = await fetch(`/api/combos/presets?source=${source}`);
+      const preview = await previewRes.json();
+      if (!previewRes.ok) {
+        alert(preview.error || `Failed to preview ${label}`);
+        return;
+      }
+
+      const toCreate = preview.toCreate ?? (preview.items || []).filter((i) => !i.exists).length;
+      const toSkip = preview.toSkip ?? (preview.items || []).filter((i) => i.exists).length;
+      const total = (preview.items || []).length;
+
+      if (total === 0) {
+        alert(`No ${label} models available to generate.`);
+        return;
+      }
+
+      if (toCreate === 0) {
+        alert(`All ${total} ${label} combos already exist. Nothing to create.`);
+        return;
+      }
+
+      setConfirmState({
+        title: `Generate ${label}`,
+        message: `Create ${toCreate} combo${toCreate === 1 ? "" : "s"} named like ${source === "cursor" ? "Cursor" : "Claude"} model IDs (seeded with cu/… or cc/…). ${toSkip} already exist and will be skipped. You can edit any combo afterward to add fallbacks.`,
+        confirmText: "Generate",
+        variant: "primary",
+        onConfirm: async () => {
+          setConfirmState((prev) => prev ? { ...prev, loading: true } : null);
+          try {
+            const res = await fetch("/api/combos/presets", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ source }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              alert(data.error || `Failed to generate ${label}`);
+              return;
+            }
+            await fetchData();
+            setConfirmState(null);
+          } catch (error) {
+            console.log(`Error generating ${label}:`, error);
+            alert(`Failed to generate ${label}`);
+            setConfirmState((prev) => prev ? { ...prev, loading: false } : null);
+          }
+        },
+      });
+    } catch (error) {
+      console.log(`Error previewing ${label}:`, error);
+      alert(`Failed to preview ${label}`);
+    } finally {
+      setPresetLoading(null);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -71,7 +165,7 @@ export default function CombosPage() {
       const combosData = await combosRes.json();
       const providersData = await providersRes.json();
       const settingsData = settingsRes.ok ? await settingsRes.json() : {};
-      
+
       // Only LLM combos here - webSearch/webFetch combos belong to media-providers/web
       if (combosRes.ok) setCombos((combosData.combos || []).filter(c => !c.kind || c.kind === "llm"));
       if (providersRes.ok) {
@@ -142,21 +236,78 @@ export default function CombosPage() {
     }
   };
 
+  const pruneStrategiesForNames = (names, base = comboStrategies) => {
+    const updated = { ...base };
+    for (const name of names) delete updated[name];
+    return updated;
+  };
+
+  const persistComboStrategies = async (updated) => {
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ comboStrategies: updated }),
+    });
+    setComboStrategies(updated);
+  };
+
   const handleDelete = async (id) => {
+    const combo = combos.find((c) => c.id === id);
     setConfirmState({
       title: "Delete Combo",
-      message: "Delete this combo?",
+      message: combo ? `Delete combo "${combo.name}"?` : "Delete this combo?",
       onConfirm: async () => {
-        setConfirmState(null);
+        setConfirmState((prev) => prev ? { ...prev, loading: true } : null);
         try {
           const res = await fetch(`/api/combos/${id}`, { method: "DELETE" });
           if (res.ok) {
-            setCombos(combos.filter(c => c.id !== id));
+            if (combo?.name) {
+              await persistComboStrategies(pruneStrategiesForNames([combo.name]));
+            }
+            setCombos((prev) => prev.filter((c) => c.id !== id));
+            setSelectedIds((prev) => prev.filter((x) => x !== id));
           }
+          setConfirmState(null);
         } catch (error) {
           console.log("Error deleting combo:", error);
+          setConfirmState((prev) => prev ? { ...prev, loading: false } : null);
         }
       }
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCombos.length === 0) return;
+    const count = selectedCombos.length;
+    setConfirmState({
+      title: "Delete Selected Combos",
+      message: `Delete ${count} selected combo${count === 1 ? "" : "s"}? This cannot be undone.`,
+      confirmText: "Delete",
+      variant: "danger",
+      onConfirm: async () => {
+        setConfirmState((prev) => prev ? { ...prev, loading: true } : null);
+        setBulkBusy(true);
+        try {
+          const ids = selectedCombos.map((c) => c.id);
+          const results = await Promise.allSettled(
+            ids.map((id) => fetch(`/api/combos/${id}`, { method: "DELETE" }))
+          );
+          const deleted = selectedCombos.filter((_, index) => results[index].status === "fulfilled" && results[index].value.ok);
+          const deletedIds = new Set(deleted.map((c) => c.id));
+          const failed = selectedCombos.length - deleted.length;
+          await persistComboStrategies(pruneStrategiesForNames(deleted.map((c) => c.name)));
+          setCombos((prev) => prev.filter((c) => !deletedIds.has(c.id)));
+          setSelectedIds((prev) => prev.filter((id) => !deletedIds.has(id)));
+          setConfirmState(null);
+          if (failed > 0) alert(`Deleted with ${failed} failure${failed === 1 ? "" : "s"}.`);
+        } catch (error) {
+          console.log("Error bulk deleting combos:", error);
+          alert("Failed to delete selected combos");
+          setConfirmState((prev) => prev ? { ...prev, loading: false } : null);
+        } finally {
+          setBulkBusy(false);
+        }
+      },
     });
   };
 
@@ -173,15 +324,33 @@ export default function CombosPage() {
         updated[comboName] = next;
       }
 
-      await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comboStrategies: updated }),
-      });
-
-      setComboStrategies(updated);
+      await persistComboStrategies(updated);
     } catch (error) {
       console.log("Error updating combo strategy:", error);
+    }
+  };
+
+  const handleBulkSetStrategy = async (strategy) => {
+    if (selectedCombos.length === 0 || !strategy) return;
+    setBulkBusy(true);
+    try {
+      const updated = { ...comboStrategies };
+      for (const combo of selectedCombos) {
+        if (!strategy || strategy === "fallback") {
+          delete updated[combo.name];
+        } else {
+          updated[combo.name] = {
+            ...(updated[combo.name] || {}),
+            fallbackStrategy: strategy,
+          };
+        }
+      }
+      await persistComboStrategies(updated);
+    } catch (error) {
+      console.log("Error bulk updating combo strategy:", error);
+      alert("Failed to update strategy for selected combos");
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -202,8 +371,8 @@ export default function CombosPage() {
           <div className="size-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0 shadow-[0_0_15px_rgba(255,199,0,0.15)]">
             <span className="material-symbols-outlined text-[22px]">layers</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base font-bold text-text-main">Smart Model Combos</h2>
               <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">
                 {combos.length} Combos
@@ -234,21 +403,88 @@ export default function CombosPage() {
           </div>
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
-          {combos.map((combo) => (
-            <ComboCard
-              key={combo.id}
-              combo={combo}
-              getCaps={getCaps}
-              activeProviders={activeProviders}
-              copied={copied}
-              onCopy={copy}
-              onEdit={() => setEditingCombo(combo)}
-              onDelete={() => handleDelete(combo.id)}
-              strategy={comboStrategies[combo.name] || {}}
-              onSetStrategy={(patch) => handleSetComboStrategy(combo.name, patch)}
-            />
-          ))}
+        <div className="flex flex-col gap-3">
+          {/* Selection toolbar */}
+          <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-black/5 bg-black/[0.015] px-3 py-2 dark:border-white/5 dark:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-text-muted hover:text-primary select-none">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someSelected && !allSelected;
+                }}
+                onChange={toggleSelectAll}
+                className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span>
+                {someSelected
+                  ? `${selectedIds.length} selected`
+                  : `Select all (${combos.length})`}
+              </span>
+            </label>
+
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              {someSelected && (
+                <>
+                  <div className="w-full min-w-[160px] sm:w-[200px]">
+                    <Select
+                      options={STRATEGY_OPTIONS}
+                      value=""
+                      placeholder="Set strategy…"
+                      disabled={bulkBusy}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v) handleBulkSetStrategy(v);
+                      }}
+                      selectClassName="py-1.5 text-xs"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    icon="delete"
+                    disabled={bulkBusy}
+                    loading={bulkBusy}
+                    onClick={handleBulkDelete}
+                    className="whitespace-nowrap"
+                  >
+                    Delete ({selectedIds.length})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={clearSelection}
+                    disabled={bulkBusy}
+                  >
+                    Clear
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {(() => {
+              const comboByName = Object.fromEntries(combos.map((c) => [c.name, c.models]));
+              return combos.map((combo) => (
+                <ComboCard
+                  key={combo.id}
+                  combo={combo}
+                  getCaps={getCaps}
+                  comboByName={comboByName}
+                  activeProviders={activeProviders}
+                  copied={copied}
+                  onCopy={copy}
+                  onEdit={() => setEditingCombo(combo)}
+                  onDelete={() => handleDelete(combo.id)}
+                  strategy={comboStrategies[combo.name] || {}}
+                  onSetStrategy={(patch) => handleSetComboStrategy(combo.name, patch)}
+                  selected={selectedIds.includes(combo.id)}
+                  onToggleSelect={() => toggleSelect(combo.id)}
+                />
+              ));
+            })()}
+          </div>
         </div>
       )}
 
@@ -282,37 +518,56 @@ export default function CombosPage() {
         />
       )}
 
-      {/* Confirm Delete Modal */}
+      {/* Confirm (delete / generate presets) */}
       <ConfirmModal
         isOpen={!!confirmState}
-        onClose={() => setConfirmState(null)}
+        onClose={() => !confirmState?.loading && setConfirmState(null)}
         onConfirm={confirmState?.onConfirm}
         title={confirmState?.title || "Confirm"}
         message={confirmState?.message}
-        variant="danger"
+        confirmText={confirmState?.confirmText || "Confirm"}
+        variant={confirmState?.variant || "danger"}
+        loading={!!confirmState?.loading}
       />
     </div>
   );
 }
 
-const STRATEGY_OPTIONS = [
-  { value: "fallback", label: "Fallback — try in order" },
-  { value: "round-robin", label: "Round Robin — rotate" },
-  { value: "fusion", label: "Fusion — panel + judge" },
-];
+const fmtK = (n) => {
+  if (!n) return "?";
+  if (n >= 1000000) {
+    const m = n / 1000000;
+    return `${Number.isInteger(m) ? m : m.toFixed(1)}M`;
+  }
+  return `${Math.round(n / 1000)}k`;
+};
 
-function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdit, onDelete, strategy = {}, onSetStrategy }) {
+function ComboCard({ combo, getCaps, comboByName = {}, activeProviders = [], copied, onCopy, onEdit, onDelete, strategy = {}, onSetStrategy, selected = false, onToggleSelect }) {
   const [showJudgeSelect, setShowJudgeSelect] = useState(false);
   const current = strategy.fallbackStrategy || "fallback";
   const judge = strategy.judgeModel || "";
   const isFusion = current === "fusion";
+  // The synced catalog is server-only, so resolving here would fall back to the
+  // generic patterns and under-report the limits. getCaps carries the server's
+  // answer for /api/models.
+  const comboCaps = aggregateComboCapabilities(combo.models, comboByName, getCaps);
 
   return (
-    <Card padding="sm" className="group border-border/80 hover:border-brand-500/40 hover:shadow-[0_0_15px_rgba(255,199,0,0.06)] transition-all">
+    <Card padding="sm" className={`group border-border/80 hover:border-brand-500/40 transition-all ${selected ? "ring-1 ring-brand-500/40 bg-brand-500/[0.03]" : ""}`}>
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-          <div className="size-8 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-brand-400 text-[18px]">layers</span>
+          <label className="flex shrink-0 items-center pt-1 sm:pt-0 cursor-pointer" title="Select combo">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelect}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              aria-label={`Select ${combo.name}`}
+            />
+          </label>
+          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
           </div>
           <div className="min-w-0 flex-1">
             <code className="block truncate font-mono text-sm font-semibold text-text-main">{combo.name}</code>
@@ -321,15 +576,15 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
                 <span className="text-xs text-text-muted italic">No models</span>
               ) : (
                 combo.models.slice(0, 3).map((model, index) => (
-                  <div key={index} className="inline-flex items-center gap-1">
+                  <div key={index} className="inline-flex min-w-0 max-w-full items-center gap-1">
                     {index > 0 && (
                       <span className="material-symbols-outlined text-[13px] text-brand-500/50 shrink-0">
                         chevron_right
                       </span>
                     )}
-                    <code className="inline-flex items-center gap-1 rounded bg-black/40 dark:bg-black/60 border border-brand-500/20 px-1.5 py-0.5 font-mono text-xs text-text-main shadow-[0_0_6px_rgba(255,199,0,0.04)]">
-                      <span>{model}</span>
-                      <CapacityBadges caps={getCaps?.(model)} />
+                    <code className="inline-flex min-w-0 max-w-full items-center gap-1 rounded bg-black/40 dark:bg-black/60 border border-brand-500/20 px-1.5 py-0.5 font-mono text-xs text-text-main shadow-[0_0_6px_rgba(255,199,0,0.04)]">
+                      <span className="truncate" title={model}>{model}</span>
+                      <CapacityBadges caps={comboByName[model] ? aggregateComboCapabilities(comboByName[model], comboByName, getCaps) : getCaps?.(model)} />
                     </code>
                   </div>
                 ))
@@ -338,6 +593,13 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
                 <span className="text-[10px] font-mono font-semibold text-brand-400 px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20">+{combo.models.length - 3} more</span>
               )}
             </div>
+            {comboCaps && (
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-text-muted">
+                <span>ctx {fmtK(comboCaps.contextWindow)}</span>
+                <span className="opacity-40">·</span>
+                <span>max {fmtK(comboCaps.maxOutput)}</span>
+              </div>
+            )}
             {/* Fusion: judge picker (Auto = first model) */}
             {isFusion && (
               <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
@@ -466,8 +728,15 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
   const patch = (p) => onChange({ ...entry, ...p });
 
   const handleAdd = (model) => {
-    if (models.includes(model.value)) return;
-    patch({ models: [...models, model.value] });
+    const value = model?.value || model?.name || model;
+    if (!value || models.includes(value)) return;
+    patch({ models: [...models, value] });
+  };
+
+  const handleDeselect = (model) => {
+    const value = model?.value || model?.name || model;
+    const next = models.filter((m) => m !== value);
+    patch({ models: next.length === 0 ? [DEFAULT_FALLBACK_MODEL] : next });
   };
 
   const handleRemove = (index) => {
@@ -501,33 +770,6 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
               <code className="font-mono text-sm font-semibold text-text-main">{cap.label}</code>
               <span className="text-[11px] text-text-muted">— {cap.desc}</span>
             </div>
-            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
-              {models.length === 0 ? (
-                <span className="text-xs text-text-muted italic">No models</span>
-              ) : (
-                models.slice(0, 3).map((model, index) => (
-                  <code
-                    key={`${model}-${index}`}
-                    className="group/chip inline-flex items-center gap-1.5 rounded-md bg-black/40 dark:bg-black/60 border border-brand-500/20 px-2 py-0.5 font-mono text-xs text-text-main shadow-[0_0_6px_rgba(255,199,0,0.04)]"
-                  >
-                    <span>{model}</span>
-                    <CapacityBadges caps={getCaps?.(model)} />
-                    <button onClick={() => handleMove(index, -1)} disabled={index === 0} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === 0 ? "text-text-muted/20" : "text-text-muted hover:text-brand-400"}`}>
-                      <span className="material-symbols-outlined text-[12px]">arrow_upward</span>
-                    </button>
-                    <button onClick={() => handleMove(index, 1)} disabled={index === models.length - 1} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === models.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-brand-400"}`}>
-                      <span className="material-symbols-outlined text-[12px]">arrow_downward</span>
-                    </button>
-                    <button onClick={() => handleRemove(index)} className="leading-none opacity-0 group-hover/chip:opacity-100 text-text-muted hover:text-red-500">
-                      <span className="material-symbols-outlined text-[12px]">close</span>
-                    </button>
-                  </code>
-                ))
-              )}
-              {models.length > 3 && (
-                <span className="text-[10px] font-mono font-semibold text-brand-400 px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20">+{models.length - 3} more</span>
-              )}
-            </div>
           </div>
         </div>
 
@@ -555,11 +797,97 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
         </div>
       </div>
 
+      {/* Model pool list/table */}
+      {models.length === 0 ? (
+        <div className="mt-3 py-2 text-center text-xs text-text-muted italic">
+          No models in pool (will fallback to {DEFAULT_FALLBACK_MODEL})
+        </div>
+      ) : (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-border/50">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-border/40 bg-black/[0.02] text-text-muted dark:bg-white/[0.02]">
+                <th className="w-12 px-3 py-1.5 font-medium text-center">#</th>
+                <th className="px-3 py-1.5 font-medium">Model</th>
+                <th className="w-24 px-3 py-1.5 font-medium text-center">Order</th>
+                <th className="w-12 px-3 py-1.5 font-medium text-right"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30 font-mono">
+              {models.map((model, index) => (
+                <tr key={`${model}-${index}`} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors">
+                  <td className="px-3 py-2 text-center text-text-muted text-[11px] font-sans">
+                    #{index + 1}
+                  </td>
+                  <td className="px-3 py-2 text-text-main">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="truncate">{model}</span>
+                      <CapacityBadges caps={getCaps?.(model)} />
+                      {model === DEFAULT_FALLBACK_MODEL && (
+                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                          free default
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMove(index, -1)}
+                        disabled={!enabled || index === 0}
+                        className={`p-1 rounded transition-colors ${
+                          !enabled || index === 0
+                            ? "text-text-muted/20 cursor-not-allowed"
+                            : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"
+                        }`}
+                        title="Move up"
+                      >
+                        <span className="material-symbols-outlined text-[16px] leading-none">arrow_upward</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMove(index, 1)}
+                        disabled={!enabled || index === models.length - 1}
+                        className={`p-1 rounded transition-colors ${
+                          !enabled || index === models.length - 1
+                            ? "text-text-muted/20 cursor-not-allowed"
+                            : "text-text-muted hover:text-primary hover:bg-black/5 dark:hover:bg-white/5"
+                        }`}
+                        title="Move down"
+                      >
+                        <span className="material-symbols-outlined text-[16px] leading-none">arrow_downward</span>
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(index)}
+                      disabled={!enabled}
+                      className={`p-1 rounded transition-colors ${
+                        !enabled
+                          ? "text-text-muted/20 cursor-not-allowed"
+                          : "text-text-muted hover:text-red-500 hover:bg-red-500/10"
+                      }`}
+                      title="Remove model"
+                    >
+                      <span className="material-symbols-outlined text-[16px] leading-none">close</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {showModelSelect && (
         <ModelSelectModal
           isOpen={showModelSelect}
           onClose={() => setShowModelSelect(false)}
           onSelect={handleAdd}
+          onDeselect={handleDeselect}
           activeProviders={activeProviders}
           title={`Add ${cap.label} Model`}
           addedModelValues={models}

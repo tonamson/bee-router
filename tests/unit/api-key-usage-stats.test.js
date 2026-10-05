@@ -104,6 +104,13 @@ describe("API key usage analyst", () => {
     const chart7B = await db.getChartData("7d", { apiKey: "sk-key-bbb-222" });
     expect(chart7A.reduce((s, d) => s + d.tokens, 0)).toBe(150);
     expect(chart7B.reduce((s, d) => s + d.tokens, 0)).toBe(300);
+
+    const chartAll = await db.getChartData("all", { apiKey: "sk-key-aaa-111" });
+    expect(chartAll.reduce((s, d) => s + d.tokens, 0)).toBe(150);
+    expect(chartAll.reduce((s, d) => s + d.promptTokens, 0)).toBe(100);
+    expect(chartAll.reduce((s, d) => s + d.completionTokens, 0)).toBe(50);
+    expect(chartAll.reduce((s, d) => s + d.requests, 0)).toBe(1);
+    expect(chartA.reduce((s, d) => s + d.requests, 0)).toBe(1);
   });
 
   it("does not put raw api keys on byApiKey object keys and sets apiKeyId", async () => {
@@ -140,5 +147,25 @@ describe("API key usage analyst", () => {
     expect(p1.totalItems).toBeGreaterThanOrEqual(6);
     expect(p1.totalPages).toBeGreaterThanOrEqual(3);
     expect(p1.items[0].timestamp).not.toBe(p2.items[0].timestamp);
+  });
+
+  it("keeps keys with identical displayed masks separate without exposing raw keys", async () => {
+    const keys = ["sk-machine-alpha-secret-end1", "sk-machine-beta-secret-end1"];
+    for (const [index, apiKey] of keys.entries()) {
+      await db.saveRequestUsage({
+        provider: "openai",
+        model: "mask-collision-model",
+        apiKey,
+        tokens: { prompt_tokens: (index + 1) * 10, completion_tokens: 0 },
+        status: "ok",
+      });
+    }
+    for (const period of ["24h", "7d", "all"]) {
+      const stats = await db.getUsageStats(period);
+      const rows = Object.values(stats.byApiKey).filter((row) => row.rawModel === "mask-collision-model");
+      expect(rows).toHaveLength(2);
+      expect(rows.map((row) => row.promptTokens).sort((a, b) => a - b)).toEqual([10, 20]);
+      for (const apiKey of keys) expect(JSON.stringify(stats.byApiKey)).not.toContain(apiKey);
+    }
   });
 });

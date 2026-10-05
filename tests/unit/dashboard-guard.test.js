@@ -71,6 +71,16 @@ describe("dashboard guard public LLM API access", () => {
     expect(mocks.validateApiKey).not.toHaveBeenCalled();
   });
 
+  it.each(["/systemone", "/v1internal/generateContent", "/api/v1internal/generateContent"])(
+    "enforces public endpoint key auth for %s",
+    async (pathname) => {
+      expect(await proxy(localRequest(pathname))).toBe(mocks.nextResponse);
+      expect((await proxy(request(pathname))).status).toBe(401);
+      mocks.validateApiKey.mockResolvedValue(true);
+      expect(await proxy(request(pathname, { Authorization: "Bearer valid-key" }))).toBe(mocks.nextResponse);
+    },
+  );
+
   it("rejects remote Host-spoof when real peer IP is non-loopback", async () => {
     const response = await proxy(localRequest("/v1/chat/completions", {
       host: "localhost",
@@ -226,6 +236,16 @@ describe("dashboard guard local-only access", () => {
     mocks.validateApiKey.mockResolvedValue(false);
     mocks.getConsistentMachineId.mockResolvedValue("cli-token");
     mocks.verifyDashboardAuthToken.mockResolvedValue(false);
+  });
+
+  it.each(["zed", "xiaomi-mimo"])("requires local dashboard auth to read %s credentials", async (provider) => {
+    const pathname = `/api/oauth/${provider}/auto-import`;
+    mocks.getSettings.mockResolvedValue({ requireLogin: false });
+    expect((await proxy(request(pathname))).status).toBe(403);
+    expect((await proxy(localRequest(pathname))).status).toBe(401);
+    mocks.verifyDashboardAuthToken.mockResolvedValue(true);
+    expect(await proxy(localRequest(pathname))).toBe(mocks.nextResponse);
+    expect((await proxy(request(pathname))).status).toBe(403);
   });
 
   it("rejects local-only route from non-loopback host without CLI token", async () => {

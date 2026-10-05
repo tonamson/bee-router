@@ -5,15 +5,16 @@ import Image from "next/image";
 import { Card } from "@/shared/components";
 
 // Derive simple connected/configured/not-installed status from API payload
-function getStatus(status) {
+function getStatus(status, tool) {
+  if (tool?.configType === "guide") return { label: "Guide", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20", dot: "bg-blue-400" };
   if (!status) return { label: "Unknown", cls: "bg-surface-2 text-text-muted border-border/40", dot: "bg-text-subtle" };
   if (!status.installed) return { label: "Not installed", cls: "bg-surface-2 text-text-muted border-border/40", dot: "bg-text-subtle/60" };
-  if (status.hasBeeRouter) return { label: "Connected", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", dot: "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" };
+  if (status.hasBeeRouter || status.has9Router) return { label: "Connected", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", dot: "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" };
   return { label: "Ready to configure", cls: "bg-brand-500/10 text-brand-400 border-brand-500/20", dot: "bg-brand-400 shadow-[0_0_6px_rgba(255,199,0,0.8)]" };
 }
 
 export default function ToolSummaryCard({ toolId, tool, status }) {
-  const s = getStatus(status);
+  const s = getStatus(status, tool);
   return (
     <Link href={`/dashboard/cli-tools/${toolId}`} className="group block">
       <Card

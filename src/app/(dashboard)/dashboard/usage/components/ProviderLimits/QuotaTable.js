@@ -149,7 +149,10 @@ export default function QuotaTable({
       <div className="space-y-px">
         {currentPageRows.map((quota) => {
           const isUnlimited = quota.unlimited === true;
-          const colors = getColorClasses(quota.remaining);
+          const isCreditBalance = quota.isCreditBalance === true;
+          const colors = isCreditBalance
+            ? { text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500", bgLight: "bg-blue-500/10", emoji: "💰" }
+            : getColorClasses(quota.remaining);
           const countdown = formatResetTime(quota.resetAt);
           const resetDisplay = formatResetTimeDisplay(quota.resetAt);
           // recurring defaults true: a missing flag means the quota
@@ -173,7 +176,7 @@ export default function QuotaTable({
 
               {/* Progress + used/total */}
               <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
-                {!isUnlimited && (
+                {!isUnlimited && !isCreditBalance && (
                   <div className={`w-full ${compact ? "h-2" : "h-2.5"} rounded-full overflow-hidden ${colors.trackBg}`}>
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${colors.barGradient}`}
@@ -188,15 +191,19 @@ export default function QuotaTable({
                     title={
                       isUnlimited
                         ? `${quota.used.toLocaleString()} used · Unlimited`
+                        : isCreditBalance
+                        ? `Credit balance: ${quota.total.toFixed(2)} ${quota.currency || ""}`
                         : `${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`
                     }
                   >
                     {isUnlimited
                       ? `${quota.used.toLocaleString()} used · Unlimited`
+                      : isCreditBalance
+                      ? `Credit: ${quota.total.toFixed(2)} ${quota.currency || ""}`
                       : `${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`}
                   </span>
                   <span className={`font-mono text-[11px] font-semibold ${isUnlimited ? "text-emerald-500 dark:text-emerald-400" : colors.text} shrink-0 tabular-nums`}>
-                    {isUnlimited ? "Unlimited" : `${quota.remaining}%`}
+                    {isUnlimited ? "Unlimited" : isCreditBalance ? "" : `${quota.remaining}%`}
                   </span>
                 </div>
               </div>

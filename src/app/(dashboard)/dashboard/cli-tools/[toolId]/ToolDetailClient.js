@@ -4,19 +4,19 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CardSkeleton } from "@/shared/components";
 import { translate } from "@/i18n/runtime";
-import { CLI_TOOLS } from "@/shared/constants/cliTools";
+import { getCliTool } from "@/shared/constants/cliTools";
 import { getModelsByProviderId, PROVIDER_ID_TO_ALIAS } from "@/shared/constants/models";
 import {
   ClaudeToolCard, CodexToolCard, DroidToolCard, OpenClawToolCard,
   HermesToolCard, DefaultToolCard, OpenCodeToolCard, CoworkToolCard,
   CopilotToolCard, ClineToolCard, KiloToolCard, DeepSeekTuiToolCard,
-  JcodeToolCard, GrokBuildToolCard, AntigravityCliToolCard,
+  JcodeToolCard, GrokBuildToolCard, AntigravityCliToolCard, GenericCliToolCard,
 } from "../components";
 
 const CLOUD_URL = process.env.NEXT_PUBLIC_CLOUD_URL;
 
 export default function ToolDetailClient({ toolId, machineId }) {
-  const tool = CLI_TOOLS[toolId];
+  const tool = getCliTool(toolId);
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modelMappings, setModelMappings] = useState({});
@@ -171,6 +171,13 @@ export default function ToolDetailClient({ toolId, machineId }) {
         return <GrokBuildToolCard {...commonProps} activeProviders={getActiveProviders()} hasActiveProviders={hasActiveProviders} cloudEnabled={cloudEnabled} />;
       case "agy":
         return <AntigravityCliToolCard {...commonProps} activeProviders={getActiveProviders()} hasActiveProviders={hasActiveProviders} cloudEnabled={cloudEnabled} />;
+      case "pi":
+      case "omp":
+      case "crush":
+      case "forge":
+      case "smelt":
+      case "codewhale":
+        return <GenericCliToolCard {...commonProps} activeProviders={getActiveProviders()} cloudEnabled={cloudEnabled} />;
       default:
         return <DefaultToolCard toolId={toolId} {...commonProps} activeProviders={getActiveProviders()} cloudEnabled={cloudEnabled} tunnelEnabled={tunnelEnabled} />;
     }

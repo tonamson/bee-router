@@ -6,6 +6,7 @@ import { CLIENT_METADATA } from "../../config/appConstants.js";
 import { ANTIGRAVITY_IDE_USER_AGENT, ANTIGRAVITY_IDE_VERSION, ANTIGRAVITY_OAUTH_CLIENT } from "../../providers/shared.js";
 import { U, parseResetTime, normalizeCloudCodeProjectId, fetchWithTimeout } from "./shared.js";
 import { getModelsByProviderId } from "../../config/providerModels.js";
+import { parseWeeklyQuotaSummary } from "./antigravity-weekly.js";
 
 // Antigravity API config (from Quotio) — urls from registry, oauth client + dynamic UA kept here
 const ANTIGRAVITY_CONFIG = {
@@ -151,7 +152,10 @@ export function readModelQuota(quotas, model) {
   if (!quotas || !model) return null;
   if (Object.hasOwn(quotas, model)) return quotas[model];
 
-  const pools = antigravityPoolIdsForModel(model)
+  const familyAliases = /^gemini/i.test(model)
+    ? ["gemini_session", "gemini_weekly"]
+    : ["claude-gpt-5h", "claude-gpt-weekly", "claude_gpt_session", "claude_gpt_weekly"];
+  const pools = [...antigravityPoolIdsForModel(model), ...familyAliases]
     .map((id) => quotas[id])
     .filter(Boolean);
   if (pools.length === 0) return null;
@@ -165,6 +169,7 @@ export function readModelQuota(quotas, model) {
 }
 
 function antigravityQuotaSummaryUrl() {
+  if (ANTIGRAVITY_CONFIG.quotaSummaryApiUrl) return ANTIGRAVITY_CONFIG.quotaSummaryApiUrl;
   const modelsUrl = String(ANTIGRAVITY_CONFIG.quotaApiUrl || "");
   const summaryUrl = modelsUrl.replace(":fetchAvailableModels", ":retrieveUserQuotaSummary");
   return summaryUrl !== modelsUrl ? summaryUrl : "";
@@ -173,6 +178,7 @@ function antigravityQuotaSummaryUrl() {
 function antigravityQuotaGroups(data) {
   if (Array.isArray(data?.groups)) return data.groups;
   if (Array.isArray(data?.response?.groups)) return data.response.groups;
+  if (Array.isArray(data?.quotaSummary?.groups)) return data.quotaSummary.groups;
   return [];
 }
 
@@ -189,13 +195,14 @@ function parseAntigravityQuotaSummary(data) {
     const buckets = Array.isArray(group?.buckets) ? group.buckets : [];
     for (const bucket of buckets) {
       const remainingFraction = bucket.remainingFraction ?? bucket.remaining_fraction;
-      if (remainingFraction == null) continue;
+      if (remainingFraction == null && bucket.disabled !== true) continue;
       const id = String(bucket.bucketId || bucket.bucket_id || "").trim();
       if (!id) continue;
-      const frac = Number(remainingFraction) || 0;
+      const window = antigravityPoolWindow(id, bucket);
+      if (bucket.disabled === true && window === "weekly") continue;
+      const frac = bucket.disabled === true ? 0 : Number(remainingFraction) || 0;
       const total = 1000;
       const remaining = Math.round(total * frac);
-      const window = antigravityPoolWindow(id, bucket);
       quotas[id] = {
         used: total - remaining,
         total,
@@ -208,7 +215,16 @@ function parseAntigravityQuotaSummary(data) {
       };
     }
   }
-  return quotas;
+  const weekly = parseWeeklyQuotaSummary({ groups: antigravityQuotaGroups(data) });
+  const poolAliases = {
+    "gemini-5h": "gemini_session", "gemini-weekly": "gemini_weekly",
+    "3p-5h": "claude_gpt_session", "3p-weekly": "claude_gpt_weekly",
+    "claude-gpt-5h": "claude_gpt_session", "claude-gpt-weekly": "claude_gpt_weekly",
+  };
+  for (const [id, alias] of Object.entries(poolAliases)) {
+    if (quotas[id]) weekly[alias] = quotas[id];
+  }
+  return { ...quotas, ...weekly };
 }
 
 async function poolQuotasFromSummary(summaryResponse) {
@@ -285,7 +301,10 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     // 0.9699 while all ~30 per-model entries read 1). Those flat entries also
     // shadow the real pool in readModelQuota's exact-key branch, so when the
     // pool summary works it is the only quota answer.
-    if (hasPools) return { plan, quotas: pools, subscriptionInfo };
+    const paidTierId = subscriptionInfo?.paidTier?.id;
+    const isFreeTier = paidTierId === "free-tier"
+      || (!paidTierId && /free|starter/i.test(subscriptionInfo?.currentTier?.name || ""));
+    if (hasPools && isFreeTier) return { plan, quotas: pools, subscriptionInfo };
 
     const response = await fetchWithTimeout(
       ANTIGRAVITY_CONFIG.quotaApiUrl,
@@ -316,7 +335,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     const data = await response.json().catch(() => ({}));
     const quotas = {};
 
-    if (data.models && typeof data.models === "object" && !Array.isArray(data.models)) {
+    if (!isFreeTier && data.models && typeof data.models === "object" && !Array.isArray(data.models)) {
       for (const [modelKey, info] of Object.entries(data.models)) {
         if (!info?.quotaInfo || skipAntigravityModel(modelKey, info)) continue;
         if (quotas[modelKey]) continue;
@@ -342,6 +361,21 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       for (const alias of antigravityModelAliases(modelKey)) {
         if (!quotas[alias]) quotas[alias] = { ...quotas[modelKey] };
       }
+    }
+
+    if (hasPools) {
+      // Per-model readings can tighten a short window only when the whole
+      // family is exhausted. Optimistic model readings never override pools.
+      for (const [prefix, sessionKey] of [["gemini-", "gemini_session"], ["claude-", "claude_gpt_session"]]) {
+        const models = Object.entries(quotas).filter(([id]) => id.startsWith(prefix) && !id.includes("image"));
+        const session = pools[sessionKey];
+        if (!session || !models.length || !models.every(([, q]) => q.remainingPercentage === 0)) continue;
+        session.used = session.total;
+        session.remainingPercentage = 0;
+        const latestReset = models.reduce((latest, [, q]) => quotaResetMs(q) > quotaResetMs(latest) ? q : latest, session);
+        if (latestReset.resetAt) session.resetAt = latestReset.resetAt;
+      }
+      return { plan, quotas: pools, subscriptionInfo };
     }
 
     // Pool-summary-less fallback: flat per-model readings are all we have.

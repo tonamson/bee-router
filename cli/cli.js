@@ -80,6 +80,19 @@ if (args[0] === "xai" && args[1] === "video") {
   return;
 }
 
+// `bee-router connect <url>` configures local CLI tools against a remote server —
+// no local server, no runtime deps. Usable via `npx @tonamson2/bee-router connect …`.
+if (args[0] === "connect") {
+  const { run } = require("./src/cli/commands/connect");
+  run(args.slice(1))
+    .then((code) => process.exit(code))
+    .catch((err) => {
+      console.error(`❌ ${err?.message || err}`);
+      process.exit(1);
+    });
+  return;
+}
+
 // Self-heal SQLite runtime deps (sql.js + better-sqlite3) into ~/.bee-router/runtime
 // so the server can resolve them via NODE_PATH. Best-effort — sql.js is required,
 // better-sqlite3 is optional. Logs to stderr only on failure.
@@ -154,6 +167,8 @@ Options:
   -v, --version       Show version
 
 Commands:
+  connect <server-url> Configure Claude Code for a remote bee-router server
+                      (npx @tonamson2/bee-router connect http://host:20128 — no install needed)
   xai video --prompt "..." --output video.mp4
                       Generate a Grok Imagine video via the running gateway
                       (see: ${APP_NAME} xai video --help)

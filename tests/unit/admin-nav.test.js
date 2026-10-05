@@ -15,6 +15,7 @@ const REQUIRED_HREFS = [
   "/dashboard/media-providers/video",
   "/dashboard/media-providers/tts",
   "/dashboard/media-providers/stt",
+  "/dashboard/media-providers/systemone",
   "/dashboard/media-providers/web",
   "/dashboard/combos",
   "/dashboard/proxy-pools",

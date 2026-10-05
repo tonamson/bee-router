@@ -36,11 +36,8 @@ export default {
       },
     },
     usage: {
-      // Quota is accounted per host: chat runs on the daily host, so the PROD
-      // host reports a near-untouched pool (verified 2026-09-08: tonamson5
-      // read 100%/100% on PROD while daily reported 5h 96.91% / weekly 81.25%).
-      // Discovery must therefore hit the same host the traffic does.
       quotaApiUrl: `${ANTIGRAVITY_IDE_BASE_URL}/v1internal:fetchAvailableModels`,
+      quotaSummaryApiUrl: `${ANTIGRAVITY_IDE_BASE_URL}/v1internal:retrieveUserQuotaSummary`,
       loadProjectApiUrl: `${ANTIGRAVITY_IDE_BASE_URL}/v1internal:loadCodeAssist`,
       tokenUrl: "https://oauth2.googleapis.com/token",
     },

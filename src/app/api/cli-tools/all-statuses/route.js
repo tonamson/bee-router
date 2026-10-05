@@ -8,7 +8,6 @@ import { GET as droidGet } from "../droid-settings/route";
 import { GET as openclawGet } from "../openclaw-settings/route";
 import { GET as hermesGet } from "../hermes-settings/route";
 import { GET as coworkGet } from "../cowork-settings/route";
-import { GET as copilotGet } from "../copilot-settings/route";
 import { GET as clineGet } from "../cline-settings/route";
 import { GET as kiloGet } from "../kilo-settings/route";
 import { GET as deepseekTuiGet } from "../deepseek-tui-settings/route";
@@ -16,6 +15,12 @@ import { GET as jcodeGet } from "../jcode-settings/route";
 import { GET as grokBuildGet } from "../grok-build-settings/route";
 import { GET as agyGet } from "../agy-settings/route";
 import { GET as devinGet } from "../devin-settings/route";
+import { GET as piGet } from "../pi-settings/route";
+import { GET as ompGet } from "../omp-settings/route";
+import { GET as crushGet } from "../crush-settings/route";
+import { GET as forgeGet } from "../forge-settings/route";
+import { GET as smeltGet } from "../smelt-settings/route";
+import { GET as codewhaleGet } from "../codewhale-settings/route";
 
 const STATUS_GETTERS = {
   claude: claudeGet,
@@ -25,7 +30,6 @@ const STATUS_GETTERS = {
   openclaw: openclawGet,
   hermes: hermesGet,
   cowork: coworkGet,
-  copilot: copilotGet,
   cline: clineGet,
   kilo: kiloGet,
   "deepseek-tui": deepseekTuiGet,
@@ -33,6 +37,12 @@ const STATUS_GETTERS = {
   "grok-build": grokBuildGet,
   agy: agyGet,
   devin: devinGet,
+  pi: piGet,
+  omp: ompGet,
+  crush: crushGet,
+  forge: forgeGet,
+  smelt: smeltGet,
+  codewhale: codewhaleGet,
 };
 
 // Batch endpoint: gather all CLI tool statuses in one round-trip

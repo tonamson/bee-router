@@ -4,6 +4,7 @@
 import { describe, it, expect } from "vitest";
 import { PROVIDERS } from "../../open-sse/config/providers.js";
 import { DefaultExecutor } from "../../open-sse/executors/default.js";
+import { APP_VERSION } from "../../src/shared/constants/version.js";
 
 // Credentials mẫu cố định (deterministic) — KHÔNG dùng Date.now/random.
 const API_KEY_CRED = { apiKey: "sk-test-APIKEY", providerSpecificData: {} };
@@ -28,7 +29,7 @@ function sanitize(headers) {
   const out = {};
   for (const [k, v] of Object.entries(headers)) {
     out[k] = typeof v === "string"
-      ? v.replace(/Bearer .+/, "Bearer <TOK>")
+      ? v.replaceAll(APP_VERSION, "<VERSION>").replace(/Bearer .+/, "Bearer <TOK>")
           .replace(/sk-test-APIKEY|tok-test-ACCESS/g, "<CRED>")
           .replace(/kimi-\d{10,}/g, "kimi-<TS>")
       : v;

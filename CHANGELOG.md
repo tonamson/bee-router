@@ -1,3 +1,20 @@
+# Upstream sync (2026-10-05)
+
+Merged 9router v0.5.95 (`a99cf572`) into BeeRouter, preserving the TopBar,
+Geist typography, gold/obsidian themes, English/Vietnamese locales, token-saving
+hooks, cookie providers, API key limits, and pooled Antigravity quota routing.
+
+- Added new provider catalogs and OAuth flows, per-provider header overrides,
+  System One, TinyFish web search/fetch, Gemini Live transcription, and video providers.
+- Added Codex model profiles, Claude extended-context controls, Hermes model roles,
+  six configurable CLI tools, and `bee-router connect` for remote servers.
+- Added combo bulk actions and vision model tables, real capability/context limits,
+  all-time usage and Requests charts, and separate Antigravity weekly/session quotas.
+- Fixed integration issues in Pi/OMP configuration, Qoder region validation,
+  API key usage identity and privacy, OAuth callback escaping, and mobile layouts.
+
+---
+
 # v0.3.5 (2026-09-08)
 
 Patch release pointing Antigravity quota discovery at the same host the chat traffic uses.

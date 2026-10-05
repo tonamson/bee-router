@@ -24,7 +24,7 @@ import { getErrorCode, getRelativeTime } from "@/shared/utils";
 import { useNotificationStore } from "@/store/notificationStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
-import { matchesStatusFilter } from "./utils";
+import { STATUS_FILTER_OPTIONS, matchesStatusFilter } from "./utils";
 
 function getStatusDisplay(connected, error, errorCode) {
   const parts = [];
@@ -390,8 +390,8 @@ export default function ProvidersPage() {
           placeholder="Search providers..."
           className="h-9 w-full max-w-sm rounded-[8px] border border-border bg-bg px-3 text-sm text-text-main"
         />
-        <div className="flex items-center gap-1.5 rounded-xl border border-white/5 bg-black/20 p-1">
-          {["all", "connected", "disconnected"].map((status) => (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface-2 p-1">
+          {STATUS_FILTER_OPTIONS.map(({ value: status, label }) => (
             <button
               key={status}
               type="button"
@@ -399,10 +399,10 @@ export default function ProvidersPage() {
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                 statusFilter === status
                   ? "bg-bee-gold/15 text-bee-gold border border-bee-gold/30 shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200 border border-transparent"
+                  : "text-text-muted hover:text-text-main border border-transparent"
               }`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {label}
             </button>
           ))}
         </div>

@@ -375,40 +375,146 @@ export function parseQuotaData(provider, data) {
 
       case "antigravity":
         if (data.quotas) {
-          const entries = Object.entries(data.quotas);
-          const geminiModels = entries.filter(([k]) => k.startsWith("gemini-") && !k.includes("image"));
+          const poolAliases = {
+            "gemini-5h": "gemini_session",
+            "gemini-weekly": "gemini_weekly",
+            "3p-5h": "claude_gpt_session",
+            "3p-weekly": "claude_gpt_weekly",
+          };
+          const entries = Object.entries(data.quotas).filter(([key]) => !poolAliases[key] || !data.quotas[poolAliases[key]]);
+          const nativePoolKeys = new Set(Object.keys(poolAliases));
+          const hasNativePools = entries.some(([key]) => nativePoolKeys.has(key));
+          const weeklyKeys = new Set(["gemini_weekly", "claude_gpt_weekly"]);
+          const sessionKeys = new Set(["gemini_session", "claude_gpt_session"]);
+          const summaryKeys = new Set([...weeklyKeys, ...sessionKeys]);
+          const geminiModels = entries.filter(([k]) => k.startsWith("gemini-") && !k.includes("image") && !nativePoolKeys.has(k));
           const claudeModels = entries.filter(([k]) => k.startsWith("claude-"));
           const imageModels = entries.filter(([k]) => k.includes("image"));
-          const otherModels = entries.filter(([k]) => !k.startsWith("gemini-") && !k.startsWith("claude-") && !k.includes("image"));
+          const summaryModels = entries.filter(([k]) => summaryKeys.has(k));
+          const otherModels = entries.filter(([k]) => (!k.startsWith("gemini-") || nativePoolKeys.has(k)) && !k.startsWith("claude-") && !k.includes("image") && !summaryKeys.has(k));
 
-          if (geminiModels.length > 0) {
+          // Summary keys from retrieveUserQuotaSummary
+          const hasGeminiWeekly = Boolean(data.quotas.gemini_weekly);
+          const hasGeminiSession = Boolean(data.quotas.gemini_session);
+          const hasClaudeWeekly = Boolean(data.quotas.claude_gpt_weekly);
+          const hasClaudeSession = Boolean(data.quotas.claude_gpt_session);
+
+          // 1. Gemini Family:
+          if (hasGeminiSession) {
+            summaryModels.filter(([k]) => k === "gemini_session").forEach(([modelKey, quota]) => {
+              normalizedQuotas.push({
+                name: quota.displayName || modelKey,
+                modelKey,
+                used: quota.used || 0,
+                total: quota.total || 0,
+                resetAt: quota.resetAt || null,
+                remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
+              });
+            });
+          } else if (hasNativePools) {
+            geminiModels.forEach(([modelKey, quota]) => normalizedQuotas.push({
+              name: quota.displayName || modelKey,
+              modelKey,
+              used: quota.used || 0,
+              total: quota.total || 0,
+              resetAt: quota.resetAt || null,
+              remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
+            }));
+          } else if (geminiModels.length > 0) {
             const rep = geminiModels.reduce((min, cur) =>
               (cur[1].remainingPercentage ?? 100) < (min[1].remainingPercentage ?? 100) ? cur : min
             )[1];
-            normalizedQuotas.push({
-              name: "Gemini (Flash / Pro)",
-              modelKey: "gemini",
-              used: rep.used || 0,
-              total: rep.total || 0,
-              resetAt: rep.resetAt || null,
-              remainingPercentage: rep.remainingPercentage,
+            // Only show synthesized Gemini row if its resetAt differs from weekly (i.e. it represents a separate 5h window)
+            const weeklyResetAt = data.quotas.gemini_weekly?.resetAt;
+            const isDuplicateOfWeekly = hasGeminiWeekly && rep.resetAt === weeklyResetAt && (rep.remainingPercentage ?? 0) === 0;
+
+            if (!isDuplicateOfWeekly) {
+              normalizedQuotas.push({
+                name: "Gemini (Flash / Pro)",
+                modelKey: "gemini",
+                used: rep.used || 0,
+                total: rep.total || 0,
+                resetAt: rep.resetAt || null,
+                remainingPercentage: rep.remainingPercentage,
+              });
+            }
+          }
+
+          // Show Gemini weekly row if present
+          if (hasGeminiWeekly) {
+            summaryModels.filter(([k]) => k === "gemini_weekly").forEach(([modelKey, quota]) => {
+              normalizedQuotas.push({
+                name: quota.displayName || modelKey,
+                modelKey,
+                used: quota.used || 0,
+                total: quota.total || 0,
+                resetAt: quota.resetAt || null,
+                remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
+              });
             });
           }
 
-          if (claudeModels.length > 0) {
+          // 2. Claude & GPT Family:
+          if (hasClaudeSession) {
+            summaryModels.filter(([k]) => k === "claude_gpt_session").forEach(([modelKey, quota]) => {
+              normalizedQuotas.push({
+                name: quota.displayName || modelKey,
+                modelKey,
+                used: quota.used || 0,
+                total: quota.total || 0,
+                resetAt: quota.resetAt || null,
+                remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
+              });
+            });
+          } else if (hasNativePools) {
+            claudeModels.forEach(([modelKey, quota]) => normalizedQuotas.push({
+              name: quota.displayName || modelKey,
+              modelKey,
+              used: quota.used || 0,
+              total: quota.total || 0,
+              resetAt: quota.resetAt || null,
+              remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
+            }));
+          } else if (claudeModels.length > 0) {
             const rep = claudeModels.reduce((min, cur) =>
               (cur[1].remainingPercentage ?? 100) < (min[1].remainingPercentage ?? 100) ? cur : min
             )[1];
-            normalizedQuotas.push({
-              name: "Claude (Sonnet / Opus)",
-              modelKey: "claude",
-              used: rep.used || 0,
-              total: rep.total || 0,
-              resetAt: rep.resetAt || null,
-              remainingPercentage: rep.remainingPercentage,
+            const weeklyResetAt = data.quotas.claude_gpt_weekly?.resetAt;
+            const isDuplicateOfWeekly = hasClaudeWeekly && rep.resetAt === weeklyResetAt && (rep.remainingPercentage ?? 0) === 0;
+
+            if (!isDuplicateOfWeekly) {
+              normalizedQuotas.push({
+                name: "Claude (Sonnet / Opus)",
+                modelKey: "claude",
+                used: rep.used || 0,
+                total: rep.total || 0,
+                resetAt: rep.resetAt || null,
+                remainingPercentage: rep.remainingPercentage,
+              });
+            }
+          }
+
+          // Show Claude & GPT weekly row if present
+          if (hasClaudeWeekly) {
+            summaryModels.filter(([k]) => k === "claude_gpt_weekly").forEach(([modelKey, quota]) => {
+              normalizedQuotas.push({
+                name: quota.displayName || modelKey,
+                modelKey,
+                used: quota.used || 0,
+                total: quota.total || 0,
+                resetAt: quota.resetAt || null,
+                remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
+              });
             });
           }
 
+          // 3. Standalone Image Generation Models (unique usage)
           imageModels.forEach(([modelKey, quota]) => {
             normalizedQuotas.push({
               name: quota.displayName || modelKey,
@@ -417,10 +523,13 @@ export function parseQuotaData(provider, data) {
               total: quota.total || 0,
               resetAt: quota.resetAt || null,
               remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
             });
           });
 
+          // GPT-OSS shares the Claude pool. Keep unrelated and unknown pools visible.
           otherModels.forEach(([modelKey, quota]) => {
+            if ((hasClaudeWeekly || hasClaudeSession) && modelKey.startsWith("gpt-oss-")) return;
             normalizedQuotas.push({
               name: quota.displayName || modelKey,
               modelKey,
@@ -471,6 +580,7 @@ export function parseQuotaData(provider, data) {
         break;
 
       case "qoder":
+      case "qoder-cn":
         // Qoder ships a `user` quota and (optionally) an `organization`
         // quota, both with same shape: {total, used, remaining, unit, resetAt}.
         // Skip an organization bucket when its total is 0 — most personal
@@ -538,7 +648,8 @@ export function parseQuotaData(provider, data) {
         break;
 
       case "codebuddy-cn":
-        // CodeBuddy CN mixes recurring refill packs ("Monthly"/"Weekly"/...)
+      case "codebuddy-intl":
+        // CodeBuddy CN/Intl mix recurring refill packs ("Monthly"/"Weekly"/...)
         // with one-shot bonus packs ("Bonus Pack N"). Forward `recurring`
         // so the UI can show "Expires in" for bonus packs (whose resetAt is
         // a hard expiry, not a refresh) instead of "Reset in".
@@ -597,6 +708,23 @@ export function parseQuotaData(provider, data) {
               total: quota.total || 0,
               resetAt: quota.resetAt || null,
               remainingPercentage: quota.remainingPercentage,
+              isCreditBalance: quota.isCreditBalance ?? true,
+              currency: quota.currency || (name.includes("(") ? name.slice(name.indexOf("(") + 1, name.indexOf(")")) : "USD"),
+            });
+          });
+        }
+        break;
+
+      case "groq":
+        // Requests/Tokens rate-limit windows from response headers — absolute
+        // used/total (calculatePercentage derives the bar), like Codex/Kiro.
+        if (data.quotas) {
+          Object.entries(data.quotas).forEach(([name, quota]) => {
+            normalizedQuotas.push({
+              name,
+              used: quota.used || 0,
+              total: quota.total || 0,
+              resetAt: quota.resetAt || null,
             });
           });
         }
@@ -618,7 +746,7 @@ export function parseQuotaData(provider, data) {
         break;
 
       case "ollama":
-        // Session (5h) / Weekly (7d) usage % from ollama.com/api/usage.
+        // Session (5h) / Weekly (7d) / Monthly usage % from ollama.com/api/usage.
         // remainingPercentage only — no absolute remaining (UI treats remaining as %).
         if (data.quotas) {
           Object.entries(data.quotas).forEach(([name, quota]) => {
@@ -689,14 +817,14 @@ export function parseQuotaData(provider, data) {
       // Use modelKey for antigravity (mapped to family anchor), otherwise use name
       let keyA = a.modelKey || a.name;
       let keyB = b.modelKey || b.name;
-      if (keyA === "gemini") keyA = "gemini-3.8-flash-high";
-      if (keyA === "claude") keyA = "claude-sonnet-4-6";
-      if (keyB === "gemini") keyB = "gemini-3.8-flash-high";
-      if (keyB === "claude") keyB = "claude-sonnet-4-6";
+      if (keyA === "gemini" || keyA === "gemini_session") keyA = "gemini-3.8-flash-high";
+      if (keyA === "claude" || keyA === "claude_gpt_session") keyA = "claude-sonnet-4-6";
+      if (keyB === "gemini" || keyB === "gemini_session") keyB = "gemini-3.8-flash-high";
+      if (keyB === "claude" || keyB === "claude_gpt_session") keyB = "claude-sonnet-4-6";
       if (isAntigravity) {
-        const poolOrder = ["gemini-5h", "gemini-weekly", "3p-5h", "3p-weekly"];
-        const poolA = poolOrder.indexOf(keyA);
-        const poolB = poolOrder.indexOf(keyB);
+        const poolOrder = { "gemini-5h": 0, gemini_session: 0, "gemini-weekly": 1, gemini_weekly: 1, "3p-5h": 2, claude_gpt_session: 2, "3p-weekly": 3, claude_gpt_weekly: 3 };
+        const poolA = poolOrder[a.modelKey || a.name] ?? -1;
+        const poolB = poolOrder[b.modelKey || b.name] ?? -1;
         const rankA = poolA === -1 && (a.window === "weekly" || a.window === "5h") ? 50 : poolA;
         const rankB = poolB === -1 && (b.window === "weekly" || b.window === "5h") ? 50 : poolB;
         const inPoolA = rankA !== -1;

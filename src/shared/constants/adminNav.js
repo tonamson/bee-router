@@ -1,6 +1,6 @@
 import { MEDIA_PROVIDER_KINDS } from "./providers.js";
 
-export const VISIBLE_MEDIA_KIND_IDS = ["embedding", "image", "video", "tts", "stt"];
+export const VISIBLE_MEDIA_KIND_IDS = ["embedding", "image", "video", "tts", "stt", "systemone"];
 
 export const PALETTE_ACTIONS = [
   { id: "theme", label: "Toggle theme" },
