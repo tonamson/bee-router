@@ -25,7 +25,6 @@ concurrency:
 
 env:
   GHCR_IMAGE: ghcr.io/${{ github.repository }}
-  DOCKERHUB_IMAGE: tonamson/bee-router
 
 jobs:
   prepare:
@@ -39,7 +38,6 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
       version: ${{ steps.release.outputs.version }}
       commit: ${{ steps.release.outputs.commit }}
-      publish_dockerhub: ${{ steps.release.outputs.publish_dockerhub }}
       promote_latest: ${{ steps.release.outputs.promote_latest }}
       ghcr_image: ${{ steps.release.outputs.ghcr_image }}
 
@@ -105,7 +103,6 @@ jobs:
           }
 
           const commit = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-          const publishDockerHub = process.env.REPOSITORY === "tonamson/bee-router";
           const ghcrImage = `ghcr.io/${process.env.REPOSITORY.toLowerCase()}`;
           const isPrerelease = version.includes("-");
           const promoteLatest = (process.env.EVENT_NAME === "push" && !isPrerelease)
@@ -115,7 +112,6 @@ jobs:
           fs.appendFileSync(output, `tag=${tag}\n`);
           fs.appendFileSync(output, `version=${version}\n`);
           fs.appendFileSync(output, `commit=${commit}\n`);
-          fs.appendFileSync(output, `publish_dockerhub=${publishDockerHub}\n`);
           fs.appendFileSync(output, `promote_latest=${promoteLatest}\n`);
           fs.appendFileSync(output, `ghcr_image=${ghcrImage}\n`);
 
@@ -342,36 +338,6 @@ jobs:
           docker logs "$container" || true
           exit 1
 
-      - name: Log in to Docker Hub
-        if: needs.prepare.outputs.publish_dockerhub == 'true'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Publish version image to Docker Hub
-        if: needs.prepare.outputs.publish_dockerhub == 'true'
-        env:
-          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
-          GHCR_IMAGE: ${{ env.GHCR_IMAGE }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          set -euo pipefail
-          docker buildx imagetools create \
-            --tag "${DOCKERHUB_IMAGE}:${VERSION}" \
-            "${GHCR_IMAGE}:${VERSION}"
-
-          docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${VERSION}" | tee "$RUNNER_TEMP/dockerhub-version-manifest.txt"
-          docker buildx imagetools inspect --raw "${DOCKERHUB_IMAGE}:${VERSION}" > "$RUNNER_TEMP/dockerhub-version-manifest.json"
-
-          expected=$'linux/amd64\nlinux/arm64'
-          actual="$(jq -r '[.manifests[] | select(.platform != null and .platform.os != null and .platform.architecture != null) | "\(.platform.os)/\(.platform.architecture)"] | sort | .[]' "$RUNNER_TEMP/dockerhub-version-manifest.json")"
-          if [[ "$actual" != "$expected" ]]; then
-            echo "Docker Hub version manifest platforms do not match exactly:" >&2
-            printf '%s\n' "$actual" >&2
-            exit 1
-          fi
-
       - name: Record latest promotion policy
         env:
           PROMOTE_LATEST: ${{ needs.prepare.outputs.promote_latest }}
@@ -388,9 +354,7 @@ jobs:
       - name: Promote verified version to latest
         if: needs.prepare.outputs.promote_latest == 'true'
         env:
-          DOCKERHUB_IMAGE: ${{ env.DOCKERHUB_IMAGE }}
           GHCR_IMAGE: ${{ env.GHCR_IMAGE }}
-          PUBLISH_DOCKERHUB: ${{ needs.prepare.outputs.publish_dockerhub }}
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
@@ -398,12 +362,6 @@ jobs:
           docker buildx imagetools create \
             --tag "${GHCR_IMAGE}:latest" \
             "${GHCR_IMAGE}:${VERSION}"
-
-          if [[ "$PUBLISH_DOCKERHUB" == "true" ]]; then
-            docker buildx imagetools create \
-              --tag "${DOCKERHUB_IMAGE}:latest" \
-              "${GHCR_IMAGE}:${VERSION}"
-          fi
 
           docker buildx imagetools inspect "${GHCR_IMAGE}:latest" | tee "$RUNNER_TEMP/ghcr-latest-manifest.txt"
           docker buildx imagetools inspect --raw "${GHCR_IMAGE}:latest" > "$RUNNER_TEMP/ghcr-latest-manifest.json"
@@ -416,23 +374,8 @@ jobs:
             exit 1
           fi
 
-          if [[ "$PUBLISH_DOCKERHUB" == "true" ]]; then
-            docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:latest" | tee "$RUNNER_TEMP/dockerhub-latest-manifest.txt"
-            docker buildx imagetools inspect --raw "${DOCKERHUB_IMAGE}:latest" > "$RUNNER_TEMP/dockerhub-latest-manifest.json"
-            actual="$(jq -r '[.manifests[] | select(.platform != null and .platform.os != null and .platform.architecture != null) | "\(.platform.os)/\(.platform.architecture)"] | sort | .[]' "$RUNNER_TEMP/dockerhub-latest-manifest.json")"
-            if [[ "$actual" != "$expected" ]]; then
-              echo "Docker Hub latest manifest platforms do not match exactly:" >&2
-              printf '%s\n' "$actual" >&2
-              exit 1
-            fi
-          fi
-
           {
             echo "### Published Docker images"
             echo "- GHCR: \`${GHCR_IMAGE}:${VERSION}\`"
             echo "- GHCR latest: \`${GHCR_IMAGE}:latest\`"
-            if [[ "$PUBLISH_DOCKERHUB" == "true" ]]; then
-              echo "- Docker Hub: \`${DOCKERHUB_IMAGE}:${VERSION}\`"
-              echo "- Docker Hub latest: \`${DOCKERHUB_IMAGE}:latest\`"
-            fi
           } >> "$GITHUB_STEP_SUMMARY"

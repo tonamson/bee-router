@@ -1,6 +1,6 @@
 # Docker
 
-Run BeeRouter in a container. Published image: [`tonamson/bee-router`](https://hub.docker.com/r/tonamson/bee-router) — multi-platform `linux/amd64` + `linux/arm64`.
+Run BeeRouter in a container. Published image: [`ghcr.io/tonamson/bee-router`](https://github.com/tonamson/bee-router/pkgs/container/bee-router) — multi-platform `linux/amd64` + `linux/arm64`.
 
 ---
 
@@ -14,7 +14,7 @@ docker run -d \
   -v "$HOME/.bee-router:/app/data" \
   -e DATA_DIR=/app/data \
   --name bee-router \
-  tonamson/bee-router:latest
+  ghcr.io/tonamson/bee-router:latest
 ```
 
 App listens on port `20128`. Open: http://localhost:20128
@@ -61,7 +61,7 @@ docker run -d \
   -e HOSTNAME=0.0.0.0 \
   -e DEBUG=true \
   --name bee-router \
-  tonamson/bee-router:latest
+  ghcr.io/tonamson/bee-router:latest
 ```
 
 ## Optional Headroom sidecar
@@ -71,7 +71,7 @@ The BeeRouter image does not bundle Python or Headroom. To use Headroom in Docke
 ```yaml
 services:
   bee-router:
-    image: tonamson/bee-router:latest
+    image: ghcr.io/tonamson/bee-router:latest
     ports:
       - "20128:20128"
     volumes:
@@ -95,7 +95,7 @@ If Headroom runs on the Docker host instead of as a sidecar, use `http://host.do
 ## Update to latest
 
 ```bash
-docker pull tonamson/bee-router:latest
+docker pull ghcr.io/tonamson/bee-router:latest
 docker rm -f bee-router
 # re-run the quick start command
 ```
@@ -103,7 +103,7 @@ docker rm -f bee-router
 To pin a specific version instead of following `latest`, use a numbered image tag:
 
 ```bash
-docker pull tonamson/bee-router:0.3.7
+docker pull ghcr.io/tonamson/bee-router:0.3.7
 ```
 
 ---
@@ -132,9 +132,7 @@ docker build \
 
 ## Publish (automatic via CI)
 
-Push a git tag `v*` → GitHub Actions builds multi-platform (amd64+arm64) and pushes to:
-- `ghcr.io/tonamson/bee-router:v{version}` + `:latest`
-- `tonamson/bee-router:v{version}` + `:latest`
+Push a git tag `v*` → GitHub Actions builds multi-platform (amd64+arm64) and publishes `ghcr.io/tonamson/bee-router:{version}` (for example, `:0.3.7`). Stable releases also promote the verified image to `:latest`; prereleases leave `latest` unchanged.
 
 ```bash
 # Bump, commit, annotated tag vX.Y.Z (default patch)
@@ -162,7 +160,7 @@ promote_latest:  true
 Numbered image tags are mutable because a republish can replace their manifest. For a deployment that must be immutable, pin the image digest instead:
 
 ```bash
-docker pull tonamson/bee-router@sha256:<verified-digest>
+docker pull ghcr.io/tonamson/bee-router@sha256:<verified-digest>
 ```
 
 The release workflow runs `/api/health` on each native `amd64` and `arm64` platform image before it uploads the digest artifact or assembles the multi-platform manifest. It then runs a second health check against the resolved version manifest before any requested `latest` promotion.
@@ -171,12 +169,7 @@ During recovery, the selected tag remains the application source while the Docke
 
 The workflow is tag-driven. Creating a git tag does not automatically create a GitHub Release, so the Releases page and the published package/image tags can be at different versions unless a maintainer creates a release separately.
 
-The BeeRouter repository needs these repository secrets for Docker Hub publishing:
-
-- `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`
-
-GHCR publishing uses the workflow's `GITHUB_TOKEN` with package write permission. Forks can publish to their own GHCR namespace, but Docker Hub publication is restricted to the `tonamson/bee-router` repository.
+GHCR publishing uses the workflow's `GITHUB_TOKEN` with package write permission and requires no additional repository secrets. Forks can publish to their own GHCR namespace.
 
 The optional repository variables `ALPINE_MIRROR` and `NPM_REGISTRY` can override the default package mirrors used by the CI Docker build.
 

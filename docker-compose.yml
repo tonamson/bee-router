@@ -1,6 +1,6 @@
 services:
   bee-router:
-    image: tonamson/bee-router:latest
+    image: ghcr.io/tonamson/bee-router:latest
     container_name: bee-router
     restart: always
     ports:

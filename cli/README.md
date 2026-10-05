@@ -6,7 +6,6 @@
 
 [![npm](https://img.shields.io/npm/v/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
 [![Downloads](https://img.shields.io/npm/dm/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
-[![Docker Pulls](https://img.shields.io/docker/pulls/tonamson/bee-router.svg?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/tonamson/bee-router)
 [![GHCR](https://img.shields.io/badge/GHCR-tonamson%2Fbee--router-blue?logo=github)](https://github.com/tonamson/bee-router/pkgs/container/bee-router)
 [![License](https://img.shields.io/npm/l/@tonamson2/bee-router.svg)](https://github.com/tonamson/bee-router/blob/master/LICENSE)
 
@@ -50,10 +49,10 @@ npx @tonamson2/bee-router
 ```bash
 docker run -d --name bee-router -p 20128:20128 \
   -v "$HOME/.bee-router:/app/data" -e DATA_DIR=/app/data \
-  tonamson/bee-router:latest
+  ghcr.io/tonamson/bee-router:latest
 ```
 
-Published images: [Docker Hub](https://hub.docker.com/r/tonamson/bee-router) • [GHCR](https://github.com/tonamson/bee-router/pkgs/container/bee-router) (multi-platform amd64/arm64).
+Published image: [GHCR](https://github.com/tonamson/bee-router/pkgs/container/bee-router) (multi-platform amd64/arm64).
 
 🎉 Dashboard opens at `http://localhost:20128`
 

@@ -8,7 +8,7 @@
 
   [![npm](https://img.shields.io/npm/v/@tonamson2/bee-router.svg)](https://www.npmjs.com/package/@tonamson2/bee-router)
   [![license](https://img.shields.io/npm/l/@tonamson2/bee-router.svg)](./LICENSE)
-  [![docker](https://img.shields.io/docker/pulls/tonamson/bee-router.svg?logo=docker&label=Docker)](https://hub.docker.com/r/tonamson/bee-router)
+  [![GHCR](https://img.shields.io/badge/GHCR-tonamson%2Fbee--router-blue?logo=github)](https://github.com/tonamson/bee-router/pkgs/container/bee-router)
 
   [Quick start](#quick-start) · [How it works](#how-it-works) · [CLI](#cli) · [Providers](#providers) · [API](#api) · [Docs](./gitbook/content/en/index.md) · [Tiếng Việt](./i18n/README.vi.md)
 
@@ -67,10 +67,10 @@ bee-router --help
 ```bash
 docker run -d --name bee-router -p 20128:20128 \
   -v "$HOME/.bee-router:/app/data" -e DATA_DIR=/app/data \
-  tonamson/bee-router:latest
+  ghcr.io/tonamson/bee-router:latest
 ```
 
-Image also on GHCR: `ghcr.io/tonamson/bee-router`. See [DOCKER.md](./DOCKER.md).
+Image published on GHCR: `ghcr.io/tonamson/bee-router`. See [DOCKER.md](./DOCKER.md).
 
 ### From source
 
