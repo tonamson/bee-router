@@ -69,6 +69,8 @@ describe("CLI build server artifacts", () => {
       const standaloneDir = standalonePath(appDir, buildDistDir);
 
       writeFixture(standaloneDir, "server.js", "standalone server");
+      writeFixture(standaloneDir, "cli/.build-home/.bee-router/db/data.sqlite", "build-only database");
+      writeFixture(standaloneDir, "cli/.build-home/.bee-router/jwt-secret", "build-only secret");
       writeFixture(
         standaloneDir,
         ".next-cli-build/server/app/api/v1/chat/completions/route.js",
@@ -77,6 +79,7 @@ describe("CLI build server artifacts", () => {
       createCompleteServer(buildDistDir);
 
       copyStandaloneBuild(appDir, buildDistDir, cliAppDir);
+      assert.equal(fs.existsSync(path.join(cliAppDir, "cli/.build-home")), false);
       mergeServerArtifacts(buildDistDir, cliAppDir);
       assertRequiredApiArtifacts(cliAppDir);
 

@@ -23,6 +23,7 @@ const EXCLUDE_PATTERNS = [
   "*.log",          // Log files
   "tmp",            // Temp files
   ".DS_Store",      // macOS files
+  ".build-home",    // Isolated build database, secrets and machine identity
 ];
 
 function shouldExclude(name) {

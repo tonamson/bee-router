@@ -1,4 +1,4 @@
-# Reliability fixes (2026-10-05)
+# v0.3.9 — Reliability fixes (2026-10-05)
 
 - Fixed single-model chat dispatch and preserved extended-context account selection.
 - Counted distinct simultaneous requests separately while retaining usage replay protection.
@@ -7,6 +7,7 @@
 - Fixed text-only request normalization, NDJSON parsing, reasoning replay, and local tool schema references.
 - Fixed clipped GitBook titles on mobile and restored runnable tests for current gateway handlers.
 - Excluded hidden providers from the model picker so retired free channels cannot be added to new combos.
+- Excluded isolated build databases and secrets from the published CLI bundle.
 
 ---
 
