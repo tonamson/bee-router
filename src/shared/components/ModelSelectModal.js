@@ -17,8 +17,8 @@ const PROVIDER_ORDER = [
   ...Object.keys(APIKEY_PROVIDERS),
 ];
 
-// Providers that need no auth — always show in model selector
-const NO_AUTH_PROVIDER_IDS = Object.keys(FREE_PROVIDERS).filter(id => FREE_PROVIDERS[id].noAuth);
+// Visible providers that need no auth are available without a connection.
+const NO_AUTH_PROVIDER_IDS = Object.keys(FREE_PROVIDERS).filter(id => FREE_PROVIDERS[id].noAuth && !FREE_PROVIDERS[id].hidden);
 
 // Providers with per-account live catalogs via /api/providers/[id]/models.
 // Static registry stays as fallback when live fetch fails or is empty.
@@ -84,11 +84,13 @@ export default function ModelSelectModal({
   addedModelValues = [],
   closeOnSelect = true,
 }) {
-  // Filter activeProviders by serviceKinds when kindFilter set (e.g. "webSearch", "webFetch")
+  // Hide retired registry entries before grouping; keep unknown/custom providers.
+  // Filter by serviceKinds when kindFilter is set (e.g. "webSearch", "webFetch").
   const filteredActiveProviders = useMemo(() => {
-    if (!kindFilter) return activeProviders;
     return activeProviders.filter((p) => {
       const info = AI_PROVIDERS[p.provider];
+      if (info?.hidden) return false;
+      if (!kindFilter) return true;
       const kinds = info?.serviceKinds || ["llm"];
       return kinds.includes(kindFilter);
     });
@@ -522,7 +524,7 @@ export default function ModelSelectModal({
       </div>
 
       {/* Models grouped by provider - compact */}
-      <div className="max-h-[400px] overflow-y-auto space-y-3.5 custom-scrollbar pr-0.5">
+      <div className="max-h-[400px] overflow-y-auto overflow-x-hidden space-y-3.5 custom-scrollbar pr-0.5">
         {/* Combos section - always first */}
         {filteredCombos.length > 0 && (
           <div>
