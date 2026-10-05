@@ -125,7 +125,6 @@ export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, 
     provider: provider || "unknown",
     model: model || "unknown",
     tokens: normalized,
-    timestamp: new Date().toISOString(),
     connectionId: connectionId || undefined,
     apiKey: apiKey || undefined,
     endpoint: endpoint || null

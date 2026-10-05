@@ -11,6 +11,7 @@
 
 import { describe, it, expect } from "vitest";
 import { injectReasoningContent } from "../../open-sse/utils/reasoningContentInjector.js";
+import { DefaultExecutor } from "../../open-sse/executors/default.js";
 import { OpenCodeExecutor } from "../../open-sse/executors/opencode.js";
 
 const assistantWithToolCall = {
@@ -135,7 +136,6 @@ describe("injectReasoningContent — MiniMax thinking round-trip", () => {
   });
 
   it("DefaultExecutor transformRequest runs the injector for minimax", () => {
-    const { DefaultExecutor } = require("../../open-sse/executors/default.js");
     const executor = new DefaultExecutor("minimax");
     const out = executor.transformRequest(
       "MiniMax-M2.7",

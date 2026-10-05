@@ -1,4 +1,8 @@
-import { describe, it, before } from "node:test";
+import { describe, it, beforeAll, afterEach, vi, expect } from "vitest";
+import { buildKimchiAuthUrl, KimchiService } from "../../src/lib/oauth/services/kimchi.js";
+import { normalizeKimchiModel } from "../../open-sse/services/kimchiModels.js";
+
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 import assert from "node:assert/strict";
 
 // Load the registry entry once for the suite so a load failure is reported
@@ -7,13 +11,15 @@ import assert from "node:assert/strict";
 let kimchiEntry;
 
 describe("kimchi registry entry", () => {
-  before(async () => {
+  beforeAll(async () => {
     kimchiEntry = (await import("../../open-sse/providers/registry/kimchi.js")).default;
   });
 
-  it("is an oauth provider auto-listed via byCategory", () => {
+  it("is a free-tier provider with browser OAuth and API-key authentication", () => {
     assert.equal(kimchiEntry.id, "kimchi");
-    assert.equal(kimchiEntry.category, "oauth");
+    assert.equal(kimchiEntry.category, "freeTier");
+    assert.equal(kimchiEntry.hasOAuth, true);
+    assert.deepEqual(kimchiEntry.authModes, ["oauth", "apikey"]);
   });
 
   it("points at the OpenAI-compatible gateway with an authenticated UA", () => {
@@ -48,32 +54,6 @@ describe("kimchi registry entry", () => {
   });
 });
 
-// ── Pure-function clones of the service logic (tested in isolation so
-//     node --test works without resolving the Next.js Webpack "open-sse"
-//     alias that src/lib/oauth/services/kimchi.js's dependency imports). ──
-
-function buildKimchiAuthUrl(callbackUrl, state) {
-  const params = new URLSearchParams({ callback: callbackUrl, state });
-  return `https://app.kimchi.dev/cli-auth?${params.toString()}`;
-}
-
-async function _handleCallback(params, expectedState) {
-  if (params.error) {
-    throw new Error(params.error_description || params.error);
-  }
-  const candidate = params.state;
-  if (!candidate || candidate !== expectedState) {
-    throw new Error(
-      "This request isn't valid. Please restart the Kimchi login flow.",
-    );
-  }
-  const token = params.token;
-  if (!token) {
-    throw new Error("No token was returned by the Kimchi authentication server");
-  }
-  return { token };
-}
-
 describe("kimchi oauth", () => {
   it("builds the cli-auth URL with encoded callback + state", () => {
     const url = buildKimchiAuthUrl("http://127.0.0.1:4321/callback", "abc123");
@@ -85,32 +65,23 @@ describe("kimchi oauth", () => {
   });
 
   it("rejects a callback whose state does not match", async () => {
+    const service = new KimchiService();
+    const validation = vi.spyOn(service, "validateToken").mockResolvedValue({ valid: true });
     await assert.rejects(
-      () => _handleCallback({ token: "castai_v1_x", state: "wrong" }, "expected"),
+      () => service._handleCallback({ token: "castai_v1_x", state: "wrong" }, "expected"),
       /restart/i,
     );
+    expect(validation).not.toHaveBeenCalled();
   });
 
   it("accepts a callback with matching state and returns the token", async () => {
-    const res = await _handleCallback({ token: "castai_v1_x", state: "match" }, "match");
+    const service = new KimchiService();
+    const validation = vi.spyOn(service, "validateToken").mockResolvedValue({ valid: true });
+    const res = await service._handleCallback({ token: "castai_v1_x", state: "match" }, "match");
+    expect(validation).toHaveBeenCalledWith("castai_v1_x");
     assert.equal(res.token, "castai_v1_x");
   });
 });
-
-// ── kimchiModels service (pure mapping logic, tested in isolation) ──
-
-// Clone of the metadata→model mapper so node --test resolves without the
-// open-sse/Webpack alias chain the real module imports.
-function mapKimchiMetadata(raw) {
-  if (!Array.isArray(raw)) return [];
-  return raw.map((m) => ({
-    id: m.slug,
-    name: m.display_name || m.slug,
-    contextLength: m.limits?.context_window || null,
-    maxOutputTokens: m.limits?.max_output_tokens || null,
-    isReasoning: m.reasoning === true,
-  }));
-}
 
 describe("kimchiModels", () => {
   it("maps Kimchi metadata entries to bee-router model shape", () => {
@@ -120,58 +91,63 @@ describe("kimchiModels", () => {
       reasoning: true,
       limits: { context_window: 1048576, max_output_tokens: 1048576 },
     }];
-    const models = mapKimchiMetadata(raw);
+    const models = raw.map(normalizeKimchiModel);
     assert.equal(models.length, 1);
-    assert.deepEqual(models[0], {
+    expect(models[0]).toMatchObject({
       id: "glm-5.2-fp8",
       name: "GLM 5.2",
       contextLength: 1048576,
       maxOutputTokens: 1048576,
-      isReasoning: true,
+      reasoning: true,
+      capabilities: { reasoning: true },
     });
   });
 
   it("falls back to slug as name when display_name is empty", () => {
-    const models = mapKimchiMetadata([{ slug: "kimi-k2.7", display_name: "", reasoning: false, limits: {} }]);
+    const models = [{ slug: "kimi-k2.7", display_name: "", reasoning: false, limits: {} }].map(normalizeKimchiModel);
     assert.equal(models[0].name, "kimi-k2.7");
-    assert.equal(models[0].contextLength, null);
-    assert.equal(models[0].isReasoning, false);
+    assert.equal(models[0].contextLength, undefined);
+    assert.equal(models[0].reasoning, false);
   });
 
-  it("returns empty array for non-array input", () => {
-    assert.deepEqual(mapKimchiMetadata(null), []);
-    assert.deepEqual(mapKimchiMetadata({}), []);
+  it("rejects malformed metadata entries", () => {
+    assert.equal(normalizeKimchiModel(null), null);
+    assert.equal(normalizeKimchiModel({}), null);
   });
 });
 
-// ── validateToken logic (pure decision over a status code) ──
-
-// Mirrors the decision in KimchiService.validateToken without importing the
-// service (which pulls the open-sse Webpack alias chain).
-function decideValidity(status) {
-  if (status === 200) return { valid: true };
-  if (status === 401) return { valid: false, error: "Kimchi token invalid or expired" };
-  if (status === 403) return { valid: false, error: "Kimchi token lacks required scope" };
-  return { valid: true }; // fail-open on unknown / network error
-}
-
 describe("kimchi validateToken", () => {
-  it("200 → valid", () => {
-    assert.deepEqual(decideValidity(200), { valid: true });
+  async function validateStatus(status) {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ status }));
+    return new KimchiService().validateToken("castai_v1_x");
+  }
+
+  it("200 → valid", async () => {
+    assert.deepEqual(await validateStatus(200), { valid: true });
+    expect(fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      method: "GET", headers: { Authorization: "Bearer castai_v1_x", Accept: "application/json" },
+    }));
   });
-  it("401 → invalid, expired message", () => {
-    const r = decideValidity(401);
+  it("401 → invalid, expired message", async () => {
+    const r = await validateStatus(401);
     assert.equal(r.valid, false);
     assert.match(r.error, /invalid or expired/i);
   });
-  it("403 → invalid, scope message", () => {
-    const r = decideValidity(403);
+  it("403 → invalid, scope message", async () => {
+    const r = await validateStatus(403);
     assert.equal(r.valid, false);
     assert.match(r.error, /scope/i);
   });
-  it("unknown / network error → fail-open valid", () => {
-    assert.equal(decideValidity(500).valid, true);
-    assert.equal(decideValidity(0).valid, true);
+  it("unknown / network error → fail-open valid", async () => {
+    assert.equal((await validateStatus(500)).valid, true);
+    assert.equal((await validateStatus(0)).valid, true);
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    assert.deepEqual(await new KimchiService().validateToken("token"), { valid: true });
+  });
+  it("rejects a matching-state callback when token validation fails", async () => {
+    const service = new KimchiService();
+    vi.spyOn(service, "validateToken").mockResolvedValue({ valid: false, error: "expired" });
+    await assert.rejects(() => service._handleCallback({ token: "token", state: "state" }, "state"), /expired/);
   });
 });
 

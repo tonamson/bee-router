@@ -371,6 +371,28 @@ describe("Antigravity executor", () => {
     expect(cleaned.properties.DirectoryPath.properties?.reason).toBeUndefined();
   });
 
+  it("resolves escaped local schema pointers and keeps sibling descriptions", () => {
+    const cleaned = cleanJSONSchemaForAntigravity({
+      type: "object",
+      properties: { path: { $ref: "#/definitions/path~1name~0", description: "Override" } },
+      definitions: { "path/name~": { type: "string", description: "Base" } },
+    });
+    expect(cleaned.properties.path).toEqual({ type: "string", description: "Override" });
+    expect(cleaned).not.toHaveProperty("definitions");
+  });
+
+  it("terminates recursive local references without erasing neighboring fields", () => {
+    const cleaned = cleanJSONSchemaForAntigravity({
+      type: "object",
+      properties: { node: { $ref: "#/$defs/node" } },
+      $defs: { node: { type: "object", properties: {
+        value: { type: "string" }, next: { $ref: "#/$defs/node" },
+      } } },
+    });
+    expect(cleaned.properties.node.properties.value).toEqual({ type: "string" });
+    expect(JSON.stringify(cleaned)).not.toContain("$ref");
+  });
+
   it("does not inject the legacy Antigravity default system prompt for Gemini-backed models", () => {
     const out = openaiToAntigravityRequest("gemini-3.5-flash-low", {
       messages: [

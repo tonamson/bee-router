@@ -424,7 +424,14 @@ export function canonicalModelId(model) {
 
 export function rekeyByCanonical(models) {
   const out = Object.create(null);
-  for (const [id, rates] of Object.entries(models || {})) {
+  const entries = Object.entries(models || {});
+  // Aliases provide defaults; an explicitly canonical row is authoritative
+  // regardless of insertion order. Older dotted spellings must not replace it.
+  for (const [id, rates] of entries.filter(([id]) => canonicalModelId(id) !== id)) {
+    const c = canonicalModelId(id);
+    if (c) out[c] = out[c] ? { ...out[c], ...rates } : rates;
+  }
+  for (const [id, rates] of entries.filter(([id]) => canonicalModelId(id) === id)) {
     const c = canonicalModelId(id);
     if (c) out[c] = out[c] ? { ...out[c], ...rates } : rates;
   }

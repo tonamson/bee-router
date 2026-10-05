@@ -27,14 +27,21 @@ describe("DB Concurrency — atomic safety", () => {
   it("100 parallel saveRequestUsage → no count loss", async () => {
     const N = 100;
     const promises = [];
-    for (let i = 0; i < N; i++) {
-      promises.push(db.saveRequestUsage({
-        provider: "openai", model: "gpt-4", connectionId: "c1",
-        tokens: { prompt_tokens: 10, completion_tokens: 5 },
-        endpoint: "/v1/chat", status: "ok",
-      }));
+    // Distinct requests can finish in the same millisecond with identical usage.
+    const timestamp = new Date().toISOString();
+    const clock = vi.spyOn(Date.prototype, "toISOString").mockReturnValue(timestamp);
+    try {
+      for (let i = 0; i < N; i++) {
+        promises.push(db.saveRequestUsage({
+          provider: "openai", model: "gpt-4", connectionId: "c1",
+          tokens: { prompt_tokens: 10, completion_tokens: 5 },
+          endpoint: "/v1/chat", status: "ok",
+        }));
+      }
+      await Promise.all(promises);
+    } finally {
+      clock.mockRestore();
     }
-    await Promise.all(promises);
 
     const stats = await db.getUsageStats("24h");
     expect(stats.totalRequests).toBe(N);
@@ -43,6 +50,25 @@ describe("DB Concurrency — atomic safety", () => {
 
     const hist = await db.getUsageHistory({ provider: "openai" });
     expect(hist.length).toBe(N);
+  });
+
+  it("replaying explicitly timestamped cache usage is counted once", async () => {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      provider: "replay", model: "cache-model", connectionId: "replay-account",
+      tokens: { prompt_tokens: 330, completion_tokens: 50, cached_tokens: 200, cache_creation_input_tokens: 30 },
+    };
+    await Promise.all([
+      db.saveRequestUsage({ ...entry }),
+      db.saveRequestUsage({ ...entry, endpoint: "/v1/messages" }),
+    ]);
+    const history = await db.getUsageHistory({ provider: "replay" });
+    expect(history).toHaveLength(1);
+    expect(history[0].endpoint).toBe("/v1/messages");
+    expect(history[0].tokens.cached_tokens).toBe(200);
+    const stats = await db.getUsageStats("7d");
+    expect(stats.byProvider.replay.requests).toBe(1);
+    expect(stats.byProvider.replay.cachedTokens).toBe(200);
   });
 
   it("200 parallel saveRequestDetail → all flushed", async () => {
@@ -145,7 +171,8 @@ describe("DB Concurrency — atomic safety", () => {
     await Promise.all(promises);
     const p = await db.getPricing();
     for (let i = 0; i < N; i++) {
-      expect(p["race-prov"][`m${i}`]).toEqual({ input: i, output: i * 2 });
+      expect(p._canonical[`m${i}`]).toEqual({ input: i, output: i * 2 });
+      expect(await db.getPricingForModel("race-prov", `m${i}`)).toEqual({ input: i, output: i * 2 });
     }
   });
 

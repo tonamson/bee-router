@@ -23,9 +23,10 @@ function mockFetchOnce(bytes, ok = true) {
 
 beforeEach(() => {
   lookupMock.mockReset();
-  lookupMock.mockResolvedValue({ address: "93.184.216.34" }); // public by default
+  lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]); // public by default
 });
-afterEach(() => { vi.restoreAllMocks(); });
+const originalFetch = globalThis.fetch;
+afterEach(() => { globalThis.fetch = originalFetch; vi.restoreAllMocks(); });
 
 describe("fetchImageAsBase64 hardening", () => {
   it("rejects non-http url", async () => {
@@ -34,13 +35,23 @@ describe("fetchImageAsBase64 hardening", () => {
   });
 
   it("SSRF: rejects private IP (10.x)", async () => {
-    lookupMock.mockResolvedValue({ address: "10.0.0.5" });
+    lookupMock.mockResolvedValue([{ address: "10.0.0.5", family: 4 }]);
     expect(await fetchImageAsBase64("http://internal.example/x.png")).toBeNull();
   });
 
   it("SSRF: rejects cloud metadata 169.254.169.254", async () => {
-    lookupMock.mockResolvedValue({ address: "169.254.169.254" });
+    lookupMock.mockResolvedValue([{ address: "169.254.169.254", family: 4 }]);
     expect(await fetchImageAsBase64("http://metadata/x.png")).toBeNull();
+  });
+
+  it("SSRF: rejects mixed public and private DNS records before fetching", async () => {
+    lookupMock.mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+      { address: "10.0.0.5", family: 4 },
+    ]);
+    globalThis.fetch = vi.fn();
+    expect(await fetchImageAsBase64("https://example.com/a.png")).toBeNull();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("SSRF: rejects blocked hostname localhost", async () => {
@@ -48,7 +59,7 @@ describe("fetchImageAsBase64 hardening", () => {
   });
 
   it("SSRF: rejects IPv6 loopback", async () => {
-    lookupMock.mockResolvedValue({ address: "::1" });
+    lookupMock.mockResolvedValue([{ address: "::1", family: 6 }]);
     expect(await fetchImageAsBase64("http://x/y.png")).toBeNull();
   });
 
@@ -56,6 +67,8 @@ describe("fetchImageAsBase64 hardening", () => {
     mockFetchOnce(PNG);
     const r = await fetchImageAsBase64("https://example.com/a.png");
     expect(r).not.toBeNull();
+    expect(lookupMock).toHaveBeenCalledWith("example.com", { all: true });
+    expect(globalThis.fetch).toHaveBeenCalledWith("https://example.com/a.png", expect.objectContaining({ redirect: "manual", dispatcher: expect.any(Object) }));
     expect(r.mimeType).toBe("image/png");
     expect(r.url.startsWith("data:image/png;base64,")).toBe(true);
   });

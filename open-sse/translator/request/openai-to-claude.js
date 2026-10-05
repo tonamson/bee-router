@@ -253,6 +253,11 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map()) {
       }
     }
   } else if (msg.role === ROLE.ASSISTANT) {
+    // Compatible endpoints can replay OpenAI reasoning as thinking. Native
+    // Claude still drops unsigned/foreign blocks during prepareClaudeRequest.
+    if (typeof msg.reasoning_content === "string" && msg.reasoning_content) {
+      blocks.push({ type: CLAUDE_BLOCK.THINKING, thinking: msg.reasoning_content });
+    }
     if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
         if (part.type === OPENAI_BLOCK.TEXT && part.text) {
@@ -380,4 +385,3 @@ export { openaiToClaudeRequestForAntigravity };
 
 // Register
 register(FORMATS.OPENAI, FORMATS.CLAUDE, openaiToClaudeRequest, null);
-

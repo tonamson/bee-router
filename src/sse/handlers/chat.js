@@ -84,11 +84,11 @@ export async function handleChat(request, clientRawRequest = null) {
   }
 
   return runWithApiKeyLimits(apiKey, () =>
-    dispatchChat({ body, modelStr, clientRawRequest, request, apiKey, settings })
+    dispatchChat({ body, modelStr, contextMarker, clientRawRequest, request, apiKey, settings })
   );
 }
 
-async function dispatchChat({ body, modelStr, clientRawRequest, request, apiKey, settings }) {
+async function dispatchChat({ body, modelStr, contextMarker, clientRawRequest, request, apiKey, settings }) {
   if (!modelStr) {
     log.warn("CHAT", "Missing model");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Missing model");

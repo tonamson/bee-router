@@ -249,6 +249,9 @@ export async function getActiveRequests() {
 
 export async function saveRequestUsage(entry) {
   try {
+    // Only an existing event timestamp can identify a replay. Fresh requests
+    // routinely share a millisecond and the same token counts under load.
+    const isReplayCandidate = Boolean(entry.timestamp);
     const db = await getAdapter();
 
     if (!entry.timestamp) entry.timestamp = new Date().toISOString();
@@ -263,7 +266,7 @@ export async function saveRequestUsage(entry) {
     // All 3 writes (history insert, daily upsert, lifetime counter) in ONE transaction.
     // better-sqlite3 is sync → no JS yield mid-transaction → no race in same process.
     db.transaction(() => {
-      const existing = db.get(
+      const existing = isReplayCandidate ? db.get(
         `SELECT id, endpoint FROM usageHistory
          WHERE timestamp = ?
            AND COALESCE(provider, '') = COALESCE(?, '')
@@ -278,7 +281,7 @@ export async function saveRequestUsage(entry) {
           entry.connectionId || null, entry.apiKey || null,
           promptTokens, completionTokens,
         ]
-      );
+      ) : null;
 
       if (existing) {
         if (!existing.endpoint && entry.endpoint) {

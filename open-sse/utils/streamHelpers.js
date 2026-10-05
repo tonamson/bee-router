@@ -8,21 +8,20 @@ const sharedEncoder = new TextEncoder();
 export function parseSSELine(line, format = null) {
   if (!line) return null;
 
-  // NDJSON format (Ollama): raw JSON lines without "data:" prefix
-  if (format === FORMATS.OLLAMA) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("{")) {
-      try {
-        return JSON.parse(trimmed);
-      } catch (error) {
-        return null;
-      }
+  // Some compatible providers send NDJSON without declaring Ollama format.
+  // Only object lines are data; SSE event/id/comment fields remain ignored.
+  const trimmed = line.trim();
+  if (trimmed.startsWith("{")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (error) {
+      return null;
     }
-    return null;
   }
+  if (format === FORMATS.OLLAMA) return null;
 
   // Standard SSE format: "data: {...}"
-  if (line.charCodeAt(0) !== 100) return null; // 'd' = 100
+  if (!line.startsWith("data:")) return null;
 
   const data = line.slice(5).trim();
   if (data === "[DONE]") return { done: true };

@@ -33,6 +33,20 @@ describe("OpenAI → Claude context mapping", () => {
     }));
   });
 
+  it("native Claude removes unsigned OpenAI reasoning instead of inventing a signature", () => {
+    const out = translateRequest(FORMATS.OPENAI, FORMATS.CLAUDE, "claude-sonnet-4-6", {
+      messages: [
+        { role: "user", content: "q" },
+        { role: "assistant", content: "a", reasoning_content: "foreign reasoning" },
+        { role: "user", content: "next" },
+      ],
+    }, true, null, "claude");
+    const assistant = out.messages.find(m => m.role === "assistant");
+    expect(assistant.content.some(block => block.type === "thinking")).toBe(false);
+    expect(JSON.stringify(out)).not.toContain("foreign reasoning");
+    expect(assistant.content).toContainEqual(expect.objectContaining({ type: "text", text: "a" }));
+  });
+
   // openai-to-claude.js:298 — tool_choice "none" mapped to {type:"auto"} (loses "do not call" intent)
   // KNOWN BUG
   it.fails("tool_choice=none is not turned into auto", () => {

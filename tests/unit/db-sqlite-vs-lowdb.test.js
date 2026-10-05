@@ -386,13 +386,13 @@ describe("DB SQLite layer — public API parity", () => {
   it("pricing: user pricing merged with constants", async () => {
     await sqliteDb.updatePricing({ openai: { "gpt-test": { input: 1, output: 2 } } });
     const p = await sqliteDb.getPricing();
-    expect(p.openai["gpt-test"]).toEqual({ input: 1, output: 2 });
+    expect(p._canonical["gpt-test"]).toEqual({ input: 1, output: 2 });
 
     const single = await sqliteDb.getPricingForModel("openai", "gpt-test");
     expect(single).toEqual({ input: 1, output: 2 });
 
     await sqliteDb.resetPricing("openai", "gpt-test");
-    expect((await sqliteDb.getPricing()).openai?.["gpt-test"]).toBeUndefined();
+    expect((await sqliteDb.getPricing())._canonical["gpt-test"]).toBeUndefined();
   });
 
   it("getChartData: 24h buckets", async () => {

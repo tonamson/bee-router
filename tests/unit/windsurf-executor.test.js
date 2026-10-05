@@ -7,6 +7,7 @@ import {
   default as WindsurfExecutor,
 } from "open-sse/executors/windsurf.js";
 import { PROVIDERS } from "open-sse/config/providers.js";
+import windsurf from "../../open-sse/providers/registry/windsurf.js";
 
 // ─── Protobuf helpers for building expected wire bytes in tests ──────────────
 
@@ -161,11 +162,11 @@ describe("decodeCompletionChunk", () => {
 });
 
 describe("WindsurfExecutor class", () => {
-  it("constructor wires config from PROVIDERS.windsurf", () => {
+  it("constructor retains the standalone Codeium transport", () => {
     const ex = new WindsurfExecutor();
     expect(ex.provider).toBe("windsurf");
     expect(ex.config).toBeDefined();
-    expect(ex.config.baseUrl).toContain("server.self-serve.windsurf.com");
+    expect(ex.config.baseUrl).toContain("server.codeium.com");
     expect(typeof ex.execute).toBe("function");
   });
 
@@ -187,12 +188,13 @@ describe("WindsurfExecutor class", () => {
 
   it("buildUrl returns the GetChatMessage endpoint", () => {
     const ex = new WindsurfExecutor();
-    expect(ex.buildUrl()).toBe("https://server.self-serve.windsurf.com/exa.language_server_pb.LanguageServerService/GetChatMessage");
+    expect(ex.buildUrl()).toBe("https://server.codeium.com/exa.language_server_pb.LanguageServerService/GetChatMessage");
   });
 
-  it("PROVIDERS.windsurf baseUrl is the chat endpoint (registry in sync)", () => {
-    expect(PROVIDERS.windsurf.baseUrl).toBe(
-      "https://server.self-serve.windsurf.com/exa.language_server_pb.LanguageServerService/GetChatMessage"
+  it("keeps the dormant transport in sync without exposing the fork-hidden provider", () => {
+    expect(PROVIDERS.windsurf).toBeUndefined();
+    expect(windsurf.transport.baseUrl).toBe(
+      "https://server.codeium.com/exa.language_server_pb.LanguageServerService/GetChatMessage"
     );
   });
 });

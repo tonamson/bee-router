@@ -26,7 +26,8 @@ describe("AntigravityExecutor stream_options normalization", () => {
       credentials,
     );
 
-    expect(output.stream).toBe(false);
+    expect(output.stream).toBeUndefined();
+    expect(executor.buildUrl("gpt-oss-120b-medium", false)).toContain("generateContent");
     expect(output.stream_options).toBeUndefined();
   });
 
@@ -39,7 +40,8 @@ describe("AntigravityExecutor stream_options normalization", () => {
       credentials,
     );
 
-    expect(output.stream).toBe(true);
+    expect(output.stream).toBeUndefined();
+    expect(executor.buildUrl("gpt-oss-120b-medium", true)).toContain("streamGenerateContent?alt=sse");
     expect(output.stream_options).toEqual({ include_usage: true });
   });
 });

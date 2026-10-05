@@ -353,12 +353,38 @@ export function geminiFunctionParameters(func) {
   return func?.parameters || func?.parametersJsonSchema || { type: "object", properties: {} };
 }
 
+// Gemini cannot accept $ref. Expand local pointers before removing definitions,
+// with a per-branch reference stack so recursive schemas remain finite.
+function inlineLocalSchemaRefs(schema) {
+  function expand(value, references = new Set()) {
+    if (!value || typeof value !== "object") return value;
+    if (Array.isArray(value)) return value.map(item => expand(item, references));
+    let source = value;
+    const ref = value.$ref;
+    if (typeof ref === "string" && (ref === "#" || ref.startsWith("#/"))) {
+      let target = schema;
+      for (const token of ref === "#" ? [] : ref.slice(2).split("/")) {
+        const key = token.replace(/~1/g, "/").replace(/~0/g, "~");
+        target = target && Object.prototype.hasOwnProperty.call(target, key) ? target[key] : undefined;
+      }
+      if (target && typeof target === "object" && !Array.isArray(target)) {
+        const { $ref, ...siblings } = value;
+        if (references.has(ref)) return expand(siblings, references);
+        const next = new Set(references);
+        next.add(ref);
+        return expand({ ...target, ...siblings }, next);
+      }
+    }
+    return Object.fromEntries(Object.entries(source).map(([key, child]) => [key, expand(child, references)]));
+  }
+  return expand(schema);
+}
+
 // Clean JSON Schema for Antigravity API compatibility - removes unsupported keywords recursively
 export function cleanJSONSchemaForAntigravity(schema) {
   if (!schema || typeof schema !== "object") return schema;
 
-  // Mutate directly (schema is only used once per request)
-  let cleaned = schema;
+  let cleaned = inlineLocalSchemaRefs(schema);
 
   // Phase 1: Convert and prepare
   convertConstToEnum(cleaned);
