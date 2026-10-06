@@ -1,3 +1,11 @@
+# v0.3.10 — Codex model catalog and GHCR publishing (2026-10-06)
+
+- Documented Codex models included in the 9router v0.5.95 sync: GPT 6.1 Sol (`cx/gpt-6.1-sol`), GPT 6.0 Sol (`cx/gpt-6-sol`), GPT 6.0 Luna, and GPT 6.0 Astra.
+- Included extended-context variants for GPT 6.0 and Responses Lite transport support for Sol and Luna, with supported reasoning levels and GPT 6.1 Sol `ultra` mapped to `max`.
+- Published container images exclusively to GHCR, with versioned tags and `latest` for stable releases.
+
+---
+
 # v0.3.9 — Reliability fixes (2026-10-05)
 
 - Fixed single-model chat dispatch and preserved extended-context account selection.
