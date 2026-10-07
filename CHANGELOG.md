@@ -1,3 +1,12 @@
+# v0.3.11 — Antigravity CLI setup fixes (2026-10-07)
+
+- Fixed herdr no longer detecting Antigravity CLI after Apply: the wrapper now execs a binary still named `agy` (`~/.gemini/antigravity-cli/bee-router/agy`), and existing `agy.real` installs migrate automatically on the next Apply.
+- Showed the routed model in the agy banner (e.g. `ag/gemini-3.8-flash-medium` → `Gemini 3.8 Flash (Medium)`) instead of always `Gemini 3.1 Pro (Low)`.
+- Kept the selected bee-router model after a dashboard reload, so re-applying no longer writes a catalog label as the route target.
+- Security: quoted wrapper env values so sourcing cannot execute `$(...)` or backticks, and wrote `bee-router.env` (holds the API key) as owner-only `0600`.
+
+---
+
 # v0.3.10 — Codex model catalog and GHCR publishing (2026-10-06)
 
 - Documented Codex models included in the 9router v0.5.95 sync: GPT 6.1 Sol (`cx/gpt-6.1-sol`), GPT 6.0 Sol (`cx/gpt-6-sol`), GPT 6.0 Luna, and GPT 6.0 Astra.
