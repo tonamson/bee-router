@@ -30,7 +30,9 @@ const getAgyBinPath = () => {
   return path.join(os.homedir(), ".local", "bin", "agy");
 };
 
-const getRealBinPath = () => path.join(getAgyDir(), "agy.real");
+// Basename must stay `agy` — herdr detects the agent by process name after the wrapper's exec.
+const getRealBinPath = () => path.join(getAgyDir(), "bee-router", "agy");
+const getLegacyRealBinPath = () => path.join(getAgyDir(), "agy.real");
 
 const installAgyWrapper = async () => {
   if (os.platform() === "win32") return;
@@ -43,11 +45,34 @@ const installAgyWrapper = async () => {
     if (error.code === "ENOENT") return;
     throw error;
   }
-  const asText = existing.toString("utf8");
-  if (isAgyWrapper(asText)) return;
-  await fs.copyFile(bin, real);
-  await fs.chmod(real, 0o755);
-  await fs.writeFile(bin, serializeAgyWrapper({ envPath: getEnvPath(), realBin: real }), { mode: 0o755 });
+  await fs.mkdir(path.dirname(real), { recursive: true });
+  const wrapper = serializeAgyWrapper({ envPath: getEnvPath(), realBin: real });
+  if (!isAgyWrapper(existing.toString("utf8"))) {
+    await fs.copyFile(bin, real);
+    await fs.chmod(real, 0o755);
+    await fs.writeFile(bin, wrapper, { mode: 0o755 });
+    return;
+  }
+  // Migrate pre-fix installs that exec'd `agy.real` (invisible to herdr).
+  let migrated = false;
+  try {
+    await fs.access(real);
+  } catch {
+    try {
+      await fs.rename(getLegacyRealBinPath(), real);
+      migrated = true;
+    } catch (error) {
+      if (error.code === "ENOENT") return;
+      throw error;
+    }
+  }
+  try {
+    await fs.writeFile(bin, wrapper, { mode: 0o755 });
+  } catch (error) {
+    // Old wrapper still execs agy.real — put it back so agy keeps working.
+    if (migrated) await fs.rename(real, getLegacyRealBinPath());
+    throw error;
+  }
 };
 
 const uninstallAgyWrapper = async () => {
@@ -60,18 +85,24 @@ const uninstallAgyWrapper = async () => {
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
+  const candidates = [real, getLegacyRealBinPath()];
   if (isAgyWrapper(existing)) {
+    for (const candidate of candidates) {
+      try {
+        await fs.copyFile(candidate, bin);
+        await fs.chmod(bin, 0o755);
+        break;
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
+  }
+  for (const candidate of candidates) {
     try {
-      await fs.copyFile(real, bin);
-      await fs.chmod(bin, 0o755);
+      await fs.unlink(candidate);
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
-  }
-  try {
-    await fs.unlink(real);
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
   }
 };
 
@@ -158,6 +189,7 @@ export async function GET() {
       env: {
         GOOGLE_GEMINI_BASE_URL: env.GOOGLE_GEMINI_BASE_URL || "",
         GEMINI_API_KEY: env.GEMINI_API_KEY || "",
+        BEE_ROUTER_MODEL: env.BEE_ROUTER_MODEL || "",
       },
       hasBeeRouter: hasBeeRouterConfig(settings, env),
       configPath: getSettingsPath(),
@@ -196,7 +228,9 @@ export async function POST(request) {
     });
 
     await fs.writeFile(getSettingsPath(), `${JSON.stringify(settings, null, 2)}\n`);
-    await fs.writeFile(getEnvPath(), envText);
+    // Holds GEMINI_API_KEY: owner-only; mode on writeFile only applies at create.
+    await fs.writeFile(getEnvPath(), envText, { mode: 0o600 });
+    await fs.chmod(getEnvPath(), 0o600);
     await installAgyWrapper();
     await updateExistingProfiles(removeShellBlock);
 

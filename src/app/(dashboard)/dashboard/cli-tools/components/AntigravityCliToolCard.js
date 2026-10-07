@@ -76,7 +76,9 @@ export default function AntigravityCliToolCard({
   useEffect(() => {
     if (agyStatus?.installed && !hasInitializedModel.current) {
       hasInitializedModel.current = true;
-      if (agyStatus.settings?.model) setSelectedModel(agyStatus.settings.model);
+      // settings.model is agy's catalog label; the routed bee-router id lives in the env file.
+      const current = agyStatus.env?.BEE_ROUTER_MODEL || agyStatus.settings?.model;
+      if (current) setSelectedModel(current);
     }
   }, [agyStatus]);
 
@@ -175,8 +177,8 @@ export default function AntigravityCliToolCard({
         content: `GEMINI_API_KEY=${keyToUse}\nGOOGLE_GEMINI_BASE_URL=${baseUrl}\n`,
       },
       {
-        filename: "~/.gemini/antigravity-cli/agy.real + ~/.local/bin/agy wrapper",
-        content: `#!/bin/sh\n# bee-router-agy-wrapper\nset -a; . ~/.gemini/antigravity-cli/bee-router.env; set +a\nexec ~/.gemini/antigravity-cli/agy.real "$@"\n`,
+        filename: "~/.gemini/antigravity-cli/bee-router/agy + ~/.local/bin/agy wrapper",
+        content: `#!/bin/sh\n# bee-router-agy-wrapper\nset -a; . ~/.gemini/antigravity-cli/bee-router.env; set +a\nexec ~/.gemini/antigravity-cli/bee-router/agy "$@"\n`,
       },
     ];
   };
