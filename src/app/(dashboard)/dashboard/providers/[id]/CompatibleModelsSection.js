@@ -4,6 +4,7 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { Button } from "@/shared/components";
 import { getProviderCustomModelRows } from "@/shared/utils/providerCustomModels";
+import { mergeProviderModelCatalog, normalizeProviderModelCatalog } from "@/shared/utils/providerModelCatalog";
 function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias, onTest, testStatus, isTesting }) {
   const borderColor = testStatus === "ok"
     ? "border-green-500/40"
@@ -60,18 +61,20 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
           )}
         </div>
       </div>
-      <button
-        onClick={onDeleteAlias}
-        className="p-1 hover:bg-red-50 rounded text-red-500"
-        title="Remove model"
-      >
-        <span className="material-symbols-outlined text-sm">delete</span>
-      </button>
+      {onDeleteAlias && (
+        <button
+          onClick={onDeleteAlias}
+          className="p-1 hover:bg-red-50 rounded text-red-500"
+          title="Remove model"
+        >
+          <span className="material-symbols-outlined text-sm">delete</span>
+        </button>
+      )}
     </div>
   );
 }
 
-export default function CompatibleModelsSection({ providerStorageAlias, providerDisplayAlias, modelAliases, customModels, copied, onCopy, onDeleteAlias, onAddCustomModel, onDeleteCustomModel, connections, isAnthropic }) {
+export default function CompatibleModelsSection({ providerStorageAlias, providerDisplayAlias, modelAliases, customModels, liveModels = [], copied, onCopy, onDeleteAlias, onAddCustomModel, onDeleteCustomModel, connections, isAnthropic }) {
   const [newModel, setNewModel] = useState("");
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -102,6 +105,7 @@ export default function CompatibleModelsSection({ providerStorageAlias, provider
     providerAlias: providerStorageAlias,
     type: "llm",
   });
+  const displayedModels = mergeProviderModelCatalog(allModels, liveModels.map(({ id }) => ({ id })));
 
   const handleAdd = async () => {
     if (!newModel.trim() || adding) return;
@@ -135,15 +139,13 @@ export default function CompatibleModelsSection({ providerStorageAlias, provider
         alert(data.error || "Failed to import models");
         return;
       }
-      const models = data.models || [];
+      const models = normalizeProviderModelCatalog(providerStorageAlias, data.models);
       if (models.length === 0) {
         alert("No models returned from /models.");
         return;
       }
       let importedCount = 0;
-      for (const model of models) {
-        const modelId = model.id || model.name || model.model;
-        if (!modelId) continue;
+      for (const { id: modelId } of models) {
         if (allModels.some((entry) => entry.id === modelId)) continue;
         await onAddCustomModel(modelId);
         importedCount += 1;
@@ -163,7 +165,7 @@ export default function CompatibleModelsSection({ providerStorageAlias, provider
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-text-muted">
-        Add {isAnthropic ? "Anthropic" : "OpenAI"}-compatible models manually or import them from the /models endpoint.
+        {isAnthropic ? "Anthropic" : "OpenAI"}-compatible models load automatically from the /models endpoint. Add or import models to save them locally.
       </p>
 
       <div className="flex items-end gap-2 flex-wrap">
@@ -193,16 +195,16 @@ export default function CompatibleModelsSection({ providerStorageAlias, provider
         </p>
       )}
 
-      {allModels.length > 0 && (
+      {displayedModels.length > 0 && (
         <div className="flex flex-col gap-3">
-          {allModels.map(({ id, alias, source }) => (
+          {displayedModels.map(({ id, alias, source }) => (
             <CompatibleModelRow
-              key={`${source}-${providerStorageAlias}/${id}`}
+              key={`${providerStorageAlias}/${id}`}
               modelId={id}
               fullModel={`${providerDisplayAlias}/${id}`}
               copied={copied}
               onCopy={onCopy}
-              onDeleteAlias={() => source === "custom" ? onDeleteCustomModel(id) : onDeleteAlias(alias)}
+              onDeleteAlias={source && (() => source === "custom" ? onDeleteCustomModel(id) : onDeleteAlias(alias))}
               onTest={connections.length > 0 ? () => handleTestModel(id) : undefined}
               testStatus={modelTestResults[id]}
               isTesting={testingModelId === id}
@@ -219,6 +221,7 @@ CompatibleModelsSection.propTypes = {
   providerDisplayAlias: PropTypes.string.isRequired,
   modelAliases: PropTypes.object.isRequired,
   customModels: PropTypes.arrayOf(PropTypes.object),
+  liveModels: PropTypes.arrayOf(PropTypes.object),
   copied: PropTypes.string,
   onCopy: PropTypes.func.isRequired,
   onDeleteAlias: PropTypes.func.isRequired,

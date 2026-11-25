@@ -645,10 +645,12 @@ export async function GET(request, { params }) {
       });
     }
 
-    const config = PROVIDER_MODELS_CONFIG[connection.provider];
+    const config = Object.hasOwn(PROVIDER_MODELS_CONFIG, connection.provider)
+      ? PROVIDER_MODELS_CONFIG[connection.provider]
+      : null;
     if (!config) {
       return NextResponse.json(
-        { error: `Provider ${connection.provider} does not support models listing` },
+        { error: `Provider ${connection.provider} does not support models listing`, code: "MODELS_LIST_UNSUPPORTED" },
         { status: 400 }
       );
     }
